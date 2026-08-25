@@ -1,0 +1,67 @@
+{
+  // Úlohy se spouštějí přes nabídku Terminál → Spustit úlohu…
+  // Jsou očíslované v pořadí, ve kterém je člověk obvykle potřebuje.
+  //
+  // Na Windows je volá spouštěč v PowerShellu, protože umí doinstalovat
+  // Node.js, kdyby na počítači chyběl. Na Macu a Linuxu se volá npm přímo.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "0 - Pripravit pocitac (staci jednou)",
+      "detail": "Doplní vše potřebné, aby web šlo spustit. Stačí pustit jednou.",
+      "type": "shell",
+      "windows": {
+        "command": "powershell",
+        "args": ["-ExecutionPolicy", "Bypass", "-File", "nastroje/spustit.ps1", "priprava"]
+      },
+      "command": "npm",
+      "args": ["install"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "1 - Nahled webu",
+      "detail": "Otevře web v prohlížeči. Po uložení souboru se stránka obnoví sama.",
+      "type": "shell",
+      "windows": {
+        "command": "powershell",
+        "args": ["-ExecutionPolicy", "Bypass", "-File", "nastroje/spustit.ps1", "nahled"]
+      },
+      "command": "npm",
+      "args": ["run", "dev", "--", "--open"],
+      // Náhled běží pořád dokola, dokud ho nezavřete — proto na pozadí.
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "2 - Zverejnit web",
+      "detail": "Sestaví web, uloží změny a odešle je. Draft se aktualizuje sám do pár minut.",
+      "type": "shell",
+      "windows": {
+        "command": "powershell",
+        "args": ["-ExecutionPolicy", "Bypass", "-File", "nastroje/spustit.ps1", "zverejnit"]
+      },
+      "command": "npm",
+      "args": ["run", "zverejnit"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ]
+}
