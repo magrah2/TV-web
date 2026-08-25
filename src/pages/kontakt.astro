@@ -1,0 +1,164 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+import Krivka from '../components/Krivka.astro';
+
+const EMAIL = 'info@transparentnivyskov.cz';
+---
+
+<Zaklad
+  titulek="Kontakt"
+  popis="Napište nám. Transparentní Vyškov — sdružení nezávislých kandidátů do zastupitelstva města Vyškova."
+>
+  <div class="pruh kontakt">
+    <div>
+      <p class="nadtitulek">Kontakt</p>
+      <h1>Ozvěte se nám</h1>
+      <p class="perex uvod">
+        Máte dotaz, nápad, nebo vás něco ve Vyškově štve? Napište. Odpovídáme my sami,
+        ne žádné oddělení komunikace.
+      </p>
+
+      <a class="velky-email" href={`mailto:${EMAIL}`} data-kopirovat={EMAIL}>
+        {EMAIL}
+        <span class="kopirovat" hidden>Zkopírovat</span>
+      </a>
+
+      <p class="doplnek">
+        Odpovídáme obvykle do několika dnů. Pokud spěcháte, napište to do předmětu.
+      </p>
+    </div>
+
+    <aside class="volby">
+      <Krivka varianta="znacka" class="volby-znak" />
+      <h2>Volby do zastupitelstva</h2>
+      <p class="volby-datum">9.–10. října 2026</p>
+      <p class="volby-hodiny">
+        pátek 14:00–22:00<br />
+        sobota 8:00–14:00
+      </p>
+      <p class="volby-pozn">
+        Volí se 27 zastupitelů města Vyškova, takže máte 27 hlasů.
+      </p>
+    </aside>
+  </div>
+</Zaklad>
+
+<style>
+  .kontakt {
+    display: grid;
+    gap: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  @media (min-width: 860px) {
+    .kontakt {
+      grid-template-columns: 1.4fr 1fr;
+      align-items: start;
+    }
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .velky-email {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-size: clamp(1.2rem, 3.4vw, 1.9rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--inkoust);
+    text-decoration: none;
+    border-bottom: 2px solid var(--zelena);
+    padding-bottom: 0.15rem;
+    transition: color var(--prechod);
+  }
+
+  .velky-email:hover {
+    color: var(--modra-text);
+  }
+
+  .kopirovat {
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--linka-vyrazna);
+    border-radius: 999px;
+    font-size: var(--text-drobny);
+    font-weight: 500;
+    color: var(--inkoust-tlum);
+    letter-spacing: 0;
+  }
+
+  .doplnek {
+    max-width: var(--sirka-textu);
+    margin-top: 1.5rem;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .volby {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(1.5rem, 3vw, 2rem);
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin);
+  }
+
+  .volby :global(.volby-znak) {
+    width: 2rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .volby h2 {
+    font-size: var(--text-nadpis-3);
+  }
+
+  .volby-datum {
+    margin: 0.35rem 0 0;
+    font-size: var(--text-nadpis-2);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .volby-hodiny {
+    margin: 0.75rem 0 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .volby-pozn {
+    margin: 1.1rem 0 0;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--linka);
+    font-size: var(--text-drobny);
+    color: var(--inkoust-tlum);
+  }
+</style>
+
+<script>
+  // Stejné chování jako v patičce: klik zkopíruje adresu, mailto: zůstane
+  // funkční pro případ, že prohlížeč schránku nepovolí.
+  const email = document.querySelector<HTMLAnchorElement>('.velky-email');
+  const znacka = email?.querySelector<HTMLElement>('.kopirovat');
+
+  if (email && znacka && navigator.clipboard) {
+    znacka.hidden = false;
+    email.addEventListener('click', async (e) => {
+      const text = email.dataset.kopirovat;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        return;
+      }
+      e.preventDefault();
+      znacka.textContent = 'Zkopírováno';
+      setTimeout(() => {
+        znacka.textContent = 'Zkopírovat';
+      }, 1600);
+    });
+  }
+</script>

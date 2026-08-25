@@ -1,0 +1,658 @@
+---
+import { getCollection, render } from 'astro:content';
+import Zaklad from '../../layouts/Zaklad.astro';
+import KartaKandidata from '../../components/KartaKandidata.astro';
+import Portret from '../../components/Portret.astro';
+import { TEMATA, temaDoAdresy } from '../../lib/temata';
+
+const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
+
+const sObsahem = await Promise.all(
+  kandidati.map(async (clovek) => {
+    const { Content } = await render(clovek);
+    // Vygenerovaná šablona obsahuje jen HTML komentář s pokyny. Než ji někdo
+    // vyplní, je tělo prakticky prázdné — a prázdný panel vypadá rozbitě,
+    // takže se místo něj ukáže poctivá poznámka.
+    const telo = (clovek.body ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
+    return { ...clovek, Obsah: Content, maTelo: telo.length > 0 };
+  }),
+);
+
+/** Nabízí se jen to, co je na kandidátce skutečně zastoupené —
+    prázdný filtr, který nic nenajde, je horší než žádný filtr. */
+const pouziteTemata = TEMATA.filter((tema) =>
+  kandidati.some((clovek) => clovek.data.temata.includes(tema)),
+);
+
+const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter(Boolean))] as string[];
+---
+
+<Zaklad
+  titulek="Naši kandidáti"
+  popis="Sedmadvacet lidí z Vyškova, kteří kandidují do zastupitelstva města. Učitelé, živnostníci, zdravotní sestra, studenti i důchodci."
+>
+  <div class="pruh">
+    <p class="nadtitulek">Naši kandidáti</p>
+    <h1>Sedmadvacet lidí, kteří tady žijí</h1>
+    <p class="perex uvod">
+      Nikdo z nás není profesionální politik. Kliknutím na kohokoliv se dozvíte víc.
+    </p>
+
+    {/* ---------- Filtry ---------- */}
+    <div class="filtry" data-filtry hidden>
+      <div class="filtr-skupina">
+        <h2 class="filtr-nadpis">Čemu se chtějí věnovat</h2>
+        <div class="filtr-tlacitka" role="group" aria-label="Filtrovat podle tématu">
+          <button type="button" class="filtr je-aktivni" data-filtr="tema" data-hodnota="">
+            Vše
+          </button>
+          {
+            pouziteTemata.map((tema) => (
+              <button type="button" class="filtr" data-filtr="tema" data-hodnota={temaDoAdresy(tema)}>
+                {tema}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      {
+        prislusnosti.length > 0 && (
+          <div class="filtr-skupina">
+            {/* Příslušnost je uvedená na kandidátní listině, takže ji ukazujeme
+                dobrovolně i na webu — schovávat ji by se s názvem strany pralo. */}
+            <h2 class="filtr-nadpis">Příslušnost</h2>
+            <div class="filtr-tlacitka" role="group" aria-label="Filtrovat podle příslušnosti">
+              <button type="button" class="filtr je-aktivni" data-filtr="prislusnost" data-hodnota="">
+                Vše
+              </button>
+              <button type="button" class="filtr" data-filtr="prislusnost" data-hodnota="nezavisly">
+                Bez stranické příslušnosti
+              </button>
+              {prislusnosti.map((p) => (
+                <button type="button" class="filtr" data-filtr="prislusnost" data-hodnota={temaDoAdresy(p)}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      }
+    </div>
+
+    <p class="pocet" data-pocet aria-live="polite">Zobrazeno všech {kandidati.length} kandidátů</p>
+
+    {/* ---------- Mřížka ---------- */}
+    <div class="mrizka" id="kandidatka">
+      {
+        kandidati.map((clovek) => (
+          <KartaKandidata
+            poradi={clovek.data.poradi}
+            jmeno={clovek.data.jmeno}
+            vek={clovek.data.vek}
+            povolani={clovek.data.povolani}
+            temata={clovek.data.temata}
+            prislusnost={clovek.data.prislusnost ?? undefined}
+            foto={clovek.data.foto ?? undefined}
+          />
+        ))
+      }
+    </div>
+
+    <p class="prazdno" data-prazdno hidden>
+      Tomuhle filtru zatím nikdo neodpovídá. <button type="button" data-zrusit-filtry>Zrušit filtry</button>
+    </p>
+  </div>
+
+  {/* ---------- Medailonky ----------
+      Všechny jsou v HTML a schované. Otevírá je CSS přes `:target`, takže
+      to funguje i bez JavaScriptu — adresa s kotvou prostě ukáže ten správný.
+      Skript pak přebírá kliknutí, aby stránka neodskočila, a přidává
+      zavírání Escapem a procházení mezi lidmi. */}
+  <div class="medailonky" data-medailonky>
+    {
+      sObsahem.map((clovek, index) => {
+        const predchozi = sObsahem[index - 1];
+        const dalsi = sObsahem[index + 1];
+        return (
+          <article class="medailonek" id={`medailonek-${clovek.data.poradi}`} aria-labelledby={`jmeno-${clovek.data.poradi}`}>
+            <a class="medailonek-podklad" href="#kandidatka" tabindex="-1" aria-label="Zavřít medailonek" />
+
+            <div class="medailonek-panel" role="dialog" aria-modal="true" aria-labelledby={`jmeno-${clovek.data.poradi}`}>
+              <a class="medailonek-zavrit" href="#kandidatka" data-zavrit>
+                <span aria-hidden="true">×</span>
+                <span class="jen-pro-ctecky">Zavřít</span>
+              </a>
+
+              <div class="medailonek-obsah">
+                <div class="medailonek-portret">
+                  <Portret foto={clovek.data.foto ?? undefined} jmeno={clovek.data.jmeno} velikost="detail" />
+                  <span class="medailonek-cislo">{clovek.data.poradi}</span>
+                </div>
+
+                <div class="medailonek-text">
+                  <h2 id={`jmeno-${clovek.data.poradi}`}>{clovek.data.jmeno}</h2>
+
+                  <p class="medailonek-meta">
+                    {clovek.data.vek ? `${clovek.data.vek} let · ` : ''}{clovek.data.povolani}
+                    {clovek.data.pusobeni ? ` · ${clovek.data.pusobeni}` : ''}
+                  </p>
+
+                  {clovek.data.prislusnost && (
+                    <p class="medailonek-prislusnost">{clovek.data.prislusnost}</p>
+                  )}
+
+                  {clovek.data.citace && <blockquote class="medailonek-citace">{clovek.data.citace}</blockquote>}
+
+                  {clovek.data.temata.length > 0 && (
+                    <ul class="medailonek-temata">
+                      {clovek.data.temata.map((tema) => (
+                        <li class="stitek">{tema}</li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {
+                    clovek.maTelo ? (
+                      <div class="medailonek-telo">
+                        <clovek.Obsah />
+                      </div>
+                    ) : (
+                      <p class="medailonek-chybi">Medailonek zatím doplňujeme.</p>
+                    )
+                  }
+                </div>
+              </div>
+
+              <nav class="medailonek-sousede" aria-label="Další kandidáti">
+                {predchozi ? (
+                  <a href={`#medailonek-${predchozi.data.poradi}`} data-medailonek={predchozi.data.poradi}>
+                    ← {predchozi.data.jmeno}
+                  </a>
+                ) : (
+                  <span />
+                )}
+                {dalsi && (
+                  <a href={`#medailonek-${dalsi.data.poradi}`} data-medailonek={dalsi.data.poradi}>
+                    {dalsi.data.jmeno} →
+                  </a>
+                )}
+              </nav>
+            </div>
+          </article>
+        );
+      })
+    }
+  </div>
+</Zaklad>
+
+<style>
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  /* ---------- Filtry ---------- */
+
+  /* Bez tohohle by `hidden` neúčinkovalo: `display: grid` z třídy přebije
+     `display: none`, které prohlížeč atributu `hidden` dává sám.
+     Následek by byla mrtvá tlačítka u lidí s vypnutým JavaScriptem. */
+  .filtry[hidden] {
+    display: none;
+  }
+
+  .filtry {
+    display: grid;
+    gap: 1.25rem;
+    margin-top: clamp(2rem, 4vw, 3rem);
+    padding: 1.25rem;
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+  }
+
+  @media (min-width: 860px) {
+    .filtry {
+      grid-template-columns: 1.4fr 1fr;
+      gap: 2rem;
+    }
+  }
+
+  .filtr-nadpis {
+    margin: 0 0 0.6rem;
+    font-size: var(--text-drobny);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--inkoust-tlum);
+  }
+
+  .filtr-tlacitka {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .filtr {
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--linka-vyrazna);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--inkoust);
+    font: inherit;
+    font-size: var(--text-drobny);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--prechod), border-color var(--prechod), color var(--prechod);
+  }
+
+  .filtr:hover {
+    border-color: var(--modra);
+    color: var(--modra-text);
+  }
+
+  .filtr.je-aktivni {
+    background: var(--modra);
+    border-color: var(--modra);
+    color: #fff;
+  }
+
+  .pocet {
+    margin: 1.25rem 0 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .prazdno {
+    margin-top: 2rem;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .prazdno button {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: var(--modra-text);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ---------- Mřížka ---------- */
+
+  .mrizka {
+    display: grid;
+    gap: clamp(1.5rem, 3vw, 2.25rem) clamp(1rem, 2.5vw, 1.75rem);
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+    grid-template-columns: repeat(2, 1fr);
+    scroll-margin-top: 6rem;
+  }
+
+  @media (min-width: 560px) {
+    .mrizka {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 860px) {
+    .mrizka {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (min-width: 1080px) {
+    .mrizka {
+      grid-template-columns: repeat(5, 1fr);
+    }
+  }
+
+  /* Karta odfiltrovaná pryč — `hidden` by nestačilo, mřížka drží display */
+  .mrizka :global(.karta-kandidata[data-skryta]) {
+    display: none;
+  }
+
+  /* ---------- Medailonek ---------- */
+
+  .medailonek {
+    display: none;
+  }
+
+  /* Bez JavaScriptu otevírá `:target`, s ním třída. Obojí vede na stejný stav. */
+  .medailonek:target,
+  .medailonek.je-otevreny {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: clamp(0.75rem, 3vw, 2rem);
+  }
+
+  .medailonek-podklad {
+    position: absolute;
+    inset: 0;
+    background: rgb(11 32 50 / 0.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  .medailonek-panel {
+    position: relative;
+    width: min(940px, 100%);
+    max-height: min(88vh, 900px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    background: var(--plocha);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 70px rgb(11 32 50 / 0.35);
+    animation: prijezd 0.26s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  @keyframes prijezd {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  .medailonek-zavrit {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    background: var(--papir);
+    color: var(--inkoust);
+    font-size: 1.4rem;
+    line-height: 1;
+    text-decoration: none;
+    transition: background var(--prechod);
+  }
+
+  .medailonek-zavrit:hover {
+    background: var(--modra-jemna);
+    color: var(--modra-text);
+  }
+
+  .medailonek-obsah {
+    display: grid;
+    gap: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  @media (min-width: 700px) {
+    .medailonek-obsah {
+      grid-template-columns: 260px 1fr;
+      align-items: start;
+    }
+  }
+
+  .medailonek-portret {
+    position: relative;
+    max-width: 260px;
+  }
+
+  .medailonek-cislo {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    min-width: 2.6rem;
+    height: 2.6rem;
+    padding-inline: 0.5rem;
+    border-radius: 999px;
+    background: var(--modra);
+    color: #fff;
+    font-size: var(--text-zakladni);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .medailonek-text h2 {
+    max-width: 22ch;
+    padding-right: 2.5rem;
+  }
+
+  .medailonek-meta {
+    margin: 0.55rem 0 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .medailonek-prislusnost {
+    margin: 0.2rem 0 0;
+    font-size: var(--text-drobny);
+    color: var(--zelena-text);
+    font-weight: 500;
+  }
+
+  .medailonek-citace {
+    margin: 1.25rem 0 0;
+    padding-left: 1rem;
+    border-left: 3px solid var(--zelena);
+    font-size: var(--text-velky);
+    line-height: 1.45;
+    letter-spacing: -0.015em;
+  }
+
+  .medailonek-temata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .medailonek-telo {
+    margin-top: 1.25rem;
+    max-width: var(--sirka-textu);
+    font-size: var(--text-maly);
+  }
+
+  .medailonek-telo:empty {
+    display: none;
+  }
+
+  .medailonek-chybi {
+    margin: 1.25rem 0 0;
+    font-size: var(--text-maly);
+    font-style: italic;
+    color: var(--inkoust-tlum);
+  }
+
+  .medailonek-sousede {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.75rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--linka);
+    font-size: var(--text-drobny);
+  }
+
+  .medailonek-sousede a {
+    color: var(--inkoust-tlum);
+    text-decoration: none;
+  }
+
+  .medailonek-sousede a:hover {
+    color: var(--modra-text);
+    text-decoration: underline;
+  }
+
+  /* Když je medailonek otevřený, stránka pod ním se nesmí posouvat. */
+  :global(body.medailonek-otevren) {
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  const mrizka = document.querySelector<HTMLElement>('#kandidatka');
+  const obalMedailonku = document.querySelector<HTMLElement>('[data-medailonky]');
+  const pocitadlo = document.querySelector<HTMLElement>('[data-pocet]');
+  const prazdno = document.querySelector<HTMLElement>('[data-prazdno]');
+  const panelFiltru = document.querySelector<HTMLElement>('[data-filtry]');
+
+  if (!mrizka || !obalMedailonku) throw new Error('Kandidátka: chybí mřížka nebo medailonky');
+
+  const karty = [...mrizka.querySelectorAll<HTMLElement>('.karta-kandidata')];
+
+  /* ------------------------------------------------------------------ *
+   *  Medailonek                                                         *
+   * ------------------------------------------------------------------ */
+
+  let posledniSpoustec: HTMLElement | null = null;
+
+  function otevrit(poradi: string, zeSpoustece?: HTMLElement) {
+    const cil = document.getElementById(`medailonek-${poradi}`);
+    if (!cil) return;
+
+    zavrit(false);
+    if (zeSpoustece) posledniSpoustec = zeSpoustece;
+
+    cil.classList.add('je-otevreny');
+    document.body.classList.add('medailonek-otevren');
+
+    // Adresa se mění bez skoku na kotvu, takže stránka pod překryvem
+    // zůstane tam, kde byla. Zpětné tlačítko medailonek zavře.
+    history.pushState({ medailonek: poradi }, '', `#medailonek-${poradi}`);
+
+    cil.querySelector<HTMLElement>('[data-zavrit]')?.focus();
+  }
+
+  function zavrit(vratitZamereni = true) {
+    const otevreny = obalMedailonku!.querySelector<HTMLElement>('.je-otevreny');
+    if (!otevreny) return;
+    otevreny.classList.remove('je-otevreny');
+    document.body.classList.remove('medailonek-otevren');
+    if (vratitZamereni && posledniSpoustec) {
+      posledniSpoustec.focus();
+      posledniSpoustec = null;
+    }
+  }
+
+  // Klik na kartu i na odkazy „předchozí / další" uvnitř panelu
+  document.addEventListener('click', (e) => {
+    const odkaz = (e.target as HTMLElement).closest<HTMLElement>('[data-medailonek]');
+    if (odkaz) {
+      e.preventDefault();
+      otevrit(odkaz.dataset.medailonek!, odkaz);
+      return;
+    }
+
+    // Zavírací křížek i podklad pod panelem
+    const zaviraci = (e.target as HTMLElement).closest('[data-zavrit], .medailonek-podklad');
+    if (zaviraci) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (obalMedailonku!.querySelector('.je-otevreny')) {
+      e.preventDefault();
+      history.back();
+    }
+  });
+
+  // Zpětné tlačítko i vlastní volání history.back() končí tady.
+  window.addEventListener('popstate', () => {
+    const shoda = location.hash.match(/^#medailonek-(\d+)$/);
+    if (shoda) otevrit(shoda[1]);
+    else zavrit();
+  });
+
+  // Příchod z jiné stránky rovnou na konkrétního člověka
+  // (například z šestice na úvodní stránce).
+  const naStartu = location.hash.match(/^#medailonek-(\d+)$/);
+  if (naStartu) {
+    const cil = document.getElementById(`medailonek-${naStartu[1]}`);
+    cil?.classList.add('je-otevreny');
+    document.body.classList.add('medailonek-otevren');
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  Filtry                                                             *
+   * ------------------------------------------------------------------ */
+
+  // Panel filtrů je v HTML skrytý a odkrývá ho až skript — bez JavaScriptu
+  // by to byla mrtvá tlačítka, která nic nedělají.
+  if (panelFiltru) panelFiltru.hidden = false;
+
+  const vyber = { tema: '', prislusnost: '' };
+
+  function sklonuj(pocet: number) {
+    if (pocet === 1) return '1 kandidát';
+    if (pocet >= 2 && pocet <= 4) return `${pocet} kandidáti`;
+    return `${pocet} kandidátů`;
+  }
+
+  function pouzitFiltry() {
+    let videno = 0;
+
+    for (const karta of karty) {
+      const temata = (karta.dataset.temata ?? '').split(' ').filter(Boolean);
+      const sedi =
+        (!vyber.tema || temata.includes(vyber.tema)) &&
+        (!vyber.prislusnost || karta.dataset.prislusnost === vyber.prislusnost);
+
+      karta.toggleAttribute('data-skryta', !sedi);
+      if (sedi) videno++;
+    }
+
+    if (pocitadlo) {
+      pocitadlo.textContent =
+        videno === karty.length ? `Zobrazeno všech ${karty.length} kandidátů` : `Zobrazeno ${sklonuj(videno)}`;
+    }
+    if (prazdno) prazdno.hidden = videno > 0;
+
+    // Nastavený filtr se propíše do adresy, takže se dá poslat dál.
+    const parametry = new URLSearchParams();
+    if (vyber.tema) parametry.set('tema', vyber.tema);
+    if (vyber.prislusnost) parametry.set('prislusnost', vyber.prislusnost);
+    const dotaz = parametry.toString();
+    history.replaceState(history.state, '', dotaz ? `?${dotaz}` : location.pathname);
+  }
+
+  panelFiltru?.addEventListener('click', (e) => {
+    const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.filtr');
+    if (!tlacitko) return;
+
+    const druh = tlacitko.dataset.filtr as 'tema' | 'prislusnost';
+    vyber[druh] = tlacitko.dataset.hodnota ?? '';
+
+    for (const jine of panelFiltru.querySelectorAll<HTMLElement>(`[data-filtr="${druh}"]`)) {
+      jine.classList.toggle('je-aktivni', jine === tlacitko);
+    }
+    pouzitFiltry();
+  });
+
+  document.querySelector('[data-zrusit-filtry]')?.addEventListener('click', () => {
+    vyber.tema = '';
+    vyber.prislusnost = '';
+    for (const tlacitko of panelFiltru!.querySelectorAll<HTMLElement>('.filtr')) {
+      tlacitko.classList.toggle('je-aktivni', tlacitko.dataset.hodnota === '');
+    }
+    pouzitFiltry();
+  });
+
+  // Filtr z adresy — odkaz typu /lide/?tema=skolstvi otevře rovnou výběr.
+  const zAdresy = new URLSearchParams(location.search);
+  for (const druh of ['tema', 'prislusnost'] as const) {
+    const hodnota = zAdresy.get(druh);
+    if (!hodnota) continue;
+    const tlacitko = panelFiltru?.querySelector<HTMLElement>(`[data-filtr="${druh}"][data-hodnota="${hodnota}"]`);
+    if (!tlacitko) continue;
+    vyber[druh] = hodnota;
+    for (const jine of panelFiltru!.querySelectorAll<HTMLElement>(`[data-filtr="${druh}"]`)) {
+      jine.classList.toggle('je-aktivni', jine === tlacitko);
+    }
+  }
+  if (vyber.tema || vyber.prislusnost) pouzitFiltry();
+</script>

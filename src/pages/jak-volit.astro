@@ -1,0 +1,271 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+import { odkaz } from '../lib/odkaz';
+
+/**
+ * Pravidla jsou ověřená proti zákonu č. 491/2001 Sb. a shodně je popisuje
+ * Ministerstvo vnitra i Vyškovský deník. Interaktivní lístek k vyzkoušení
+ * přibude ve 3. týdnu — pravidla ale musí být čitelná i bez něj, proto
+ * jsou tady napsaná obyčejným textem.
+ */
+
+const ZPUSOBY = [
+  {
+    cislo: '1',
+    nazev: 'Celou kandidátku',
+    popis:
+      'Uděláte jeden křížek do rámečku u názvu volební strany. Hlas dostanou všichni její kandidáti v pořadí, v jakém jsou na listině.',
+    detail: 'Nejjednodušší způsob. Označit můžete jen jednu stranu.',
+  },
+  {
+    cislo: '2',
+    nazev: 'Jednotlivé lidi',
+    popis:
+      'Křížkujete konkrétní jména, klidně napříč všemi kandidátkami. Můžete označit nejvýš 27 lidí — tolik, kolik má vyškovské zastupitelstvo členů.',
+    detail: 'Nemusíte využít všech 27 křížků. Klidně dejte hlas jen třem lidem.',
+  },
+  {
+    cislo: '3',
+    nazev: 'Obojí zároveň',
+    popis:
+      'Označíte jednu stranu a k tomu jednotlivce z ostatních kandidátek. Nejdřív se započítají vaši jednotlivci a zbytek z 27 hlasů dostanou kandidáti označené strany odshora dolů.',
+    detail: 'Tuhle možnost skoro nikdo nezná, přitom je nejužitečnější.',
+  },
+];
+
+const NEPLATNY = [
+  'Označíte víc než jednu volební stranu.',
+  'Zakřížkujete víc než 27 jednotlivých kandidátů.',
+  'Lístek přeškrtáte, dopíšete do něj jméno nebo ho jinak upravíte.',
+];
+---
+
+<Zaklad
+  titulek="Jak volit"
+  popis="Do zastupitelstva města Vyškova máte 27 hlasů. Vysvětlujeme tři způsoby, jak hlasovací lístek upravit, a čím ho naopak zneplatníte."
+>
+  <div class="pruh">
+    <p class="nadtitulek">Jak volit</p>
+    <h1 class="nadpis">Do zastupitelstva máte 27&nbsp;křížků. Věděli jste to?</h1>
+    <p class="perex uvod">
+      Komunální volby fungují jinak než všechny ostatní a spousta lidí kvůli tomu odevzdá
+      neplatný lístek nebo nevyužije, co jim zákon dává. Tady je to celé — bez právničiny.
+    </p>
+
+    <p class="poznamka-krouzky">
+      Mimochodem: <strong>v komunálních volbách se křížkuje, ne kroužkuje.</strong>
+      Kroužky patří do sněmovních voleb.
+    </p>
+
+    {/* ---------- Tři způsoby ---------- */}
+    <h2 class="podnadpis">Tři způsoby, jak lístek upravit</h2>
+
+    <ol class="zpusoby">
+      {
+        ZPUSOBY.map((zpusob) => (
+          <li class="zpusob">
+            <span class="zpusob-cislo" aria-hidden="true">{zpusob.cislo}</span>
+            <div>
+              <h3>{zpusob.nazev}</h3>
+              <p>{zpusob.popis}</p>
+              <p class="zpusob-detail">{zpusob.detail}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    {/* ---------- Past u třetího způsobu ---------- */}
+    <section class="past">
+      <h2>Kde to lidi nejčastěji zaskočí</h2>
+      <p>
+        Když zaškrtnete stranu <em>a zároveň</em> jednotlivce, hlasy se nesčítají navíc — pořád
+        jich rozdáváte přesně 27. Nejdřív dostanou hlas lidé, které jste označili jménem, a
+        teprve zbytek se rozdělí kandidátům označené strany odshora.
+      </p>
+      <p class="past-priklad">
+        <strong>Příklad:</strong> označíte naši kandidátku a k tomu čtyři lidi z jiných stran.
+        Ti čtyři dostanou hlas a zbylých 23 hlasů půjde našim kandidátům číslo 1 až 23.
+        Kandidáti na posledních čtyřech místech od vás hlas nedostanou.
+      </p>
+    </section>
+
+    {/* ---------- Neplatný lístek ---------- */}
+    <section class="neplatny">
+      <h2>Čím lístek zneplatníte</h2>
+      <ul>
+        {NEPLATNY.map((duvod) => <li>{duvod}</li>)}
+      </ul>
+    </section>
+
+    {/* ---------- Chystaná aplikace ---------- */}
+    <section class="chystame">
+      <h2>Chystáme: lístek na zkoušku</h2>
+      <p>
+        Připravujeme hlasovací lístek, na kterém si všechno vyzkoušíte nanečisto — uvidíte
+        živě, kolik křížků vám zbývá a jestli by lístek platil. Nejde to sem propašovat dřív,
+        než si ověříme, že to počítá přesně tak jako volební komise.
+      </p>
+    </section>
+
+    <p class="dal">
+      <a class="tlacitko tlacitko-hlavni" href={odkaz('/lide/')}>Podívat se na naše kandidáty</a>
+    </p>
+  </div>
+</Zaklad>
+
+<style>
+  .nadpis {
+    max-width: 18ch;
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .poznamka-krouzky {
+    max-width: var(--sirka-textu);
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.1rem;
+    background: var(--zelena-jemna);
+    border-left: 3px solid var(--zelena);
+    border-radius: 0 var(--radius-maly) var(--radius-maly) 0;
+    font-size: var(--text-maly);
+  }
+
+  .podnadpis {
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .zpusoby {
+    display: grid;
+    gap: 0.85rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 880px) {
+    .zpusoby {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .zpusob {
+    display: flex;
+    align-items: start;
+    gap: 0.9rem;
+    padding: 1.25rem;
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin);
+  }
+
+  .zpusob-cislo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    background: var(--modra);
+    color: #fff;
+    font-size: var(--text-maly);
+    font-weight: 700;
+  }
+
+  .zpusob h3 {
+    margin-bottom: 0.4rem;
+  }
+
+  .zpusob p {
+    margin: 0;
+    font-size: var(--text-maly);
+    line-height: 1.55;
+  }
+
+  .zpusob-detail {
+    margin-top: 0.55rem !important;
+    color: var(--inkoust-tlum);
+    font-size: var(--text-drobny) !important;
+  }
+
+  /* ---------- Past ---------- */
+
+  .past {
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: var(--noc);
+    color: var(--na-noci);
+    border-radius: var(--radius);
+  }
+
+  .past h2 {
+    color: var(--na-noci);
+    margin-bottom: 0.9rem;
+  }
+
+  .past p {
+    max-width: var(--sirka-textu);
+    font-size: var(--text-maly);
+    color: var(--na-noci-tlum);
+  }
+
+  .past-priklad {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--linka-na-noci);
+  }
+
+  .past strong,
+  .past em {
+    color: var(--na-noci);
+  }
+
+  /* ---------- Neplatný lístek ---------- */
+
+  .neplatny {
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  }
+
+  .neplatny ul {
+    max-width: var(--sirka-textu);
+    margin-top: 1rem;
+    padding-left: 1.15em;
+    font-size: var(--text-maly);
+  }
+
+  .neplatny li {
+    margin-bottom: 0.5em;
+  }
+
+  .neplatny li::marker {
+    color: var(--varovani);
+  }
+
+  /* ---------- Chystáme ---------- */
+
+  .chystame {
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+    padding: clamp(1.1rem, 2.5vw, 1.5rem);
+    border: 1px dashed var(--linka-vyrazna);
+    border-radius: var(--radius);
+  }
+
+  .chystame h2 {
+    font-size: var(--text-nadpis-3);
+    margin-bottom: 0.6rem;
+  }
+
+  .chystame p {
+    max-width: var(--sirka-textu);
+    margin: 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .dal {
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  }
+</style>

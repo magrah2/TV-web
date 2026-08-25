@@ -1,0 +1,62 @@
+# Sestaví web a nasadí ho na GitHub Pages při každé změně ve větvi main.
+#
+# Draft tím pádem vždycky odpovídá tomu, co je v repozitáři, a nikdo
+# nemusí nic spouštět ručně. Ostrá verze se pustí až po přepnutí domény —
+# rozhoduje o tom proměnná NAOSTRO níž.
+
+name: Nasadit web
+
+on:
+  push:
+    branches: [main]
+  # Umožní spustit nasazení ručně z karty Actions na GitHubu
+  workflow_dispatch:
+
+# Nasazovat smí jen jeden běh naráz. Když někdo pushne dvakrát rychle
+# po sobě, rozdělaný běh se zruší a projde ten novější.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  sestavit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stáhnout zdrojové soubory
+        uses: actions/checkout@v4
+
+      - name: Připravit Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Nainstalovat závislosti
+        run: npm ci
+
+      - name: Sestavit web
+        # NAOSTRO se tu záměrně NENASTAVUJE — tenhle běh vyrábí draft,
+        # takže web dostane noindex a pruh „Náhled". Až se bude přepínat
+        # na vlastní doménu, přibude sem `env: NAOSTRO: '1'`.
+        run: npm run build
+
+      - name: Nahrát výsledek
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  nasadit:
+    needs: sestavit
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.nasazeni.outputs.page_url }}
+    steps:
+      - name: Nasadit na GitHub Pages
+        id: nasazeni
+        uses: actions/deploy-pages@v4

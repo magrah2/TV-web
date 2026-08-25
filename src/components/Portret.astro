@@ -1,0 +1,118 @@
+---
+/**
+ * Portrét kandidáta.
+ *
+ * Dokud fotka nedorazí, vykreslí se jednotná silueta. Podstatné je, že jsou
+ * všechny stejné — mřížka 27 shodných siluet vypadá jako záměr, kdežto mix
+ * pár fotek a pár prázdných míst vypadá rozbitě. Přepínat se nemusí nic:
+ * jakmile se do `foto` doplní soubor, silueta u toho člověka zmizí sama.
+ *
+ * Levý dolní roh je seříznutý křivkou z loga. Do vzniklého výřezu se pak
+ * usadí pořadové číslo, takže z ozdoby je zároveň místo pro údaj.
+ */
+
+import { Image } from 'astro:assets';
+
+interface Props {
+  foto?: ImageMetadata;
+  jmeno: string;
+  /** Karta v mřížce potřebuje menší obrázek než detail medailonku. */
+  velikost?: 'karta' | 'detail';
+  class?: string;
+}
+
+const { foto, jmeno, velikost = 'karta', class: trida } = Astro.props;
+const sirka = velikost === 'detail' ? 720 : 420;
+---
+
+<div class:list={['portret', `portret-${velikost}`, trida]}>
+  {
+    foto ? (
+      <Image
+        src={foto}
+        alt={`Portrét: ${jmeno}`}
+        width={sirka}
+        height={Math.round(sirka * 1.25)}
+        widths={[sirka / 2, sirka, sirka * 1.5]}
+        sizes={velikost === 'detail' ? '(max-width: 700px) 92vw, 420px' : '(max-width: 700px) 45vw, 260px'}
+        loading={velikost === 'detail' ? 'eager' : 'lazy'}
+        decoding="async"
+        class="portret-obrazek"
+      />
+    ) : (
+      <div class="portret-silueta" role="img" aria-label={`${jmeno} — fotka zatím není k dispozici`}>
+        <svg viewBox="0 0 100 125" aria-hidden="true" focusable="false">
+          {/* Obrys postavy: hlava a ramena. Záměrně jen obrys, ne plná plocha —
+              plná silueta působí jako chybějící obrázek, obrys jako zástupný znak. */}
+          <circle cx="50" cy="45" r="17" fill="none" stroke="currentColor" stroke-width="2.4" />
+          <path
+            d="M18,112 C18,88 32,74 50,74 C68,74 82,88 82,112"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+          />
+        </svg>
+      </div>
+    )
+  }
+</div>
+
+<style>
+  .portret {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    background: var(--modra-jemna);
+    border-radius: var(--radius);
+    /* Levý dolní roh je seříznutý obloučkem, do kterého se usadí pořadové číslo.
+       Body opisují křivku; musí být tak akorát velký, aby se do něj vešel
+       odznak s číslem (~2,1 rem), ale portrét z toho nesmí ukousnout půlku. */
+    clip-path: polygon(
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      19% 100%,
+      15% 98%,
+      9% 94%,
+      4% 89%,
+      1% 84%,
+      0% 79%
+    );
+  }
+
+  .portret-obrazek {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform var(--prechod), filter var(--prechod);
+  }
+
+  .portret-silueta {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, var(--modra-jemna), #cfe0ee);
+    color: var(--modra);
+    opacity: 0.55;
+  }
+
+  .portret-silueta svg {
+    width: 62%;
+    height: auto;
+  }
+
+  /* Fotky jsou na kartách zpočátku lehce ztlumené a při najetí ožijí.
+     Drží to mřížku klidnou, dokud v ní člověk nezačne hledat. */
+  @media (hover: hover) {
+    .portret-karta .portret-obrazek {
+      filter: saturate(0.82);
+    }
+    :global(.karta-kandidata:hover) .portret-karta .portret-obrazek {
+      filter: saturate(1);
+      transform: scale(1.03);
+    }
+  }
+</style>

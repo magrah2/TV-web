@@ -1,0 +1,141 @@
+---
+/**
+ * Karta kandidáta v mřížce.
+ *
+ * Odkazuje na kotvu medailonku na stránce /lide/. Díky tomu funguje
+ * i bez JavaScriptu: adresa s kotvou otevře medailonek přes CSS `:target`.
+ * Skript na stránce /lide/ pak klik převezme a otevře překryv bez odskočení.
+ */
+
+import Portret from './Portret.astro';
+import { odkaz, jmenoBezTitulu } from '../lib/odkaz';
+import { temaDoAdresy } from '../lib/temata';
+
+interface Props {
+  poradi: number;
+  jmeno: string;
+  vek?: number;
+  povolani: string;
+  temata: string[];
+  prislusnost?: string;
+  foto?: ImageMetadata;
+}
+
+const { poradi, jmeno, vek, povolani, temata, prislusnost, foto } = Astro.props;
+
+const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
+---
+
+<article
+  class="karta-kandidata"
+  data-poradi={poradi}
+  data-temata={temata.map(temaDoAdresy).join(' ')}
+  data-prislusnost={prislusnost ? temaDoAdresy(prislusnost) : 'nezavisly'}
+>
+  <a class="karta-odkaz" href={cil} data-medailonek={poradi}>
+    {/* Číslo musí být uvnitř obalu portrétu, ne v celém odkazu —
+        jinak se usadí až pod textem a přeleze přes jméno. */}
+    <div class="karta-portret">
+      <Portret foto={foto} jmeno={jmeno} velikost="karta" />
+      <span class="karta-cislo" aria-hidden="true">{poradi}</span>
+    </div>
+
+    <span class="karta-text">
+      <span class="karta-jmeno">{jmenoBezTitulu(jmeno)}</span>
+      <span class="karta-povolani">
+        {vek ? `${vek} let · ` : ''}{povolani}
+      </span>
+    </span>
+
+    <span class="jen-pro-ctecky">{jmeno} — otevřít medailonek</span>
+  </a>
+
+  {
+    temata.length > 0 && (
+      <ul class="karta-temata">
+        {temata.map((tema) => (
+          <li class="stitek">{tema}</li>
+        ))}
+      </ul>
+    )
+  }
+</article>
+
+<style>
+  .karta-kandidata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+
+  .karta-odkaz {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--prechod);
+  }
+
+  .karta-odkaz:hover {
+    transform: translateY(-3px);
+  }
+
+  .karta-portret {
+    position: relative;
+    display: block;
+  }
+
+  /* Pořadové číslo sedí ve výřezu, který vznikl seříznutím rohu portrétu.
+     Z ozdoby je tím zároveň místo pro údaj, který u voleb rozhoduje. */
+  .karta-cislo {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    display: grid;
+    place-items: center;
+    min-width: 2.1rem;
+    height: 2.1rem;
+    padding-inline: 0.4rem;
+    border-radius: 999px;
+    background: var(--modra);
+    color: #fff;
+    font-size: var(--text-maly);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .karta-text {
+    display: block;
+    margin-top: 0.7rem;
+  }
+
+  .karta-jmeno {
+    display: block;
+    font-size: var(--text-zakladni);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  .karta-odkaz:hover .karta-jmeno {
+    color: var(--modra-text);
+  }
+
+  .karta-povolani {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: var(--text-maly);
+    line-height: 1.4;
+    color: var(--inkoust-tlum);
+  }
+
+  .karta-temata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

@@ -1,0 +1,179 @@
+---
+import { odkaz } from '../lib/odkaz';
+import Krivka from './Krivka.astro';
+
+const EMAIL = 'info@transparentnivyskov.cz';
+const rok = new Date().getFullYear();
+---
+
+<footer class="pata">
+  <Krivka varianta="oddelovac" />
+
+  <div class="pruh pata-vnitrek">
+    <div class="pata-hlavni">
+      <p class="pata-claim">Jde to i jinak.</p>
+      <p class="pata-hashtag">#Jdetoijinak</p>
+    </div>
+
+    <nav class="pata-navigace" aria-label="Patička">
+      <h2 class="jen-pro-ctecky">Odkazy v patičce</h2>
+      <ul>
+        <li><a href={odkaz('/program/')}>Náš program</a></li>
+        <li><a href={odkaz('/lide/')}>Naši kandidáti</a></li>
+        <li><a href={odkaz('/jak-volit/')}>Jak volit</a></li>
+        <li><a href={odkaz('/kontakt/')}>Kontakt</a></li>
+        <li><a href={odkaz('/soukromi/')}>Ochrana osobních údajů</a></li>
+      </ul>
+    </nav>
+
+    <div class="pata-kontakt">
+      <h2 class="jen-pro-ctecky">Kontakt</h2>
+      <a class="pata-email" href={`mailto:${EMAIL}`} data-kopirovat={EMAIL}>
+        {EMAIL}
+        <span class="pata-kopirovat" hidden>Zkopírovat</span>
+      </a>
+      <p class="pata-volby">Volby do zastupitelstva města Vyškova<br />9.–10. října 2026</p>
+    </div>
+  </div>
+
+  <div class="pruh pata-spodek">
+    <p>© {rok} Transparentní Vyškov</p>
+    {/* Tenhle web o nikom nesbírá žádná data — nemá měřicí kódy ani cookies.
+        Proto tu není žádná lišta, kterou byste museli odklikávat. */}
+    <p class="pata-poznamka">
+      Bez cookies, bez měřicích kódů. Tento web o vás nesbírá žádná data, proto tu není
+      žádná lišta k odklikávání.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .pata {
+    margin-top: var(--mezera-sekce);
+    background: var(--plocha);
+    border-top: 1px solid var(--linka);
+  }
+
+  .pata :global(.krivka-oddelovac) {
+    margin-top: -13px;
+    color: var(--linka);
+  }
+
+  .pata-vnitrek {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding-block: 3rem 2rem;
+  }
+
+  @media (min-width: 720px) {
+    .pata-vnitrek {
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 2rem;
+    }
+  }
+
+  .pata-claim {
+    margin: 0;
+    font-size: var(--text-nadpis-2);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .pata-hashtag {
+    margin: 0.2rem 0 0;
+    font-size: var(--text-maly);
+    font-weight: 600;
+    color: var(--zelena-text);
+  }
+
+  .pata-navigace ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .pata-navigace a,
+  .pata-email {
+    color: var(--inkoust);
+    font-size: var(--text-maly);
+    text-decoration: none;
+  }
+
+  .pata-navigace a:hover,
+  .pata-email:hover {
+    color: var(--modra-text);
+    text-decoration: underline;
+  }
+
+  .pata-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+  }
+
+  .pata-kopirovat {
+    padding: 0.1rem 0.45rem;
+    border: 1px solid var(--linka-vyrazna);
+    border-radius: 999px;
+    font-size: var(--text-drobny);
+    font-weight: 500;
+    color: var(--inkoust-tlum);
+  }
+
+  .pata-volby {
+    margin: 0.9rem 0 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .pata-spodek {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+    padding-block: 1.25rem 2rem;
+    border-top: 1px solid var(--linka);
+    font-size: var(--text-drobny);
+    color: var(--inkoust-tlum);
+  }
+
+  .pata-spodek p {
+    margin: 0;
+  }
+
+  .pata-poznamka {
+    max-width: 34rem;
+  }
+</style>
+
+<script>
+  // Kliknutí na e-mail ho zkopíruje do schránky. Odkaz mailto: zůstává funkční,
+  // takže bez JavaScriptu se prostě otevře poštovní program jako vždycky.
+  const email = document.querySelector<HTMLAnchorElement>('.pata-email');
+  const znacka = email?.querySelector<HTMLElement>('.pata-kopirovat');
+
+  if (email && znacka && navigator.clipboard) {
+    znacka.hidden = false;
+
+    email.addEventListener('click', async (e) => {
+      const text = email.dataset.kopirovat;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        return; // prohlížeč nepovolil — necháme odkaz udělat svou práci
+      }
+      e.preventDefault();
+      const puvodni = znacka.textContent;
+      znacka.textContent = 'Zkopírováno';
+      setTimeout(() => {
+        znacka.textContent = puvodni;
+      }, 1600);
+    });
+  }
+</script>

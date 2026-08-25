@@ -1,0 +1,104 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+
+/**
+ * Na starém webu vedl odkaz na zásady ochrany osobních údajů na `#`, tedy
+ * nikam. Tahle stránka to napravuje. Je krátká schválně — web sám o sobě
+ * žádná data nesbírá, takže není o čem psát odstavce.
+ *
+ * POZOR: než se web pustí naostro, musí tu být doplněný správce údajů
+ * (kdo za sdružení odpovídá) — hledejte „DOPLNIT".
+ */
+
+const EMAIL = 'info@transparentnivyskov.cz';
+---
+
+<Zaklad
+  titulek="Ochrana osobních údajů"
+  popis="Jak nakládáme s osobními údaji. Tento web nesbírá žádná data o návštěvnících, nemá cookies ani měřicí kódy."
+>
+  <div class="pruh text">
+    <p class="nadtitulek">Ochrana osobních údajů</p>
+    <h1>Co o vás víme</h1>
+
+    <p class="perex uvod">Nic. A není to řečnický obrat.</p>
+
+    <h2>Tento web o vás nesbírá žádné údaje</h2>
+    <p>
+      Web nemá měřicí kódy, analytiku, reklamní skripty ani přihlašování. Neukládá vám
+      do prohlížeče cookies. Nenačítá písma ani obrázky z cizích serverů, takže o vaší
+      návštěvě neví žádná třetí strana — ani Google.
+    </p>
+    <p>
+      Proto tu není žádná cookie lišta. Nemáme totiž k čemu vás žádat o souhlas.
+    </p>
+
+    <h2>Co ukládá váš vlastní prohlížeč</h2>
+    <p>
+      Nic, co bychom my viděli. Adresa stránky si pamatuje, kterého kandidáta jste si
+      otevřeli a jaký filtr jste použili — to je součást adresy, zůstává to u vás
+      v prohlížeči a nikam se to neodesílá.
+    </p>
+
+    <h2>Údaje kandidátů</h2>
+    <p>
+      Na webu zveřejňujeme jména, věk, povolání, fotografie a texty našich kandidátů.
+      Tyto údaje zveřejňujeme s jejich souhlasem; jméno, věk a povolání jsou navíc
+      součástí kandidátní listiny, která je ze zákona veřejná.
+    </p>
+    <p>
+      Pokud jste náš kandidát a chcete své údaje na webu upravit nebo odstranit, napište
+      nám na <a href={`mailto:${EMAIL}`}>{EMAIL}</a> a vyřídíme to.
+    </p>
+
+    <h2>Když nám napíšete</h2>
+    <p>
+      E-mail, který nám pošlete, si přečteme a odpovíme na něj. Vaši adresu nikomu
+      nepředáváme, nezařazujeme ji do žádné databáze ani rozesílky.
+    </p>
+
+    <h2>Správce údajů</h2>
+    <p class="doplnit">
+      DOPLNIT před spuštěním naostro: kdo za sdružení odpovídá za zpracování osobních
+      údajů — jméno a kontaktní adresa.
+    </p>
+
+    <h2>Vaše práva</h2>
+    <p>
+      Podle nařízení GDPR máte právo se nás zeptat, jaké údaje o vás zpracováváme, žádat
+      jejich opravu nebo výmaz a podat stížnost u Úřadu pro ochranu osobních údajů.
+      U tohohle webu ovšem platí, že o běžném návštěvníkovi nezpracováváme nic.
+    </p>
+  </div>
+</Zaklad>
+
+<style>
+  .text {
+    max-width: 42rem;
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .text h2 {
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    margin-bottom: 0.7rem;
+    font-size: var(--text-nadpis-3);
+  }
+
+  .text p {
+    font-size: var(--text-maly);
+  }
+
+  /* Nedodělek je vidět, aby se na něj nezapomnělo. Až se doplní,
+     obal `.doplnit` se smaže i s tímhle stylem. */
+  .doplnit {
+    padding: 0.85rem 1.1rem;
+    background: color-mix(in srgb, var(--navrh) 10%, transparent);
+    border-left: 3px solid var(--navrh);
+    border-radius: 0 var(--radius-maly) var(--radius-maly) 0;
+    color: var(--navrh);
+    font-weight: 500;
+  }
+</style>

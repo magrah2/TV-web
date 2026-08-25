@@ -1,0 +1,464 @@
+---
+import { getCollection, render } from 'astro:content';
+import Zaklad from '../layouts/Zaklad.astro';
+import Krivka from '../components/Krivka.astro';
+import KartaKandidata from '../components/KartaKandidata.astro';
+import { odkaz } from '../lib/odkaz';
+
+const VOLBY = new Date('2026-10-09T14:00:00+02:00');
+
+/** Dnů do voleb — spočítá se při sestavení. Skript na stránce si to pak
+    přepočítá v prohlížeči, aby číslo nezestárlo mezi sestaveními. */
+const dnuDoVoleb = Math.max(0, Math.ceil((VOLBY.getTime() - Date.now()) / 86_400_000));
+
+const program = (await getCollection('program')).sort((a, b) => a.data.poradi - b.data.poradi);
+const programSObsahem = await Promise.all(
+  program.map(async (oblast) => ({ ...oblast, Obsah: (await render(oblast)).Content })),
+);
+
+const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
+const prvni = kandidati.slice(0, 6);
+---
+
+<Zaklad
+  titulek="Transparentní Vyškov"
+  popis="Sdružení nezávislých kandidátů do zastupitelstva města Vyškova. Otevřená radnice, dostupné bydlení a promyšlený rozvoj města. Volby 9.–10. října 2026."
+  bezOdsazeni
+>
+  {/* ---------- Hero ---------- */}
+  <section class="hero">
+    <Krivka varianta="podklad" class="hero-krivka" />
+
+    <div class="pruh hero-vnitrek">
+      <h1 class="hero-claim">Jde to i&nbsp;jinak<span class="tecka">.</span></h1>
+
+      <p class="hero-perex">
+        Jsme sdružení nezávislých kandidátů z Vyškova. Spojila nás nespokojenost s tím, jak
+        se ve městě rozhoduje o veřejných penězích, bydlení a společném prostoru — a
+        přesvědčení, že to jde dělat otevřeně.
+      </p>
+
+      <div class="hero-tlacitka">
+        <a class="tlacitko tlacitko-hlavni" href={odkaz('/program/')}>Náš program</a>
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/jak-volit/')}>Jak volit →</a>
+      </div>
+
+      <p class="hero-volby">
+        <span class="hero-volby-datum">Volby do zastupitelstva města Vyškova</span>
+        <span class="hero-volby-oddel" aria-hidden="true">·</span>
+        <span>9.–10. října 2026</span>
+        <span class="hero-volby-oddel" aria-hidden="true">·</span>
+        <span data-odpocet={VOLBY.toISOString()}>
+          {dnuDoVoleb > 0 ? `zbývá ${dnuDoVoleb} dní` : 'volby probíhají'}
+        </span>
+      </p>
+    </div>
+  </section>
+
+  {/* ---------- Kdo jsme ---------- */}
+  <section class="sekce">
+    <div class="pruh dvojice">
+      <div>
+        <p class="nadtitulek">Kdo jsme</p>
+        <h2>Sedmadvacet lidí, kteří tady žijí</h2>
+      </div>
+      <div class="dvojice-text">
+        <p>
+          Učitelé, živnostníci, zdravotní sestra, konstruktér, studenti i důchodci. Nikdo z nás
+          není profesionální politik a většina z nás nekandiduje za žádnou stranu.
+        </p>
+        <p>
+          Chceme radnici, která s lidmi mluví, vysvětluje své záměry a bere vážně názory
+          obyvatel i spolků. Záleží nám na transparentním hospodaření, férových zakázkách a
+          dostupném bydlení pro běžné obyvatele — ne pro developery.
+        </p>
+        <p>
+          <a href={odkaz('/lide/')}>Poznejte všech 27 →</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {/* ---------- Program ---------- */}
+  <section class="sekce program" id="program">
+    <div class="pruh">
+      <p class="nadtitulek">Náš program</p>
+      <h2 class="program-nadpis">Poctivá radnice, která rozhoduje s občany, ne za&nbsp;ně</h2>
+
+      <div class="program-mrizka">
+        {
+          programSObsahem.map((oblast) => (
+            <details class="dlazdice">
+              <summary>
+                <span class="dlazdice-nadpis">
+                  <span class="dlazdice-nazev">{oblast.data.nazev}</span>
+                  <span class="dlazdice-znak" aria-hidden="true" />
+                </span>
+                <span class="dlazdice-shrnuti">{oblast.data.shrnuti}</span>
+              </summary>
+              <div class="dlazdice-obsah">
+                <oblast.Obsah />
+              </div>
+            </details>
+          ))
+        }
+      </div>
+
+      <p class="program-odkaz">
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/program/')}>Celý program</a>
+      </p>
+    </div>
+  </section>
+
+  {/* ---------- Lidé ---------- */}
+  <section class="sekce lide">
+    <div class="pruh">
+      <div class="lide-hlava">
+        <div>
+          <p class="nadtitulek">Naši kandidáti</p>
+          <h2>Lidé, které volíte</h2>
+        </div>
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Všech 27 →</a>
+      </div>
+
+      <div class="lide-mrizka">
+        {
+          prvni.map((clovek) => (
+            <KartaKandidata
+              poradi={clovek.data.poradi}
+              jmeno={clovek.data.jmeno}
+              vek={clovek.data.vek}
+              povolani={clovek.data.povolani}
+              temata={clovek.data.temata}
+              prislusnost={clovek.data.prislusnost}
+              foto={clovek.data.foto}
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  {/* ---------- Jak volit ---------- */}
+  <section class="sekce pas-noc jak-volit">
+    <div class="pruh jak-volit-vnitrek">
+      <div>
+        <p class="nadtitulek">Jak volit</p>
+        <h2>Do zastupitelstva máte 27 křížků. Věděli jste to?</h2>
+        <p class="perex">
+          Komunální volby fungují jinak než všechny ostatní a většina lidí to neví.
+          Můžete dát hlas celé kandidátce, vybírat jednotlivce napříč stranami, nebo obojí
+          zkombinovat. Ukážeme vám to na hlasovacím lístku, který si můžete vyzkoušet.
+        </p>
+        <p class="jak-volit-tlacitko">
+          <a class="tlacitko tlacitko-hlavni" href={odkaz('/jak-volit/')}>Vyzkoušet lístek</a>
+        </p>
+      </div>
+    </div>
+  </section>
+</Zaklad>
+
+<style>
+  /* ---------- Hero ---------- */
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding-block: clamp(3rem, 7vw, 5.5rem) clamp(2rem, 4vw, 3.25rem);
+  }
+
+  .hero-vnitrek {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Křivka z loga jako podklad — velká, přetéká přes pravý okraj.
+     Má se dát vytušit, ne přečíst, proto tak nízká sytost v tokenech. */
+  .hero :global(.hero-krivka) {
+    top: -12%;
+    right: -14%;
+    width: min(760px, 72vw);
+    height: auto;
+    transform: rotate(8deg);
+  }
+
+  /* Na úzkém displeji je text přes celou šířku, takže by křivka ležela
+     přímo pod odstavcem. Odsuneme ji nahoru a za okraj, ať jen prosvítá. */
+  @media (max-width: 720px) {
+    .hero :global(.hero-krivka) {
+      top: -8%;
+      right: -34%;
+      width: 74vw;
+      opacity: 0.075;
+    }
+  }
+
+  .hero-claim {
+    max-width: 14ch;
+    margin: 0;
+    font-size: var(--text-hero);
+    font-weight: 650;
+    line-height: 0.95;
+    letter-spacing: -0.042em;
+  }
+
+  /* Tečka v barvě značky — claim tím dostane podpis, aniž by cokoliv přibylo. */
+  .tecka {
+    color: var(--zelena);
+  }
+
+  .hero-perex {
+    max-width: 42ch;
+    margin: clamp(1.4rem, 3vw, 2rem) 0 0;
+    font-size: var(--text-velky);
+    line-height: 1.55;
+    color: var(--inkoust-tlum);
+  }
+
+  .hero-tlacitka {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: clamp(1.6rem, 3vw, 2.2rem);
+  }
+
+  .hero-volby {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+    margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--linka);
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .hero-volby-datum {
+    font-weight: 600;
+    color: var(--inkoust);
+  }
+
+  .hero-volby-oddel {
+    color: var(--linka-vyrazna);
+  }
+
+  /* Na mobilu se řádek stejně zalomí a oddělovač by zůstal viset
+     na konci řádku jako překlep. Radši ho schováme a dáme řádkům odstup. */
+  @media (max-width: 620px) {
+    .hero-volby {
+      display: grid;
+      gap: 0.15rem;
+      justify-items: start;
+    }
+    .hero-volby-oddel {
+      display: none;
+    }
+  }
+
+  /* ---------- Dvousloupcová sekce ---------- */
+
+  .dvojice {
+    display: grid;
+    gap: 1.5rem 3rem;
+  }
+
+  @media (min-width: 820px) {
+    .dvojice {
+      grid-template-columns: 1fr 1.15fr;
+      gap: 3.5rem;
+    }
+  }
+
+  .dvojice-text {
+    max-width: var(--sirka-textu);
+  }
+
+  /* ---------- Program ---------- */
+
+  .program-nadpis {
+    max-width: 20ch;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+  }
+
+  .program-mrizka {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 620px) {
+    .program-mrizka {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1000px) {
+    .program-mrizka {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  /* Dlaždice se rozbaluje na místě — žádné okno, nic nikam neodskočí. */
+  .dlazdice {
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin);
+    transition: box-shadow var(--prechod), border-color var(--prechod);
+  }
+
+  .dlazdice:hover {
+    border-color: var(--linka-vyrazna);
+    box-shadow: var(--stin-zvednuty);
+  }
+
+  .dlazdice[open] {
+    border-color: var(--modra);
+  }
+
+  .dlazdice > summary {
+    display: block;
+    padding: 1.15rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .dlazdice > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .dlazdice-nadpis {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .dlazdice-nazev {
+    font-size: var(--text-nadpis-3);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  /* Znaménko plus, které se po otevření překlopí na minus.
+     Dvě čárky přes ::before a ::after, aby se nemusela načítat ikona. */
+  .dlazdice-znak {
+    position: relative;
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .dlazdice-znak::before,
+  .dlazdice-znak::after {
+    content: '';
+    position: absolute;
+    inset: 50% 0 auto 0;
+    height: 2px;
+    background: var(--modra);
+    border-radius: 1px;
+    transform: translateY(-50%);
+    transition: transform var(--prechod), opacity var(--prechod);
+  }
+
+  .dlazdice-znak::after {
+    transform: translateY(-50%) rotate(90deg);
+  }
+
+  .dlazdice[open] .dlazdice-znak::after {
+    transform: translateY(-50%) rotate(0deg);
+    opacity: 0;
+  }
+
+  .dlazdice-shrnuti {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: var(--text-maly);
+    line-height: 1.5;
+    color: var(--inkoust-tlum);
+  }
+
+  .dlazdice-obsah {
+    padding: 0 1.25rem 1.25rem;
+    font-size: var(--text-maly);
+  }
+
+  .dlazdice-obsah :global(ul) {
+    margin: 0;
+    padding-left: 1.1em;
+  }
+
+  .dlazdice-obsah :global(li) {
+    margin-bottom: 0.4em;
+  }
+
+  .dlazdice-obsah :global(li)::marker {
+    color: var(--zelena);
+  }
+
+  .program-odkaz {
+    margin: clamp(1.75rem, 3vw, 2.5rem) 0 0;
+  }
+
+  /* ---------- Lidé ---------- */
+
+  .lide-hlava {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-bottom: clamp(1.75rem, 3.5vw, 2.75rem);
+  }
+
+  .lide-mrizka {
+    display: grid;
+    gap: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.75rem);
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 620px) {
+    .lide-mrizka {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 940px) {
+    .lide-mrizka {
+      grid-template-columns: repeat(6, 1fr);
+    }
+  }
+
+  /* ---------- Jak volit ---------- */
+
+  .jak-volit h2 {
+    max-width: 20ch;
+    margin-bottom: 1.1rem;
+  }
+
+  .jak-volit-tlacitko {
+    margin: 1.75rem 0 0;
+  }
+</style>
+
+<script>
+  // Odpočet se přepočítá v prohlížeči. Kdyby se počítal jen při sestavení,
+  // po týdnu bez nasazení by na webu svítilo staré číslo.
+  const prvek = document.querySelector<HTMLElement>('[data-odpocet]');
+  if (prvek?.dataset.odpocet) {
+    const volby = new Date(prvek.dataset.odpocet).getTime();
+    const dnu = Math.ceil((volby - Date.now()) / 86_400_000);
+
+    if (dnu > 1) {
+      // Čeština skloňuje: 1 den, 2–4 dny, 5+ dní
+      const tvar = dnu >= 5 ? 'dní' : 'dny';
+      prvek.textContent = `zbývá ${dnu} ${tvar}`;
+    } else if (dnu === 1) {
+      prvek.textContent = 'zbývá 1 den';
+    } else if (dnu === 0) {
+      prvek.textContent = 'volby jsou dnes';
+    } else {
+      prvek.textContent = 'po volbách';
+    }
+  }
+</script>

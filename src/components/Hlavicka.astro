@@ -1,0 +1,236 @@
+---
+/**
+ * Hlavička — logo a navigace.
+ *
+ * Na mobilu se nabídka schová pod tlačítko. Používá nativní <details>,
+ * takže funguje i bez JavaScriptu a nepotřebuje žádnou knihovnu.
+ */
+
+import { odkaz } from '../lib/odkaz';
+
+const POLOZKY = [
+  { text: 'Program', cil: '/program/' },
+  { text: 'Lidé', cil: '/lide/' },
+  { text: 'Jak volit', cil: '/jak-volit/' },
+  { text: 'Kontakt', cil: '/kontakt/' },
+];
+
+// Zvýraznění právě otevřené stránky. Porovnává se bez ohledu na to,
+// jestli adresa končí lomítkem.
+const zdeCesta = Astro.url.pathname.replace(/\/+$/, '');
+const jeAktivni = (cil: string) => zdeCesta.endsWith(cil.replace(/\/+$/, ''));
+---
+
+<header class="hlavicka">
+  <div class="pruh hlavicka-vnitrek">
+    {/* Logo je vektor, takže je ostré na jakémkoliv displeji a váží pár kilobajtů.
+        Poměr stran 1672 : 373 je zapsaný natvrdo, aby se stránka při načítání
+        neposunula. */}
+    <a class="logo" href={odkaz('/')}>
+      <img
+        src={odkaz('/logo.svg')}
+        alt="Transparentní Vyškov — úvodní stránka"
+        width="1672"
+        height="373"
+        fetchpriority="high"
+      />
+    </a>
+
+    <details class="nabidka">
+      <summary aria-label="Nabídka">
+        <span class="carky" aria-hidden="true"><span></span><span></span></span>
+        <span class="carky-popis">Nabídka</span>
+      </summary>
+
+      <nav aria-label="Hlavní nabídka">
+        <ul>
+          {
+            POLOZKY.map((polozka) => (
+              <li>
+                <a href={odkaz(polozka.cil)} aria-current={jeAktivni(polozka.cil) ? 'page' : undefined}>
+                  {polozka.text}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<style>
+  .hlavicka {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgb(241 245 248 / 0.86);
+    border-bottom: 1px solid var(--linka);
+    /* Rozostřený podklad — text pod hlavičkou prosvítá, ale neruší.
+       Je to ten koncept vrstvení, jen v malém. */
+    backdrop-filter: blur(12px) saturate(1.4);
+    -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  }
+
+  .hlavicka-vnitrek {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.25rem;
+  }
+
+  .logo {
+    display: block;
+    flex: none;
+    line-height: 0;
+  }
+
+  .logo img {
+    width: clamp(175px, 22vw, 235px);
+    height: auto;
+  }
+
+  /* --- Navigace ---------------------------------------------------------- */
+
+  .nabidka nav ul {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 2.6vw, 2.1rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nabidka a {
+    display: block;
+    padding: 0.35rem 0;
+    color: var(--inkoust);
+    font-size: var(--text-maly);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color var(--prechod), border-color var(--prechod);
+  }
+
+  .nabidka a:hover {
+    color: var(--modra-text);
+    border-bottom-color: var(--zelena);
+  }
+
+  .nabidka a[aria-current='page'] {
+    color: var(--modra-text);
+    border-bottom-color: var(--modra);
+  }
+
+  /* Na širokém displeji se <details> chová jako obyčejná lišta —
+     tlačítko zmizí a nabídka je vidět pořád. */
+  @media (min-width: 780px) {
+    .nabidka > summary {
+      display: none;
+    }
+    .nabidka > nav {
+      display: block !important;
+    }
+  }
+
+  /* --- Mobilní tlačítko --------------------------------------------------- */
+
+  @media (max-width: 779px) {
+    .nabidka {
+      position: relative;
+    }
+
+    .nabidka > summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--linka-vyrazna);
+      border-radius: 999px;
+      font-size: var(--text-maly);
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .nabidka > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .carky {
+      display: grid;
+      gap: 4px;
+      width: 16px;
+    }
+
+    .carky span {
+      display: block;
+      height: 2px;
+      background: var(--inkoust);
+      border-radius: 1px;
+      transition: transform var(--prechod);
+    }
+
+    .nabidka[open] .carky span:first-child {
+      transform: translateY(3px) rotate(45deg);
+    }
+
+    .nabidka[open] .carky span:last-child {
+      transform: translateY(-3px) rotate(-45deg);
+    }
+
+    .nabidka > nav {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.6rem);
+      min-width: 12rem;
+      padding: 0.6rem;
+      background: var(--plocha);
+      border: 1px solid var(--linka);
+      border-radius: var(--radius);
+      box-shadow: var(--stin-zvednuty);
+    }
+
+    .nabidka nav ul {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .nabidka nav a {
+      padding: 0.6rem 0.7rem;
+      border-bottom: none;
+      border-radius: var(--radius-maly);
+    }
+
+    .nabidka nav a:hover,
+    .nabidka nav a[aria-current='page'] {
+      background: var(--modra-jemna);
+      border-bottom: none;
+    }
+  }
+
+  .carky-popis {
+    /* Slovo „Nabídka" vedle ikony — samotné tři čárky spousta lidí nepozná. */
+    font-size: var(--text-maly);
+  }
+</style>
+
+<script>
+  // Zavře mobilní nabídku po kliknutí mimo ni nebo po Escape.
+  // Bez tohohle nabídka zůstane viset otevřená, což na dotyku otravuje.
+  const nabidka = document.querySelector<HTMLDetailsElement>('.nabidka');
+  if (nabidka) {
+    document.addEventListener('click', (e) => {
+      if (nabidka.open && !nabidka.contains(e.target as Node)) nabidka.open = false;
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && nabidka.open) {
+        nabidka.open = false;
+        nabidka.querySelector('summary')?.focus();
+      }
+    });
+  }
+</script>

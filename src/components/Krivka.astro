@@ -1,0 +1,80 @@
+---
+/**
+ * Zelená stopa z loga — jediný grafický motiv webu.
+ *
+ * Cesta je doslova vytažená ze značky (02_WEB/…-FAVICON-TRANSPARENT.svg),
+ * takže se motiv na webu a logo v hlavičce shodují na milimetr.
+ * Vrací se ve třech podobách, aby web držel pohromadě jedním tvarem
+ * místo náhodných ozdob:
+ *
+ *   varianta="podklad"    velká světlá stopa v pozadí, přetéká přes okraj
+ *   varianta="oddelovac"  tenká křivka místo vodorovné čáry mezi sekcemi
+ *   varianta="znacka"     malá plná stopa (odrážky, ikony)
+ */
+
+interface Props {
+  varianta?: 'podklad' | 'oddelovac' | 'znacka';
+  class?: string;
+}
+
+const { varianta = 'znacka', class: trida } = Astro.props;
+
+/** Zelená stopa ze značky. Souřadnice patří k viewBoxu 0 0 319.79 284.54. */
+const STOPA =
+  'M319.79,0c-2,1.83-129.95,119.76-139.77,245.58,0,0-26.95-1.22-64.94,8.08-22.93,5.61-49.88,15.04-77.34,30.88,0,0,22.99-60.26,86.65-132.8C168.26,101.75,231.46,45.94,319.79,0Z';
+---
+
+{
+  varianta === 'oddelovac' ? (
+    <svg
+      class:list={['krivka-oddelovac', trida]}
+      viewBox="0 0 1200 24"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M0,20 C300,20 380,4 600,4 C820,4 900,20 1200,20"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      />
+    </svg>
+  ) : (
+    <svg
+      class:list={[varianta === 'podklad' ? 'krivka-podklad' : 'krivka-znacka', trida]}
+      viewBox="0 0 319.79 284.54"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={STOPA} fill="currentColor" />
+    </svg>
+  )
+}
+
+<style>
+  .krivka-znacka {
+    width: 1em;
+    height: auto;
+    color: var(--zelena);
+    flex: none;
+  }
+
+  .krivka-oddelovac {
+    display: block;
+    width: 100%;
+    height: 24px;
+    color: var(--linka-vyrazna);
+  }
+
+  /* Podklad: velká měkká stopa, která se nesmí prát s textem.
+     Má se dát vytušit, ne přečíst — proto tak nízká sytost. */
+  .krivka-podklad {
+    position: absolute;
+    height: auto;
+    color: var(--zelena);
+    opacity: 0.11;
+    pointer-events: none;
+    user-select: none;
+  }
+</style>

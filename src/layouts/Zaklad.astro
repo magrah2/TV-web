@@ -1,0 +1,102 @@
+---
+/**
+ * Základní rozvržení — hlavička, patička a hlava dokumentu.
+ * Každá stránka webu se vykresluje uvnitř téhle obálky.
+ */
+
+import Hlavicka from '../components/Hlavicka.astro';
+import Pata from '../components/Pata.astro';
+import { odkaz } from '../lib/odkaz';
+import '../styles/tokeny.css';
+import '../styles/zaklad.css';
+
+interface Props {
+  titulek: string;
+  popis: string;
+  /** Titulní strana má nadpis rovnou v obsahu, nechce vlastní hlavičku sekce. */
+  bezOdsazeni?: boolean;
+}
+
+const { titulek, popis, bezOdsazeni = false } = Astro.props;
+
+const NAZEV = 'Transparentní Vyškov';
+const celyTitulek = titulek === NAZEV ? `${NAZEV} — jde to i jinak` : `${titulek} — ${NAZEV}`;
+
+/**
+ * Draft na GitHub Pages se nesmí dostat do vyhledávačů ani se omylem sdílet
+ * jako ostrý web. Pozná se podle domény, takže se nemusí nic přepínat ručně —
+ * sestavení naostro (NAOSTRO=1) běží na vlastní doméně a pruh ani noindex nedostane.
+ */
+const jeDraft = Astro.site?.hostname !== 'transparentnivyskov.cz';
+
+const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{celyTitulek}</title>
+    <meta name="description" content={popis} />
+    <link rel="canonical" href={kanonicka} />
+
+    {jeDraft && <meta name="robots" content="noindex, nofollow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="cs_CZ" />
+    <meta property="og:site_name" content={NAZEV} />
+    <meta property="og:title" content={celyTitulek} />
+    <meta property="og:description" content={popis} />
+    <meta property="og:url" content={kanonicka} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <meta name="theme-color" content="#f1f5f8" />
+
+    {/* Písmo se přednačítá, aby text neproblikl náhradním fontem.
+        Diakritika sedí v „latin-ext", proto se přednačítají obě podmnožiny. */}
+    <link rel="preload" href={odkaz('/pisma/inter-latin.woff2')} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={odkaz('/pisma/inter-latin-ext.woff2')} as="font" type="font/woff2" crossorigin />
+
+    <link rel="icon" href={odkaz('/favicon.svg')} type="image/svg+xml" />
+
+    <slot name="hlava" />
+  </head>
+
+  <body>
+    <a class="preskocit" href="#obsah">Přeskočit na obsah</a>
+
+    {
+      jeDraft && (
+        <div class="pruh-draft">
+          Náhled — toto zatím není živý web
+        </div>
+      )
+    }
+
+    <Hlavicka />
+
+    <main id="obsah" class:list={[!bezOdsazeni && 'obsah-odsazeny']}>
+      <slot />
+    </main>
+
+    <Pata />
+
+    <style>
+      .pruh-draft {
+        padding: 0.45rem 1rem;
+        background: var(--navrh);
+        color: #fff;
+        font-size: var(--text-drobny);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-align: center;
+      }
+
+      .obsah-odsazeny {
+        padding-top: var(--mezera-sekce);
+      }
+    </style>
+  </body>
+</html>

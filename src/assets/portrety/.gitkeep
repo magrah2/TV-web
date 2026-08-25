@@ -1,0 +1,4 @@
+Sem patří portréty kandidátů v původní velikosti (nezmenšené).
+Web si zmenšeniny a ořezy udělá sám.
+Název souboru se pak zapíše do pole `foto:` u příslušného člověka
+ve složce src/content/kandidati/.

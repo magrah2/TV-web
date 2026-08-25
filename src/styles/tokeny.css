@@ -1,0 +1,97 @@
+/* ==========================================================================
+   Tokeny — jediné místo, kde se definují barvy, písmo a rozestupy.
+   Když chcete něco změnit globálně, měňte to tady a nikde jinde.
+   ========================================================================== */
+
+/* --- Písmo -------------------------------------------------------------- */
+/* Inter je variabilní: jeden soubor umí všechny tučnosti i optické velikosti.
+   Rozdělený na dvě podmnožiny — česká diakritika (ě š č ř ž ů) sedí
+   v „latin-ext", takže se ostatním jazykům nestahuje zbytečně.
+   Hostujeme si ho sami, takže web neposílá IP adresy návštěvníků Googlu. */
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/pisma/inter-latin-ext.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/pisma/inter-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* --- Barvy -----------------------------------------------------------
+     Modrá a zelená jsou naměřené přímo z loga.
+     Pozadí není bílé, ale papír tónovaný do modra — bílé karty na něm
+     mají kam plavat a web hned vypadá navržený, ne výchozí. */
+
+  --papir: #f1f5f8;
+  --papir-tmavsi: #e4ecf2; /* jemné odsazené pruhy */
+  --plocha: #ffffff;
+
+  --inkoust: #0e1d28;      /* text — tmavá modro-šedá, ne černá */
+  --inkoust-tlum: #5a6c78; /* popisky, meta údaje */
+
+  --modra: #1d6eb0;        /* značka — plochy, ikony, výplně */
+  --modra-text: #145286;   /* modrá jako text (kontrast 6,1 : 1 na papíru) */
+  --modra-jemna: #dbe9f4;  /* podklady štítků a zvýraznění */
+
+  --zelena: #5bae39;       /* akcent — POUZE plocha a grafika */
+  --zelena-text: #3d7a24;  /* zelená jako text — logová má jen 2,9 : 1 */
+  --zelena-jemna: #e6f2e0;
+
+  --noc: #0b2032;          /* tmavé pásy (mapa, průvodce volbami) */
+  --noc-svetlejsi: #12304a;
+  --na-noci: #e8eff5;      /* text na tmavém pásu */
+  --na-noci-tlum: #93a9bb;
+
+  --linka: rgb(14 29 40 / 0.12);
+  --linka-vyrazna: rgb(14 29 40 / 0.22);
+  --linka-na-noci: rgb(232 239 245 / 0.16);
+
+  --varovani: #b3261e;     /* neplatný lístek, chybové stavy */
+  --navrh: #a05a00;        /* označení „návrh — k ověření" */
+
+  /* --- Rozměry ---------------------------------------------------------- */
+  --sirka: min(1180px, 100% - 2.5rem);   /* obsahový pruh */
+  --sirka-textu: 36rem;                  /* delší text se čte po ~70 znacích */
+  --radius: 14px;
+  --radius-maly: 8px;
+
+  /* --- Rytmus -----------------------------------------------------------
+     Pozor: sekce mají odsazení nahoře i dole, takže mezi dvěma sousedními
+     se hodnota SČÍTÁ. Skutečná mezera mezi sekcemi je dvojnásobek. */
+  --mezera-sekce: clamp(2.25rem, 4.5vw, 3.75rem);
+  --mezera: clamp(1rem, 2.5vw, 1.75rem);
+
+  /* --- Pohyb ------------------------------------------------------------ */
+  --prechod: 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+
+  /* --- Stíny ------------------------------------------------------------
+     Velmi měkké a barevně laděné do modra, ne šedé — jinak karty
+     na tónovaném papíru vypadají špinavě. */
+  --stin: 0 1px 2px rgb(14 29 40 / 0.04), 0 4px 16px rgb(14 29 40 / 0.05);
+  --stin-zvednuty: 0 2px 4px rgb(14 29 40 / 0.05), 0 12px 32px rgb(14 29 40 / 0.10);
+
+  /* --- Typografická škála ----------------------------------------------- */
+  --text-hero: clamp(2.9rem, 10.5vw, 7rem);
+  --text-nadpis-1: clamp(2rem, 5vw, 3.25rem);
+  --text-nadpis-2: clamp(1.4rem, 3vw, 2rem);
+  --text-nadpis-3: clamp(1.1rem, 2vw, 1.3rem);
+  --text-velky: clamp(1.05rem, 2vw, 1.3rem);
+  --text-zakladni: 1.0625rem;
+  --text-maly: 0.9375rem;
+  --text-drobny: 0.8125rem;
+}

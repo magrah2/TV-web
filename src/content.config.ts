@@ -1,0 +1,66 @@
+import { defineCollection, z } from 'astro:content';
+import { glob } from 'astro/loaders';
+import { TEMATA } from './lib/temata';
+
+/**
+ * Schéma dat. Tohle je pojistka, ne byrokracie: když někdo v souboru
+ * kandidáta napíše téma s překlepem nebo zapomene pořadí, shodí to
+ * sestavení webu — chyba se ukáže mně, ne návštěvníkovi.
+ *
+ * Soubory začínající podtržítkem (`_SABLONA.md`) se přeskakují,
+ * takže vzor pro vyplňování může ležet rovnou vedle skutečných dat.
+ *
+ * Nevyplněná pole jsou `nullish`, ne `optional` — a je to schválně.
+ * `foto:` bez hodnoty je v YAML `null`, ne chybějící klíč, a `optional()`
+ * by null odmítl. Kdyby tu bylo `optional()`, každý nevyplněný řádek
+ * v šabloně by shodil sestavení.
+ */
+
+const kandidati = defineCollection({
+  loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/kandidati' }),
+  schema: ({ image }) =>
+    z.object({
+      poradi: z.number().int().min(1),
+      jmeno: z.string(),
+      vek: z.number().int().optional(),
+      povolani: z.string(),
+      prislusnost: z.string().optional(),
+      /** 1–3 oblasti, kterým se člověk chce věnovat. Musí být ze seznamu v temata.ts. */
+      temata: z.array(z.enum(TEMATA)).max(3).default([]),
+      /** Prázdné = použije se zástupná silueta. */
+      foto: image().nullish(),
+      /** Jedna věta, která se na medailonku vytáhne velkým písmem. */
+      citace: z.string().nullish(),
+      /** Zapojení mimo práci — spolky, sdružení. */
+      pusobeni: z.string().nullish(),
+    }),
+});
+
+const program = defineCollection({
+  loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/program' }),
+  schema: z.object({
+    poradi: z.number().int(),
+    nazev: z.string(),
+    /** Jedna věta na dlaždici na úvodní stránce. */
+    shrnuti: z.string(),
+    tema: z.enum(TEMATA),
+  }),
+});
+
+// Body na mapě záměrů přibudou ve 3. týdnu spolu se samotnou mapou.
+// Schéma bude vypadat takhle — `stav: navrh` označí body, které čekají
+// na ověření týmem, aby se odhad nikdy nevydával za programový závazek:
+//
+//   const zamery = defineCollection({
+//     loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/zamery' }),
+//     schema: z.object({
+//       poradi: z.number().int(),
+//       nazev: z.string(),
+//       tema: z.enum(TEMATA),
+//       x: z.number().min(0).max(100),   // poloha v procentech podkladu mapy
+//       y: z.number().min(0).max(100),
+//       stav: z.enum(['navrh', 'overeno']).default('navrh'),
+//     }),
+//   });
+
+export const collections = { kandidati, program };

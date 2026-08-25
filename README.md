@@ -1,0 +1,115 @@
+# Web Transparentní Vyškov
+
+Volební web sdružení nezávislých kandidátů do zastupitelstva města Vyškova.
+Volby jsou **9.–10. října 2026**.
+
+Web je statický — žádný server, žádná databáze, žádné cookies ani měřicí kódy.
+
+---
+
+## Co kde je
+
+| Složka | Co obsahuje |
+|---|---|
+| `src/content/kandidati/` | **Kandidáti** — jeden soubor na člověka, tady se vyplňují medailonky |
+| `src/content/program/` | **Program** — osm oblastí |
+| `src/assets/portrety/` | Portrétní fotky (zatím prázdné, používají se siluety) |
+| `src/pages/` | Jednotlivé stránky webu |
+| `src/components/` | Opakující se části (hlavička, karta kandidáta, patička…) |
+| `src/styles/tokeny.css` | **Barvy, písmo, rozestupy** — jediné místo, kde se mění vzhled globálně |
+| `src/lib/temata.ts` | Seznam programových oblastí, ze kterého čerpá zbytek webu |
+| `nastroje/` | Jednorázové skripty, kterými se web zakládal |
+
+---
+
+## Jak vyplnit medailonek
+
+Otevřete soubor člověka ve `src/content/kandidati/` — jsou pojmenované podle
+pořadí, takže dvacátý kandidát je `20-vojtech-liska.md`.
+
+```
+---
+poradi: 20
+jmeno: Mgr. Vojtěch Liška, Ph.D.
+vek: 31
+povolani: výzkumník kvantové optiky
+prislusnost: příznivec České pirátské strany
+temata: [Školství, Hospodaření]
+foto: vojtech-liska.jpg
+citace: Věta, která se v medailonku vytáhne velkým písmem.
+---
+
+Text medailonku. Klidně několik odstavců — dá se překopírovat
+z medailonku na Facebooku.
+```
+
+Nad čarou jsou údaje, pod čarou text. **Prázdné pole nevadí**, stránka se
+vykreslí bez něj a nic se nerozbije.
+
+Pár pravidel, která web hlídá sám a upozorní, když se poruší:
+
+- `temata` musí být 1 až 3 oblasti **přesně** ze seznamu v `src/lib/temata.ts`.
+  Překlep shodí sestavení, takže se chyba nedostane na web.
+- `poradi` musí být vyplněné.
+- `foto` je název souboru ve `src/assets/portrety/`. Dokud je prázdné,
+  ukáže se zástupná silueta — fotky se tak dají dodávat postupně po jedné.
+
+---
+
+## Jak přidat fotky
+
+Nakopírujte je do `src/assets/portrety/` **v původní velikosti**, nezmenšené.
+Web si sám vyrobí zmenšeniny, převede je do moderních formátů a doplní ořezy.
+Pak u příslušného člověka vyplňte `foto: nazev-souboru.jpg`.
+
+---
+
+## Jak si web pustit u sebe
+
+Potřebujete [Node.js](https://nodejs.org/) verze 20 nebo novější.
+
+```
+npm install      # jen poprvé
+npm run dev      # spustí web na http://localhost:4321
+```
+
+Po uložení souboru se stránka v prohlížeči obnoví sama.
+
+| Příkaz | Co dělá |
+|---|---|
+| `npm run dev` | Web běží u vás na počítači, změny se projeví hned |
+| `npm run build` | Sestaví hotový web do složky `dist/` |
+| `npm run preview` | Ukáže sestavený web tak, jak ho uvidí návštěvník |
+
+---
+
+## Nasazení
+
+**Draft** se nasazuje sám. Cokoliv pushnete do větve `main`, se do pár minut
+objeví na GitHub Pages. Draft má `noindex` a pruh „Náhled — toto zatím není
+živý web", takže se nedostane do vyhledávačů ani si ho nikdo nesplete s ostrým
+webem. O nasazení se stará `.github/workflows/nasadit.yml`.
+
+**Naostro** se zatím nepouští. Až se bude přepínat doména, změní se dvě věci:
+
+1. Do sestavení přibude proměnná `NAOSTRO=1` — tím zmizí pruh i `noindex`
+   a odkazy se přepnou z podsložky `/TP-web/` do kořene domény.
+2. U domény se přesměrují DNS záznamy na GitHub Pages.
+
+⚠️ **Pozor při přepínání domény:** záznamy `MX` musí zůstat u původního
+poskytovatele, jinak přestane chodit pošta na `info@transparentnivyskov.cz`.
+To je nejčastější chyba při stěhování webu.
+
+---
+
+## Co ještě chybí
+
+- [ ] Portréty kandidátů a fotky Vyškova
+- [ ] Texty medailonků (kopírují se z Facebooku)
+- [ ] Témata u většiny kandidátů — u některých je předvyplněný **návrh**
+      odvozený z povolání, označený komentářem v souboru. Potvrdit nebo přepsat.
+- [ ] Mapa záměrů (3. týden)
+- [ ] Interaktivní volební lístek (3. týden)
+- [ ] Správce osobních údajů na stránce `/soukromi/` — hledejte `DOPLNIT`
+- [ ] Rozhodnout, jestli v patičce dobrovolně uvést zadavatele a zpracovatele
+      (u komunálních voleb to zákon nevyžaduje)

@@ -1,0 +1,133 @@
+---
+import { getCollection, render } from 'astro:content';
+import Zaklad from '../layouts/Zaklad.astro';
+import { BARVA_TEMATU } from '../lib/temata';
+import type { Tema } from '../lib/temata';
+
+const oblasti = (await getCollection('program')).sort((a, b) => a.data.poradi - b.data.poradi);
+const sObsahem = await Promise.all(
+  oblasti.map(async (oblast) => ({ ...oblast, Obsah: (await render(oblast)).Content })),
+);
+---
+
+<Zaklad
+  titulek="Náš program"
+  popis="Osm oblastí, ve kterých chceme Vyškov změnit: transparentní správa, dostupné bydlení, zeleň a voda, podnikání, školství, bezpečnost, kultura a bezpečný pohyb."
+>
+  <div class="pruh">
+    <p class="nadtitulek">Náš program</p>
+    <h1 class="nadpis">Poctivá radnice, která rozhoduje s občany, ne za&nbsp;ně</h1>
+    <p class="perex uvod">
+      Osm oblastí, ve kterých chceme Vyškov posunout. Žádná z nich není originální nápad —
+      jsou to věci, které jinde dávno fungují.
+    </p>
+
+    <ol class="oblasti">
+      {
+        sObsahem.map((oblast) => (
+          <li class="oblast" id={`oblast-${oblast.data.poradi}`}>
+            <div class="oblast-hlava">
+              <span
+                class="oblast-cislo"
+                style={`--barva: ${BARVA_TEMATU[oblast.data.tema as Tema]}`}
+                aria-hidden="true"
+              >
+                {String(oblast.data.poradi).padStart(2, '0')}
+              </span>
+              <div>
+                <h2>{oblast.data.nazev}</h2>
+                <p class="oblast-shrnuti">{oblast.data.shrnuti}</p>
+              </div>
+            </div>
+            <div class="oblast-obsah">
+              <oblast.Obsah />
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</Zaklad>
+
+<style>
+  .nadpis {
+    max-width: 20ch;
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .oblasti {
+    margin: clamp(2.5rem, 5vw, 4rem) 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0;
+  }
+
+  .oblast {
+    padding-block: clamp(1.75rem, 3.5vw, 2.75rem);
+    border-top: 1px solid var(--linka);
+    scroll-margin-top: 6rem;
+  }
+
+  .oblast:last-child {
+    border-bottom: 1px solid var(--linka);
+  }
+
+  .oblast-hlava {
+    display: flex;
+    align-items: start;
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+  }
+
+  /* Číslo v barvě programové oblasti — stejný odstín pak ponese
+     příslušný bod na mapě záměrů, takže se to spojí i vizuálně. */
+  .oblast-cislo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--barva) 14%, transparent);
+    color: var(--barva);
+    font-size: var(--text-maly);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .oblast-shrnuti {
+    max-width: 48ch;
+    margin: 0.45rem 0 0;
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .oblast-obsah {
+    max-width: var(--sirka-textu);
+    margin-top: 1.1rem;
+    margin-left: calc(2.75rem + clamp(0.9rem, 2vw, 1.5rem));
+  }
+
+  .oblast-obsah :global(ul) {
+    margin: 0;
+    padding-left: 1.15em;
+  }
+
+  .oblast-obsah :global(li) {
+    margin-bottom: 0.5em;
+  }
+
+  .oblast-obsah :global(li)::marker {
+    color: var(--zelena);
+  }
+
+  @media (max-width: 560px) {
+    .oblast-obsah {
+      margin-left: 0;
+    }
+  }
+</style>

@@ -1,0 +1,286 @@
+/* ==========================================================================
+   Základní styly — nastavení dokumentu a prvky, které se opakují všude.
+   Vzhled jednotlivých částí webu je ve vlastních komponentách.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* Aby odkaz na kotvu neschoval nadpis pod lepivou hlavičkou */
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--papir);
+  color: var(--inkoust);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: var(--text-zakladni);
+  font-weight: 400;
+  line-height: 1.65;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Vodorovné přetečení nesmí nikdy vzniknout — dekorativní křivka
+     v hlavičce přesahuje přes okraj a bez tohohle by web šel posouvat do stran. */
+  overflow-x: hidden;
+}
+
+/* --- Nadpisy -------------------------------------------------------------
+   Nadpisy jsou sevřenější než text. Inter má osu optické velikosti, takže
+   ve velkém působí ostřeji sám od sebe; prostrkání to jen dotahuje. */
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.021em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--text-nadpis-1);
+}
+h2 {
+  font-size: var(--text-nadpis-2);
+}
+h3 {
+  font-size: var(--text-nadpis-3);
+  letter-spacing: -0.012em;
+}
+
+p {
+  margin: 0 0 1em;
+  text-wrap: pretty;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--modra-text);
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+a:hover {
+  color: var(--inkoust);
+}
+
+img,
+svg,
+picture {
+  max-width: 100%;
+  display: block;
+}
+
+ul,
+ol {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+
+/* --- Opakující se stavební prvky ----------------------------------------- */
+
+.pruh {
+  width: var(--sirka);
+  margin-inline: auto;
+}
+
+.sekce {
+  padding-block: var(--mezera-sekce);
+}
+
+/* Tmavý pás — mapa a průvodce volbami. Dává stránce rytmus a obě
+   featury na tmavém pozadí vyniknou. */
+.pas-noc {
+  background: var(--noc);
+  color: var(--na-noci);
+}
+
+.pas-noc h1,
+.pas-noc h2,
+.pas-noc h3 {
+  color: var(--na-noci);
+}
+
+.pas-noc a {
+  color: #8fc4ec;
+}
+
+/* Nadřazený popisek nad nadpisem sekce */
+.nadtitulek {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-drobny);
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--modra-text);
+}
+
+.pas-noc .nadtitulek {
+  color: #7fb4dd;
+}
+
+.perex {
+  max-width: var(--sirka-textu);
+  font-size: var(--text-velky);
+  line-height: 1.55;
+  color: var(--inkoust-tlum);
+}
+
+.pas-noc .perex {
+  color: var(--na-noci-tlum);
+}
+
+/* --- Tlačítka ------------------------------------------------------------ */
+
+.tlacitko {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: var(--text-maly);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--prechod), color var(--prechod),
+    border-color var(--prechod), transform var(--prechod);
+}
+
+.tlacitko-hlavni {
+  background: var(--modra);
+  color: #fff;
+}
+
+.tlacitko-hlavni:hover {
+  background: var(--modra-text);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.tlacitko-vedlejsi {
+  background: transparent;
+  color: var(--inkoust);
+  border-color: var(--linka-vyrazna);
+}
+
+.tlacitko-vedlejsi:hover {
+  background: var(--plocha);
+  color: var(--inkoust);
+  border-color: var(--inkoust);
+  transform: translateY(-1px);
+}
+
+.pas-noc .tlacitko-vedlejsi {
+  color: var(--na-noci);
+  border-color: var(--linka-na-noci);
+}
+
+.pas-noc .tlacitko-vedlejsi:hover {
+  background: var(--noc-svetlejsi);
+  color: var(--na-noci);
+  border-color: var(--na-noci-tlum);
+}
+
+/* --- Štítky --------------------------------------------------------------- */
+
+.stitek {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--modra-jemna);
+  color: var(--modra-text);
+  font-size: var(--text-drobny);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+}
+
+.stitek-zeleny {
+  background: var(--zelena-jemna);
+  color: var(--zelena-text);
+}
+
+/* --- Přístupnost ---------------------------------------------------------- */
+
+/* Odkaz pro čtečky a klávesnici — přeskočí navigaci rovnou na obsah */
+.preskocit {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.7rem 1.2rem;
+  background: var(--inkoust);
+  color: #fff;
+  border-radius: var(--radius-maly);
+  font-size: var(--text-maly);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top var(--prechod);
+}
+
+.preskocit:focus {
+  top: 0.5rem;
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--modra);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.pas-noc :focus-visible {
+  outline-color: #8fc4ec;
+}
+
+/* Skryté jen vizuálně — čtečky obrazovky to přečtou */
+.jen-pro-ctecky {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Kdo má v systému vypnuté animace, ten je nedostane. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  .preskocit,
+  .hlavicka,
+  .pata-navigace {
+    display: none;
+  }
+  body {
+    background: #fff;
+  }
+}
