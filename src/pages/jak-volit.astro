@@ -1,5 +1,6 @@
 ---
 import Zaklad from '../layouts/Zaklad.astro';
+import VolebniListek from '../components/VolebniListek.astro';
 import { odkaz } from '../lib/odkaz';
 
 /**
@@ -98,14 +99,15 @@ const NEPLATNY = [
       </ul>
     </section>
 
-    {/* ---------- Chystaná aplikace ---------- */}
-    <section class="chystame">
-      <h2>Chystáme: lístek na zkoušku</h2>
-      <p>
-        Připravujeme hlasovací lístek, na kterém si všechno vyzkoušíte nanečisto — uvidíte
-        živě, kolik křížků vám zbývá a jestli by lístek platil. Nejde to sem propašovat dřív,
-        než si ověříme, že to počítá přesně tak jako volební komise.
+    {/* ---------- Lístek na zkoušku ---------- */}
+    <section class="zkouska" id="zkouska">
+      <h2>Vyzkoušejte si to nanečisto</h2>
+      <p class="perex zkouska-uvod">
+        Tohle je hlasovací lístek na zkoušku. Klikejte do rámečků a dole uvidíte živě,
+        komu váš hlas skutečně připadne a jestli by lístek platil. Nic se nikam neodesílá.
       </p>
+
+      <VolebniListek />
     </section>
 
     <p class="dal">
@@ -244,25 +246,15 @@ const NEPLATNY = [
     color: var(--varovani);
   }
 
-  /* ---------- Chystáme ---------- */
+  /* ---------- Lístek na zkoušku ---------- */
 
-  .chystame {
-    margin-top: clamp(2.5rem, 5vw, 3.5rem);
-    padding: clamp(1.1rem, 2.5vw, 1.5rem);
-    border: 1px dashed var(--linka-vyrazna);
-    border-radius: var(--radius);
+  .zkouska {
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    scroll-margin-top: 6rem;
   }
 
-  .chystame h2 {
-    font-size: var(--text-nadpis-3);
-    margin-bottom: 0.6rem;
-  }
-
-  .chystame p {
-    max-width: var(--sirka-textu);
-    margin: 0;
-    font-size: var(--text-maly);
-    color: var(--inkoust-tlum);
+  .zkouska-uvod {
+    margin-top: 0.9rem;
   }
 
   .dal {

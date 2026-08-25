@@ -1,0 +1,44 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+import MapaZameru from '../components/MapaZameru.astro';
+import { odkaz } from '../lib/odkaz';
+---
+
+<Zaklad
+  titulek="Mapa záměrů"
+  popis="Co a kde chceme ve Vyškově udělat. Konkrétní místa ve městě a konkrétní záměry — náměstí, řeka Haná, nádraží, bytová výstavba."
+  bezOdsazeni
+>
+  <MapaZameru />
+
+  <section class="sekce">
+    <div class="pruh dovetek">
+      <h2>Chybí tu místo, které vás štve?</h2>
+      <p class="perex">
+        Mapa není hotová a nikdy nebude — město se mění. Napište nám, co byste na ni
+        přidali, a proč.
+      </p>
+      <p class="dovetek-tlacitko">
+        <a class="tlacitko tlacitko-hlavni" href={odkaz('/kontakt/')}>Napsat nám</a>
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/program/')}>Celý program</a>
+      </p>
+    </div>
+  </section>
+</Zaklad>
+
+<style>
+  .dovetek h2 {
+    max-width: 20ch;
+  }
+
+  .dovetek .perex {
+    margin-top: 0.9rem;
+  }
+
+  .dovetek-tlacitko {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1.75rem;
+  }
+</style>

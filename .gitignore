@@ -31,3 +31,6 @@ pnpm-debug.log*
 
 # nastaveni editoru JetBrains
 .idea/
+
+# stazena data OpenStreetMap - mezipamet generatoru mapy
+nastroje/.mapa-data.json

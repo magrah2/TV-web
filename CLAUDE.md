@@ -122,15 +122,28 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   `preload` se ze stejného důvodu importují přes `?url` — jinak by preload
   stahoval jiný soubor, než jaký si pak vyžádá CSS.
 
+## Pravidla hlasování jsou ověřená — neměnit od oka
+
+Volební lístek (`src/components/VolebniListek.astro`) počítá, komu připadne
+hlas. Kdyby počítal špatně, učili bychom lidi volit špatně. Pravidla jsou
+ověřená proti zákonu č. 491/2001 Sb. a shodně je popisuje Ministerstvo vnitra:
+
+1. Křížek u strany → hlas dostanou **všichni** její kandidáti v pořadí.
+2. Křížky u jednotlivců → nejvýš 27 (tolik má Vyškov zastupitelů).
+3. Strana + jednotlivci z **jiných** stran → nejdřív se počítají jednotlivci,
+   zbytek z 27 hlasů dostanou kandidáti označené strany **odshora**.
+4. Strana + jednotlivci z **téže** strany → křížky u jednotlivců se
+   **ignorují**, hlas platí pro celou stranu. Lístek zůstává platný.
+5. Neplatný → víc než jedna strana, nebo víc než 27 jednotlivců.
+
+Každé z těch pravidel hlídá `npm run zkouska`. Když se logika mění, musí se
+měnit i zkouška — ne naopak.
+
 ## Kde to stojí
 
-Otevřené body jsou v README v sekci „Co ještě chybí". Zkráceně:
-chybí fotky, texty medailonků, mapa záměrů a interaktivní volební lístek.
-Na `/soukromi/` je nedodělek označený `DOPLNIT`.
-
-**Před stavbou volebního lístku ověřit:** co se stane, když volič označí
-stranu a zároveň jednotlivce z **téže** strany. Zbytek pravidel je ověřený
-proti zákonu 491/2001 Sb. a shodně ho popisuje Ministerstvo vnitra.
+Otevřené body jsou v README v sekci „Co ještě chybí". Zkráceně: chybí fotky
+a texty medailonků. Body na mapě mají `stav: navrh` — polohy jsou skutečné,
+texty čekají na potvrzení týmem. Na `/soukromi/` je nedodělek `DOPLNIT`.
 
 ---
 

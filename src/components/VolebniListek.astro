@@ -1,0 +1,563 @@
+---
+/**
+ * Volební lístek na zkoušku.
+ *
+ * Ukazuje na číslech, co se stane s hlasem podle toho, jak volič lístek upraví.
+ * Pravidla jsou ověřená proti zákonu č. 491/2001 Sb.; shodně je popisuje
+ * Ministerstvo vnitra:
+ *
+ *   1. Křížek u strany     → hlas dostanou všichni její kandidáti v pořadí.
+ *   2. Křížky u jednotlivců → nejvýš tolik, kolik se volí zastupitelů.
+ *   3. Obojí zároveň        → nejdřív se počítají jednotlivci z JINÝCH stran,
+ *                             zbytek hlasů dostanou kandidáti označené strany
+ *                             odshora dolů.
+ *   4. Strana + jednotlivci z TÉŽE strany → křížky u jednotlivců se ignorují,
+ *                             hlas platí pro celou stranu. Lístek je platný.
+ *   5. Neplatný lístek      → víc než jedna strana, nebo víc jednotlivců,
+ *                             než se volí zastupitelů.
+ *
+ * Ostatní kandidátky jsou zástupné. Skutečné strany tu schválně nejsou —
+ * bylo by to zbytečné a vypadalo by to jako útok na konkurenci.
+ */
+
+import { getCollection } from 'astro:content';
+import { jmenoBezTitulu } from '../lib/odkaz';
+
+/** Vyškovské zastupitelstvo má 27 členů, takže volič má 27 hlasů. */
+const POCET_ZASTUPITELU = 27;
+
+const nasi = (await getCollection('kandidati'))
+  .sort((a, b) => a.data.poradi - b.data.poradi)
+  .map((k) => jmenoBezTitulu(k.data.jmeno));
+
+/** Zástupné kandidátky, aby šlo vyzkoušet i hlasování napříč stranami. */
+const UKAZKOVE = ['A', 'B'].map((pismeno) => ({
+  id: `ukazka-${pismeno.toLowerCase()}`,
+  nazev: `Ukázková kandidátka ${pismeno}`,
+  jmena: Array.from({ length: POCET_ZASTUPITELU }, (_, i) => `Kandidát ${pismeno}${i + 1}`),
+}));
+
+const STRANY = [
+  { id: 'tv', nazev: 'Transparentní Vyškov', jmena: nasi, nase: true },
+  ...UKAZKOVE.map((s) => ({ ...s, nase: false })),
+];
+---
+
+<div class="listek" data-listek data-pocet-zastupitelu={POCET_ZASTUPITELU}>
+  {/* ---------- Ovládací pruh ---------- */}
+  <div class="listek-pruh">
+    <div class="listek-stav">
+      <p class="listek-zbyva">
+        Zbývá <strong data-zbyva>{POCET_ZASTUPITELU}</strong> z {POCET_ZASTUPITELU} křížků
+      </p>
+      <div class="listek-ukazatel" aria-hidden="true">
+        <span data-ukazatel style="width: 0%"></span>
+      </div>
+    </div>
+
+    <button type="button" class="tlacitko tlacitko-vedlejsi listek-reset" data-reset>
+      Začít znovu
+    </button>
+  </div>
+
+  {/* Výsledek se dopočítává průběžně. `aria-live` zajistí, že se změna
+      přečte i tomu, kdo obrazovku nevidí. */}
+  <div class="listek-vysledek" data-vysledek aria-live="polite">
+    <p class="listek-vysledek-hlavni" data-vysledek-hlavni>
+      Zatím jste nic neoznačili. Zkuste kliknout do rámečku u některé kandidátky
+      nebo u konkrétních jmen.
+    </p>
+    <p class="listek-vysledek-detail" data-vysledek-detail hidden></p>
+  </div>
+
+  {/* ---------- Samotný lístek ---------- */}
+  <div class="listek-posuv">
+    <div class="listek-sloupce">
+      {
+        STRANY.map((strana) => (
+          <section class="sloupec" data-strana={strana.id} class:list={['sloupec', strana.nase && 'sloupec-nase']}>
+            <header class="sloupec-hlava">
+              <button
+                type="button"
+                class="ramecek ramecek-strana"
+                data-strana-ramecek={strana.id}
+                aria-pressed="false"
+                aria-label={`Označit celou kandidátku ${strana.nazev}`}
+              >
+                <span class="krizek" aria-hidden="true">✕</span>
+              </button>
+              <h3 class="sloupec-nazev">{strana.nazev}</h3>
+            </header>
+
+            <ol class="sloupec-jmena">
+              {
+                strana.jmena.map((jmeno, index) => (
+                  <li class="radek" data-radek={`${strana.id}:${index}`}>
+                    <button
+                      type="button"
+                      class="ramecek"
+                      data-kandidat={`${strana.id}:${index}`}
+                      aria-pressed="false"
+                      aria-label={`Označit kandidáta ${index + 1}, ${jmeno}`}
+                    >
+                      <span class="krizek" aria-hidden="true">✕</span>
+                    </button>
+                    <span class="radek-cislo" aria-hidden="true">{index + 1}</span>
+                    <span class="radek-jmeno">{jmeno}</span>
+                    <span class="radek-znacka" data-znacka aria-hidden="true"></span>
+                  </li>
+                ))
+              }
+            </ol>
+          </section>
+        ))
+      }
+    </div>
+  </div>
+
+  <p class="listek-poznamka">
+    Ukázkové kandidátky nahrazují ostatní strany. Na skutečném lístku budou všechny,
+    které ve Vyškově kandidují, a bude jich víc.
+  </p>
+</div>
+
+<style>
+  .listek {
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  /* ---------- Ovládací pruh ---------- */
+
+  .listek-pruh {
+    position: sticky;
+    top: 4.25rem;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding: 0.85rem 1rem;
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .listek-stav {
+    flex: 1 1 14rem;
+  }
+
+  .listek-zbyva {
+    margin: 0;
+    font-size: var(--text-maly);
+  }
+
+  .listek-zbyva strong {
+    font-size: var(--text-nadpis-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .listek-ukazatel {
+    height: 5px;
+    margin-top: 0.45rem;
+    border-radius: 999px;
+    background: var(--papir-tmavsi);
+    overflow: hidden;
+  }
+
+  .listek-ukazatel span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--zelena);
+    transition: width var(--prechod), background var(--prechod);
+  }
+
+  .listek[data-neplatny] .listek-ukazatel span {
+    background: var(--varovani);
+  }
+
+  .listek-reset {
+    padding: 0.55rem 1.1rem;
+  }
+
+  /* ---------- Výsledek ---------- */
+
+  .listek-vysledek {
+    padding: 0.9rem 1rem;
+    background: var(--modra-jemna);
+    border: 1px solid var(--linka);
+    border-top: none;
+  }
+
+  .listek[data-neplatny] .listek-vysledek {
+    background: color-mix(in srgb, var(--varovani) 12%, transparent);
+  }
+
+  .listek-vysledek p {
+    margin: 0;
+    max-width: 62ch;
+    font-size: var(--text-maly);
+  }
+
+  .listek-vysledek-hlavni {
+    font-weight: 600;
+  }
+
+  .listek[data-neplatny] .listek-vysledek-hlavni {
+    color: var(--varovani);
+  }
+
+  .listek-vysledek-detail {
+    margin-top: 0.4rem !important;
+    color: var(--inkoust-tlum);
+  }
+
+  /* ---------- Sloupce ----------
+     Lístek je ve skutečnosti široký arch. Na úzkém displeji se proto
+     posouvá do stran uvnitř vlastního rámu, aby se kvůli němu nedala
+     posouvat celá stránka. */
+
+  .listek-posuv {
+    overflow-x: auto;
+    border: 1px solid var(--linka);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: var(--plocha);
+  }
+
+  .listek-sloupce {
+    display: flex;
+    gap: 0;
+    min-width: min-content;
+  }
+
+  .sloupec {
+    flex: 1 0 15rem;
+    min-width: 15rem;
+    border-right: 1px solid var(--linka);
+  }
+
+  .sloupec:last-child {
+    border-right: none;
+  }
+
+  .sloupec-nase {
+    background: color-mix(in srgb, var(--zelena) 5%, transparent);
+  }
+
+  .sloupec-hlava {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem;
+    border-bottom: 2px solid var(--linka-vyrazna);
+    min-height: 4.5rem;
+  }
+
+  .sloupec-nazev {
+    font-size: var(--text-maly);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .sloupec-jmena {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* ---------- Řádek s kandidátem ---------- */
+
+  .radek {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.85rem 0.25rem 0.6rem;
+    border-bottom: 1px solid var(--linka);
+    font-size: var(--text-drobny);
+    line-height: 1.3;
+  }
+
+  .radek:last-child {
+    border-bottom: none;
+  }
+
+  .radek-cislo {
+    flex: none;
+    width: 1.2rem;
+    text-align: right;
+    color: var(--inkoust-tlum);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .radek-jmeno {
+    flex: 1;
+  }
+
+  /* Křížek, který se kvůli označené straně nepočítá, se přeškrtne —
+     je to přesně ta situace, kterou zákon řeší a nikdo o ní neví. */
+  .radek[data-ignorovany] .radek-jmeno {
+    text-decoration: line-through;
+    color: var(--inkoust-tlum);
+  }
+
+  .radek[data-ignorovany] .ramecek {
+    opacity: 0.45;
+  }
+
+  /* Komu hlas skutečně připadne. Tohle je ten okamžik, kdy to lidem docvakne. */
+  .radek[data-hlas]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--zelena);
+  }
+
+  .radek[data-hlas] {
+    background: color-mix(in srgb, var(--zelena) 12%, transparent);
+  }
+
+  .radek-znacka {
+    flex: none;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--zelena-text);
+    white-space: nowrap;
+  }
+
+  .radek[data-hlas] .radek-znacka::after {
+    content: 'hlas';
+  }
+
+  /* ---------- Rámeček s křížkem ---------- */
+
+  .ramecek {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    padding: 0;
+    border: 1.5px solid var(--inkoust-tlum);
+    border-radius: 3px;
+    background: var(--plocha);
+    color: var(--inkoust);
+    cursor: pointer;
+    transition: border-color var(--prechod), background var(--prechod);
+  }
+
+  .ramecek-strana {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-width: 2px;
+  }
+
+  .ramecek:hover {
+    border-color: var(--modra);
+    background: var(--modra-jemna);
+  }
+
+  .krizek {
+    font-size: 0.95rem;
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity var(--prechod), transform var(--prechod);
+  }
+
+  .ramecek-strana .krizek {
+    font-size: 1.15rem;
+  }
+
+  .ramecek[aria-pressed='true'] {
+    border-color: var(--inkoust);
+  }
+
+  .ramecek[aria-pressed='true'] .krizek {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .listek-poznamka {
+    margin: 0.85rem 0 0;
+    font-size: var(--text-drobny);
+    color: var(--inkoust-tlum);
+  }
+</style>
+
+<script>
+  const listek = document.querySelector<HTMLElement>('[data-listek]');
+
+  if (listek) {
+    const POCET = Number(listek.dataset.pocetZastupitelu ?? 27);
+
+    const rameckyStran = [...listek.querySelectorAll<HTMLButtonElement>('[data-strana-ramecek]')];
+    const rameckyKandidatu = [...listek.querySelectorAll<HTMLButtonElement>('[data-kandidat]')];
+    const radky = [...listek.querySelectorAll<HTMLElement>('[data-radek]')];
+
+    const poleZbyva = listek.querySelector<HTMLElement>('[data-zbyva]')!;
+    const ukazatel = listek.querySelector<HTMLElement>('[data-ukazatel]')!;
+    const hlavni = listek.querySelector<HTMLElement>('[data-vysledek-hlavni]')!;
+    const detail = listek.querySelector<HTMLElement>('[data-vysledek-detail]')!;
+
+    /** Označené strany. Víc než jedna je neplatný lístek — necháme to zkusit,
+        protože ukázat chybu je názornější než ji zakázat. */
+    const strany = new Set<string>();
+    /** Označení jednotlivci ve tvaru „strana:poradi". */
+    const kandidati = new Set<string>();
+
+    const nazevStrany = (id: string) =>
+      listek.querySelector<HTMLElement>(`[data-strana="${id}"] .sloupec-nazev`)?.textContent?.trim() ?? id;
+
+    /** Čeština skloňuje: 1 křížek, 2–4 křížky, 5+ křížků.
+        Sloveso musí souhlasit s číslem, jinak vznikne „3 křížky se nepočítá". */
+    function krizkySeNepocitaji(n: number) {
+      if (n === 1) return '1 křížek u jména z téže kandidátky se nepočítá';
+      if (n >= 2 && n <= 4) return `${n} křížky u jmen z téže kandidátky se nepočítají`;
+      return `${n} křížků u jmen z téže kandidátky se nepočítá`;
+    }
+
+    function hlasu(n: number) {
+      if (n === 1) return '1 hlas';
+      if (n >= 2 && n <= 4) return `${n} hlasy`;
+      return `${n} hlasů`;
+    }
+
+    function prepocitat() {
+      // --- Vyhodnocení podle pravidel -------------------------------------
+      const jedinaStrana = strany.size === 1 ? [...strany][0] : null;
+
+      // Křížky u kandidátů označené strany se podle zákona ignorují.
+      const ignorovani = jedinaStrana
+        ? [...kandidati].filter((k) => k.startsWith(`${jedinaStrana}:`))
+        : [];
+      const platniJednotlivci = [...kandidati].filter((k) => !ignorovani.includes(k));
+
+      const prilisStran = strany.size > 1;
+      const prilisKandidatu = kandidati.size > POCET;
+      const neplatny = prilisStran || prilisKandidatu;
+
+      // Kolik hlasů zbývá na kandidáty označené strany, a tedy kdo je dostane.
+      const zbyvaStrane = jedinaStrana ? Math.max(0, POCET - platniJednotlivci.length) : 0;
+
+      // --- Vykreslení stavu jednotlivých řádků -----------------------------
+      for (const radek of radky) {
+        const klic = radek.dataset.radek!;
+        const [stranaId, poradi] = klic.split(':');
+        const index = Number(poradi);
+
+        const ignorovany = ignorovani.includes(klic);
+        radek.toggleAttribute('data-ignorovany', ignorovany && !neplatny);
+
+        let maHlas = false;
+        if (!neplatny) {
+          if (platniJednotlivci.includes(klic)) maHlas = true;
+          else if (jedinaStrana === stranaId && index < zbyvaStrane) maHlas = true;
+        }
+        radek.toggleAttribute('data-hlas', maHlas);
+      }
+
+      // --- Počítadlo --------------------------------------------------------
+      const pouzito = jedinaStrana ? POCET : kandidati.size;
+      const zbyva = Math.max(0, POCET - (jedinaStrana ? POCET : kandidati.size));
+      poleZbyva.textContent = String(zbyva);
+      ukazatel.style.width = `${Math.min(100, (pouzito / POCET) * 100)}%`;
+      listek.toggleAttribute('data-neplatny', neplatny);
+
+      // --- Slovní vyhodnocení -----------------------------------------------
+      if (prilisStran) {
+        hlavni.textContent = 'Neplatný lístek — označil jste víc než jednu kandidátku.';
+        detail.hidden = false;
+        detail.textContent =
+          'Označit můžete nejvýš jednu celou kandidátku. Jednotlivce si přitom můžete vybírat napříč všemi stranami.';
+        return;
+      }
+
+      if (prilisKandidatu) {
+        hlavni.textContent = `Neplatný lístek — označil jste ${kandidati.size} kandidátů, maximum je ${POCET}.`;
+        detail.hidden = false;
+        detail.textContent = `Ve Vyškově se volí ${POCET} zastupitelů, takže máte přesně ${POCET} křížků. Jeden musíte ubrat.`;
+        return;
+      }
+
+      if (!jedinaStrana && kandidati.size === 0) {
+        hlavni.textContent =
+          'Zatím jste nic neoznačili. Zkuste kliknout do rámečku u některé kandidátky nebo u konkrétních jmen.';
+        detail.hidden = true;
+        return;
+      }
+
+      // Jen jednotlivci
+      if (!jedinaStrana) {
+        hlavni.textContent = `Platný lístek — rozdal jste ${hlasu(kandidati.size)}.`;
+        detail.hidden = false;
+        detail.textContent = `Hlas dostane přesně těch ${kandidati.size} lidí, které jste označili. Nemusíte využít všech ${POCET} křížků — nevyužité hlasy prostě propadnou.`;
+        return;
+      }
+
+      // Jen strana
+      if (platniJednotlivci.length === 0 && ignorovani.length === 0) {
+        hlavni.textContent = `Platný lístek — ${hlasu(POCET)} pro kandidátku ${nazevStrany(jedinaStrana)}.`;
+        detail.hidden = false;
+        detail.textContent = `Hlas dostanou všichni kandidáti této strany v pořadí, v jakém jsou na listině.`;
+        return;
+      }
+
+      // Strana + křížky u jejích vlastních lidí → ignorují se
+      if (platniJednotlivci.length === 0) {
+        hlavni.textContent = `Platný lístek — ${hlasu(POCET)} pro kandidátku ${nazevStrany(jedinaStrana)}.`;
+        detail.hidden = false;
+        detail.textContent = `Pozor: ${krizkySeNepocitaji(ignorovani.length)}. Označením celé kandidátky už jste hlas dali všem jejím kandidátům, takže tím nikoho nepředběhnete.`;
+        return;
+      }
+
+      // Kombinace — ta zajímavá část
+      hlavni.textContent = `Platný lístek — rozdal jste ${hlasu(POCET)}.`;
+      detail.hidden = false;
+      const cast1 = `${hlasu(platniJednotlivci.length)} pro jednotlivce z jiných kandidátek`;
+      const cast2 =
+        zbyvaStrane > 0
+          ? `zbylých ${hlasu(zbyvaStrane)} pro kandidátku ${nazevStrany(jedinaStrana)} — dostanou je čísla 1 až ${zbyvaStrane}`
+          : `na kandidátku ${nazevStrany(jedinaStrana)} už nezbyl žádný hlas`;
+      const dodatek = ignorovani.length ? ` Navíc ${krizkySeNepocitaji(ignorovani.length)}.` : '';
+      detail.textContent = `${cast1[0].toUpperCase()}${cast1.slice(1)} a ${cast2}.${dodatek}`;
+    }
+
+    // --- Ovládání -----------------------------------------------------------
+
+    for (const ramecek of rameckyStran) {
+      ramecek.addEventListener('click', () => {
+        const id = ramecek.dataset.stranaRamecek!;
+        if (strany.has(id)) strany.delete(id);
+        else strany.add(id);
+        ramecek.setAttribute('aria-pressed', String(strany.has(id)));
+        prepocitat();
+      });
+    }
+
+    for (const ramecek of rameckyKandidatu) {
+      ramecek.addEventListener('click', () => {
+        const klic = ramecek.dataset.kandidat!;
+        if (kandidati.has(klic)) kandidati.delete(klic);
+        else kandidati.add(klic);
+        ramecek.setAttribute('aria-pressed', String(kandidati.has(klic)));
+        prepocitat();
+      });
+    }
+
+    listek.querySelector('[data-reset]')?.addEventListener('click', () => {
+      strany.clear();
+      kandidati.clear();
+      for (const r of [...rameckyStran, ...rameckyKandidatu]) r.setAttribute('aria-pressed', 'false');
+      prepocitat();
+    });
+
+    prepocitat();
+  }
+</script>

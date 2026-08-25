@@ -47,20 +47,22 @@ const program = defineCollection({
   }),
 });
 
-// Body na mapě záměrů přibudou ve 3. týdnu spolu se samotnou mapou.
-// Schéma bude vypadat takhle — `stav: navrh` označí body, které čekají
-// na ověření týmem, aby se odhad nikdy nevydával za programový závazek:
-//
-//   const zamery = defineCollection({
-//     loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/zamery' }),
-//     schema: z.object({
-//       poradi: z.number().int(),
-//       nazev: z.string(),
-//       tema: z.enum(TEMATA),
-//       x: z.number().min(0).max(100),   // poloha v procentech podkladu mapy
-//       y: z.number().min(0).max(100),
-//       stav: z.enum(['navrh', 'overeno']).default('navrh'),
-//     }),
-//   });
+const zamery = defineCollection({
+  loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/zamery' }),
+  schema: z.object({
+    poradi: z.number().int(),
+    nazev: z.string(),
+    tema: z.enum(TEMATA),
+    /** Poloha v procentech podkladu mapy (public/mapa-vyskov.svg, 1000 x 718). */
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+    /**
+     * `navrh` = bod, u kterého text zatím nikdo z týmu nepotvrdil.
+     * Vykreslí se s viditelnou značkou, aby si ho nikdo nespletl se závazkem.
+     * Jakmile text potvrdíte, přepište na `overeno` a značka zmizí.
+     */
+    stav: z.enum(['navrh', 'overeno']).default('navrh'),
+  }),
+});
 
-export const collections = { kandidati, program };
+export const collections = { kandidati, program, zamery };

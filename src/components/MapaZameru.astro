@@ -1,0 +1,499 @@
+---
+/**
+ * Mapa záměrů — co a kde chceme ve Vyškově udělat.
+ *
+ * Podklad je vlastní SVG vygenerované jednou z dat OpenStreetMap
+ * (nastroje/mapa.mjs). Není to vložená mapová služba, takže web při
+ * zobrazení neposílá jediný požadavek ven a nikdo návštěvníky nesleduje.
+ *
+ * Detail se rozbaluje v seznamu vedle mapy, ne v překryvném okně.
+ */
+
+import { getCollection, render } from 'astro:content';
+import { BARVA_TEMATU, temaDoAdresy } from '../lib/temata';
+import type { Tema } from '../lib/temata';
+import podklad from '../../public/mapa-vyskov.svg?raw';
+
+const zamery = (await getCollection('zamery')).sort((a, b) => a.data.poradi - b.data.poradi);
+
+const sObsahem = await Promise.all(
+  zamery.map(async (zamer) => ({ ...zamer, Obsah: (await render(zamer)).Content })),
+);
+
+/** Nabízí se jen to, co je na mapě skutečně zastoupené. */
+const pouziteTemata = [...new Set(zamery.map((z) => z.data.tema))] as Tema[];
+
+const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
+---
+
+<section class="mapa-sekce pas-noc" id="zamery">
+  <div class="pruh">
+    <p class="nadtitulek">Mapa záměrů</p>
+    <h2 class="mapa-nadpis">Program není seznam přání. Jsou to&nbsp;místa, která denně míjíte.</h2>
+    <p class="perex mapa-perex">
+      Každý bod je konkrétní místo ve Vyškově a konkrétní věc, kterou tam chceme udělat.
+      Klikněte na bod v mapě nebo na položku v seznamu.
+    </p>
+
+    {
+      jsouNavrhy && (
+        <p class="mapa-vystraha">
+          <strong>Pracovní verze.</strong> Body označené „návrh" jsou podklad k diskuzi —
+          polohy jsou skutečné, texty čekají na potvrzení týmem.
+        </p>
+      )
+    }
+
+    {/* Filtry jsou skryté a odkrývá je až skript — bez JavaScriptu by to byla
+        mrtvá tlačítka. Seznam pod mapou zůstane čitelný tak jako tak. */}
+    <div class="mapa-filtry" data-mapa-filtry hidden>
+      <button type="button" class="filtr je-aktivni" data-tema="">Vše</button>
+      {
+        pouziteTemata.map((tema) => (
+          <button
+            type="button"
+            class="filtr"
+            data-tema={temaDoAdresy(tema)}
+            style={`--barva: ${BARVA_TEMATU[tema]}`}
+          >
+            {tema}
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="mapa-rozvrzeni">
+      <div class="mapa-obal">
+        <div class="mapa-plocha" data-mapa>
+          <Fragment set:html={podklad} />
+
+          {/* Body leží v překryvné vrstvě nad podkladem, ne uvnitř SVG —
+              jsou to skutečná tlačítka, takže je najde klávesnice i čtečka. */}
+          <div class="mapa-body">
+            {
+              zamery.map((zamer) => (
+                <button
+                  type="button"
+                  class="mapa-bod"
+                  data-bod={zamer.data.poradi}
+                  data-tema={temaDoAdresy(zamer.data.tema)}
+                  style={`left: ${zamer.data.x}%; top: ${zamer.data.y}%; --barva: ${BARVA_TEMATU[zamer.data.tema]}`}
+                  aria-label={`${zamer.data.poradi}. ${zamer.data.nazev}`}
+                >
+                  <span aria-hidden="true">{zamer.data.poradi}</span>
+                </button>
+              ))
+            }
+          </div>
+        </div>
+
+        <p class="mapa-zdroj">
+          Podklad: data&nbsp;© přispěvatelé OpenStreetMap. Mapa je součástí webu, nenačítá se odjinud.
+        </p>
+      </div>
+
+      <ol class="mapa-seznam" data-mapa-seznam>
+        {
+          sObsahem.map((zamer) => (
+            <li
+              class="zamer"
+              data-polozka={zamer.data.poradi}
+              data-tema={temaDoAdresy(zamer.data.tema)}
+            >
+              <details>
+                <summary>
+                  <span class="zamer-cislo" style={`--barva: ${BARVA_TEMATU[zamer.data.tema]}`}>
+                    {zamer.data.poradi}
+                  </span>
+                  <span class="zamer-hlava">
+                    <span class="zamer-nazev">{zamer.data.nazev}</span>
+                    <span class="zamer-stitky">
+                      <span class="zamer-tema" style={`--barva: ${BARVA_TEMATU[zamer.data.tema]}`}>
+                        {zamer.data.tema}
+                      </span>
+                      {zamer.data.stav === 'navrh' && <span class="zamer-navrh">návrh</span>}
+                    </span>
+                  </span>
+                </summary>
+                <div class="zamer-text">
+                  <zamer.Obsah />
+                </div>
+              </details>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Sekce si nese vlastní odsazení, protože ji stránka vkládá hned pod
+     hlavičku — bez tohohle by nadtitulek lepil na logo. */
+  .mapa-sekce {
+    padding-block: var(--mezera-sekce);
+  }
+
+  .mapa-nadpis {
+    max-width: 22ch;
+  }
+
+  .mapa-perex {
+    margin-top: 0.9rem;
+  }
+
+  .mapa-vystraha {
+    max-width: var(--sirka-textu);
+    margin: 1.25rem 0 0;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--navrh);
+    border-radius: 0 var(--radius-maly) var(--radius-maly) 0;
+    background: rgb(160 90 0 / 0.18);
+    font-size: var(--text-maly);
+    color: var(--na-noci);
+  }
+
+  /* ---------- Filtry ---------- */
+
+  .mapa-filtry {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .mapa-filtry[hidden] {
+    display: none;
+  }
+
+  .mapa-filtry .filtr {
+    padding: 0.35rem 0.8rem;
+    border: 1px solid var(--linka-na-noci);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--na-noci);
+    font: inherit;
+    font-size: var(--text-drobny);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background var(--prechod), border-color var(--prechod);
+  }
+
+  .mapa-filtry .filtr:hover {
+    border-color: var(--na-noci-tlum);
+    background: var(--noc-svetlejsi);
+  }
+
+  .mapa-filtry .filtr.je-aktivni {
+    background: var(--barva, var(--modra));
+    border-color: var(--barva, var(--modra));
+    color: #fff;
+  }
+
+  /* ---------- Rozvržení ---------- */
+
+  .mapa-rozvrzeni {
+    display: grid;
+    gap: clamp(1.25rem, 3vw, 2rem);
+    margin-top: clamp(1.25rem, 3vw, 1.75rem);
+  }
+
+  @media (min-width: 900px) {
+    .mapa-rozvrzeni {
+      grid-template-columns: 1.25fr 1fr;
+      align-items: start;
+    }
+    /* Mapa zůstane na očích, i když člověk projíždí seznam. */
+    .mapa-obal {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+
+  .mapa-plocha {
+    position: relative;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #081a29;
+    border: 1px solid var(--linka-na-noci);
+  }
+
+  .mapa-plocha :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---------- Obarvení podkladu ----------
+     Podkladové SVG nemá vlastní barvy schválně — všechno se řídí odsud,
+     takže mapa může kdykoliv změnit ladění bez přegenerování. */
+
+  .mapa-plocha :global(.mapa-zastavba path) { fill: #12304a; }
+  .mapa-plocha :global(.mapa-prumysl path) { fill: #0f2942; }
+  .mapa-plocha :global(.mapa-zelen path) { fill: #1a3a2c; }
+  .mapa-plocha :global(.mapa-vodni-plocha path) { fill: #1b4260; }
+  .mapa-plocha :global(.mapa-ulice path) { fill: none; stroke: #1c405e; stroke-width: 1; }
+  .mapa-plocha :global(.mapa-silnice path) { fill: none; stroke: #28536f; stroke-width: 1.7; }
+  .mapa-plocha :global(.mapa-silnice-hlavni path) { fill: none; stroke: #37678c; stroke-width: 2.8; }
+  .mapa-plocha :global(.mapa-zeleznice path) {
+    fill: none;
+    stroke: #3d5c76;
+    stroke-width: 1.1;
+    stroke-dasharray: 5 5;
+  }
+  .mapa-plocha :global(.mapa-potok path) { fill: none; stroke: #255f88; stroke-width: 1; }
+
+  /* Řeka Haná je jediná zvýrazněná — je to orientační kotva mapy
+     a zároveň to, co v programu slibujeme zpřístupnit. */
+  .mapa-plocha :global(.mapa-reka path) {
+    fill: none;
+    stroke: var(--zelena);
+    stroke-width: 3.5;
+    opacity: 0.85;
+  }
+
+  /* ---------- Body ---------- */
+
+  .mapa-body {
+    position: absolute;
+    inset: 0;
+  }
+
+  .mapa-bod {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin: -1rem 0 0 -1rem;
+    padding: 0;
+    border: 2px solid rgb(255 255 255 / 0.85);
+    border-radius: 999px;
+    background: var(--barva, var(--modra));
+    color: #fff;
+    font: inherit;
+    font-size: var(--text-drobny);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+    transition: transform var(--prechod), opacity var(--prechod), box-shadow var(--prechod);
+  }
+
+  .mapa-bod:hover,
+  .mapa-bod.je-zvyrazneny {
+    transform: scale(1.28);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.6);
+    z-index: 2;
+  }
+
+  .mapa-bod[data-skryty] {
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  @media (max-width: 560px) {
+    .mapa-bod {
+      width: 1.7rem;
+      height: 1.7rem;
+      margin: -0.85rem 0 0 -0.85rem;
+    }
+  }
+
+  .mapa-zdroj {
+    margin: 0.7rem 0 0;
+    font-size: var(--text-drobny);
+    color: var(--na-noci-tlum);
+  }
+
+  /* ---------- Seznam ---------- */
+
+  .mapa-seznam {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .zamer[data-skryty] {
+    display: none;
+  }
+
+  .zamer details {
+    background: rgb(255 255 255 / 0.04);
+    border: 1px solid var(--linka-na-noci);
+    border-radius: var(--radius-maly);
+    transition: border-color var(--prechod), background var(--prechod);
+  }
+
+  .zamer details[open],
+  .zamer.je-zvyrazneny details {
+    border-color: var(--na-noci-tlum);
+    background: rgb(255 255 255 / 0.07);
+  }
+
+  .zamer summary {
+    display: flex;
+    align-items: start;
+    gap: 0.7rem;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .zamer summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .zamer-cislo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: var(--barva, var(--modra));
+    color: #fff;
+    font-size: var(--text-drobny);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .zamer-hlava {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .zamer-nazev {
+    font-size: var(--text-maly);
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .zamer-stitky {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .zamer-tema {
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--barva) 26%, transparent);
+    color: var(--na-noci);
+    font-size: var(--text-drobny);
+  }
+
+  .zamer-navrh {
+    padding: 0.1rem 0.5rem;
+    border: 1px dashed var(--navrh);
+    border-radius: 999px;
+    color: #e0a45c;
+    font-size: var(--text-drobny);
+  }
+
+  .zamer-text {
+    padding: 0 0.85rem 0.85rem 3.15rem;
+    font-size: var(--text-maly);
+    color: var(--na-noci-tlum);
+  }
+
+  @media (max-width: 560px) {
+    .zamer-text {
+      padding-left: 0.85rem;
+    }
+  }
+</style>
+
+<script>
+  const mapa = document.querySelector<HTMLElement>('[data-mapa]');
+  const seznam = document.querySelector<HTMLElement>('[data-mapa-seznam]');
+  const filtry = document.querySelector<HTMLElement>('[data-mapa-filtry]');
+
+  if (mapa && seznam) {
+    const body = [...mapa.querySelectorAll<HTMLButtonElement>('.mapa-bod')];
+    const polozky = [...seznam.querySelectorAll<HTMLElement>('.zamer')];
+
+    const bodPodle = (poradi: string) => body.find((b) => b.dataset.bod === poradi);
+    const polozkaPodle = (poradi: string) => polozky.find((p) => p.dataset.polozka === poradi);
+
+    /** Zvýrazní dvojici bod + položka. Volá se z obou stran. */
+    function zvyraznit(poradi: string | null) {
+      for (const b of body) b.classList.toggle('je-zvyrazneny', b.dataset.bod === poradi);
+      for (const p of polozky) p.classList.toggle('je-zvyrazneny', p.dataset.polozka === poradi);
+    }
+
+    // --- Klik na bod v mapě rozbalí položku v seznamu ----------------------
+    for (const bod of body) {
+      bod.addEventListener('click', () => {
+        const poradi = bod.dataset.bod!;
+        const polozka = polozkaPodle(poradi);
+        if (!polozka) return;
+
+        // Ostatní se zavřou, ať je vždycky otevřený jen jeden záměr.
+        for (const jina of polozky) {
+          const detail = jina.querySelector('details');
+          if (detail) detail.open = jina === polozka;
+        }
+        zvyraznit(poradi);
+        polozka.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+
+      bod.addEventListener('mouseenter', () => zvyraznit(bod.dataset.bod!));
+      bod.addEventListener('mouseleave', () => zvyraznit(null));
+    }
+
+    // --- Rozbalení v seznamu zvýrazní bod v mapě ---------------------------
+    for (const polozka of polozky) {
+      const detail = polozka.querySelector('details');
+
+      detail?.addEventListener('toggle', () => {
+        if (!detail.open) return;
+        for (const jina of polozky) {
+          const jiny = jina.querySelector('details');
+          if (jiny && jina !== polozka) jiny.open = false;
+        }
+        zvyraznit(polozka.dataset.polozka!);
+      });
+
+      polozka.addEventListener('mouseenter', () => {
+        bodPodle(polozka.dataset.polozka!)?.classList.add('je-zvyrazneny');
+      });
+      polozka.addEventListener('mouseleave', () => {
+        if (!polozka.querySelector('details')?.open) {
+          bodPodle(polozka.dataset.polozka!)?.classList.remove('je-zvyrazneny');
+        }
+      });
+    }
+
+    // --- Filtry ------------------------------------------------------------
+    if (filtry) {
+      filtry.hidden = false;
+
+      filtry.addEventListener('click', (e) => {
+        const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.filtr');
+        if (!tlacitko) return;
+
+        const tema = tlacitko.dataset.tema ?? '';
+        for (const jine of filtry.querySelectorAll('.filtr')) {
+          jine.classList.toggle('je-aktivni', jine === tlacitko);
+        }
+
+        for (const bod of body) {
+          bod.toggleAttribute('data-skryty', !!tema && bod.dataset.tema !== tema);
+        }
+        for (const polozka of polozky) {
+          const sedi = !tema || polozka.dataset.tema === tema;
+          polozka.toggleAttribute('data-skryty', !sedi);
+          if (!sedi) {
+            const detail = polozka.querySelector('details');
+            if (detail) detail.open = false;
+          }
+        }
+        zvyraznit(null);
+      });
+    }
+  }
+</script>

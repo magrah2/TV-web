@@ -30,29 +30,43 @@ const prvni = kandidati.slice(0, 6);
     <Krivka varianta="podklad" class="hero-krivka" />
 
     <div class="pruh hero-vnitrek">
-      <h1 class="hero-claim">Jde to i&nbsp;jinak<span class="tecka">.</span></h1>
+      <div class="hero-text">
+        <h1 class="hero-claim">Jde to i&nbsp;jinak<span class="tecka">.</span></h1>
 
-      <p class="hero-perex">
-        Jsme sdružení nezávislých kandidátů z Vyškova. Spojila nás nespokojenost s tím, jak
-        se ve městě rozhoduje o veřejných penězích, bydlení a společném prostoru — a
-        přesvědčení, že to jde dělat otevřeně.
-      </p>
+        <p class="hero-perex">
+          Jsme sdružení nezávislých kandidátů z Vyškova. Spojila nás nespokojenost s tím, jak
+          se ve městě rozhoduje o veřejných penězích, bydlení a společném prostoru — a
+          přesvědčení, že to jde dělat otevřeně.
+        </p>
 
-      <div class="hero-tlacitka">
-        <a class="tlacitko tlacitko-hlavni" href={odkaz('/program/')}>Náš program</a>
-        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/jak-volit/')}>Jak volit →</a>
+        <div class="hero-tlacitka">
+          <a class="tlacitko tlacitko-hlavni" href={odkaz('/program/')}>Náš program</a>
+          <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/jak-volit/')}>Jak volit →</a>
+        </div>
       </div>
 
-      <p class="hero-volby">
-        <span class="hero-volby-datum">Volby do zastupitelstva města Vyškova</span>
-        <span class="hero-volby-oddel" aria-hidden="true">·</span>
-        <span>9.–10. října 2026</span>
-        <span class="hero-volby-oddel" aria-hidden="true">·</span>
-        <span data-odpocet={VOLBY.toISOString()}>
-          {dnuDoVoleb > 0 ? `zbývá ${dnuDoVoleb} dní` : 'volby probíhají'}
-        </span>
-      </p>
+      {/* Značka stojí vedle claimu, ne nad ním — vyplní pravou půlku, kterou
+          by jinak zabírala jen prázdná plocha. Popisek je prázdný schválně:
+          totéž logo je v hlavičce a čtečka by ho jinak přečetla dvakrát. */}
+      <img
+        class="hero-logo"
+        src={odkaz('/logo.svg')}
+        alt=""
+        width="1672"
+        height="373"
+        fetchpriority="high"
+      />
     </div>
+
+    <p class="pruh hero-volby">
+      <span class="hero-volby-datum">Volby do zastupitelstva města Vyškova</span>
+      <span class="hero-volby-oddel" aria-hidden="true">·</span>
+      <span>9.–10. října 2026</span>
+      <span class="hero-volby-oddel" aria-hidden="true">·</span>
+      <span data-odpocet={VOLBY.toISOString()}>
+        {dnuDoVoleb > 0 ? `zbývá ${dnuDoVoleb} dní` : 'volby probíhají'}
+      </span>
+    </p>
   </section>
 
   {/* ---------- Kdo jsme ---------- */}
@@ -107,6 +121,23 @@ const prvni = kandidati.slice(0, 6);
       <p class="program-odkaz">
         <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/program/')}>Celý program</a>
       </p>
+    </div>
+  </section>
+
+  {/* ---------- Mapa záměrů ---------- */}
+  <section class="sekce pas-noc zamery">
+    <div class="pruh zamery-vnitrek">
+      <div>
+        <p class="nadtitulek">Mapa záměrů</p>
+        <h2>Program není seznam přání. Jsou to&nbsp;místa, která denně míjíte.</h2>
+        <p class="perex">
+          Náměstí, kde se dá jen parkovat. Řeka, ke které se nedostanete. Nádraží, které
+          je první, co z Vyškova uvidí návštěva. Ukazujeme na mapě, co a kde chceme udělat.
+        </p>
+        <p class="zamery-tlacitko">
+          <a class="tlacitko tlacitko-hlavni" href={odkaz('/zamery/')}>Otevřít mapu</a>
+        </p>
+      </div>
     </div>
   </section>
 
@@ -170,16 +201,56 @@ const prvni = kandidati.slice(0, 6);
   .hero-vnitrek {
     position: relative;
     z-index: 1;
+    display: grid;
+    gap: clamp(2rem, 5vw, 3rem);
+    /* Logo lícuje s horní hranou claimu, ne se středem sloupce. */
+    align-items: start;
+  }
+
+  /* Na širokém displeji stojí značka vedle claimu a vyplní pravou půlku.
+     Na úzkém se logo posune nad text, protože vedle sebe by se obojí
+     zmenšilo na nečitelnou míru. */
+  @media (min-width: 900px) {
+    .hero-vnitrek {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+  }
+
+  @media (max-width: 899px) {
+    .hero-vnitrek {
+      gap: clamp(1.5rem, 5vw, 2.25rem);
+    }
+    .hero-text {
+      order: 2;
+    }
+    .hero-logo {
+      order: 1;
+      justify-self: start;
+    }
   }
 
   /* Křivka z loga jako podklad — velká, přetéká přes pravý okraj.
      Má se dát vytušit, ne přečíst, proto tak nízká sytost v tokenech. */
+  /* Stopa sedí celá uvnitř stránky, v prázdném místě pod logem. Když
+     přetékala přes okraj, zbyl z ní jen klín a tvar nebyl k poznání —
+     přitom je to jediný grafický motiv webu, takže má být čitelný. */
   .hero :global(.hero-krivka) {
-    top: -12%;
-    right: -14%;
-    width: min(760px, 72vw);
+    top: 36%;
+    bottom: auto;
+    left: auto;
+    right: 13%;
+    width: min(268px, 23vw);
     height: auto;
-    transform: rotate(8deg);
+    opacity: 0.16;
+    transform: rotate(-4deg);
+  }
+
+  /* Pod 900 px se logo stěhuje nad text a pravá strana volná není,
+     takže se stopa schová — jinak by ležela pod odstavcem. */
+  @media (max-width: 899px) {
+    .hero :global(.hero-krivka) {
+      display: none;
+    }
   }
 
   /* Na úzkém displeji je text přes celou šířku, takže by křivka ležela
@@ -190,6 +261,19 @@ const prvni = kandidati.slice(0, 6);
       right: -34%;
       width: 74vw;
       opacity: 0.075;
+    }
+  }
+
+  .hero-logo {
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+    justify-self: end;
+  }
+
+  @media (max-width: 899px) {
+    .hero-logo {
+      max-width: min(320px, 74vw);
     }
   }
 
@@ -226,7 +310,9 @@ const prvni = kandidati.slice(0, 6);
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 0.6rem;
-    margin: clamp(2.5rem, 5vw, 3.5rem) 0 0;
+    /* Jen margin-top, ne zkrácený zápis: `margin: X 0 0` by přebilo
+       `margin-inline: auto` ze třídy `.pruh` a pruh by se přestal zarovnávat. */
+    margin-top: clamp(2.5rem, 5vw, 3.5rem);
     padding-top: 1.1rem;
     border-top: 1px solid var(--linka);
     font-size: var(--text-maly);
@@ -427,6 +513,17 @@ const prvni = kandidati.slice(0, 6);
     .lide-mrizka {
       grid-template-columns: repeat(6, 1fr);
     }
+  }
+
+  /* ---------- Mapa záměrů ---------- */
+
+  .zamery h2 {
+    max-width: 22ch;
+    margin-bottom: 1.1rem;
+  }
+
+  .zamery-tlacitko {
+    margin: 1.75rem 0 0;
   }
 
   /* ---------- Jak volit ---------- */
