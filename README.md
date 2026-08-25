@@ -104,12 +104,30 @@ Když jsou vám bližší příkazy než nabídky:
 
 ## Nasazení
 
+### Jednorázové nastavení na GitHubu
+
+**Bez tohohle nasazení nepojede.** V repozitáři na GitHubu:
+
+**Settings → Pages → Build and deployment → Source → `GitHub Actions`**
+
+Když je místo toho zvolené *Deploy from a branch*, GitHub se pokusí web
+postavit Jekyllem. Ten neumí Astro, začne číst soubory `.astro` jako by to
+byla jeho konfigurace a skončí hláškou `Invalid YAML front matter`. Kdyby
+se náhodou přece jen prosadil, web by se zobrazil úplně bez formátování —
+Jekyll totiž zahazuje složky začínající podtržítkem a Astro do `_astro/`
+ukládá všechny styly i písma. Proti tomu je v `public/` prázdný soubor
+`.nojekyll`, ale správné nastavení ho nenahradí.
+
+### Jak to pak běží
+
 **Draft** se nasazuje sám. Cokoliv se dostane do větve `main`, se do pár minut
 objeví na GitHub Pages. Draft má `noindex` a pruh „Náhled — toto zatím není
 živý web", takže se nedostane do vyhledávačů ani si ho nikdo nesplete s ostrým
 webem. O nasazení se stará `.github/workflows/nasadit.yml`.
 
 Průběh je vidět na [kartě Actions](https://github.com/magrah2/TP-web/actions).
+Poznat se to dá podle názvu úlohy: má běžet **`Nasadit web`**. Když tam místo
+toho svítí *pages build and deployment*, je špatně nastavený zdroj — viz výš.
 
 **Naostro** se zatím nepouští. Až se bude přepínat doména, změní se dvě věci:
 
