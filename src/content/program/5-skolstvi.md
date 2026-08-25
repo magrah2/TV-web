@@ -1,6 +1,6 @@
 ---
 poradi: 5
-nazev: Školství
+nazev: Školství pro 21. století
 tema: Školství
 shrnuti: "Školy, které učí moderně, a ředitelé vybíraní podle schopností, ne podle známostí."
 ---
