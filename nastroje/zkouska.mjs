@@ -17,7 +17,7 @@
 
 import { chromium } from 'playwright-core';
 
-const ADRESA = process.env.ADRESA ?? 'http://localhost:4321/TP-web/';
+const ADRESA = process.env.ADRESA ?? 'http://localhost:4321/TV-web/';
 
 const ZELENA = '\x1b[32m';
 const CERVENA = '\x1b[31m';

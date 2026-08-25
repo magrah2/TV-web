@@ -8,7 +8,7 @@ const naostro = process.env.NAOSTRO === '1';
 
 export default defineConfig({
   site: naostro ? 'https://transparentnivyskov.cz' : 'https://magrah2.github.io',
-  base: naostro ? '/' : '/TP-web',
+  base: naostro ? '/' : '/TV-web',
   trailingSlash: 'always',
   integrations: [sitemap()],
   build: {

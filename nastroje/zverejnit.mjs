@@ -160,7 +160,7 @@ console.log(`\n${ZELENA}   Hotovo.${KONEC}`);
 info('Nasazeni ted bezi samo a trva dve az tri minuty.');
 info('Pak se zmeny objevi na nahledovem webu.');
 info('');
-info('Prubeh vidite na https://github.com/magrah2/TP-web/actions');
+info('Prubeh vidite na https://github.com/magrah2/TV-web/actions');
 
 // ---------------------------------------------------------------------------
 

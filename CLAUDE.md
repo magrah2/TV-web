@@ -78,7 +78,7 @@ nevyplněný řádek v šabloně by shodil build.
 
 ## Odkazy jen přes `odkaz()`
 
-Draft běží v podsložce `/TP-web/`, ostrý web bude v kořeni domény. Odkazy
+Draft běží v podsložce `/TV-web/`, ostrý web bude v kořeni domény. Odkazy
 psané natvrdo by po přepnutí vedly vedle. Vždy `odkaz('/lide/')`
 z `src/lib/odkaz.ts`.
 
@@ -117,7 +117,7 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   že panel zavřít nejde. Proto se při přeskoku volá `replaceState`,
   ne `pushState`. Hlídá to `npm run zkouska`.
 - **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
-  by na draftu mířil vedle, protože ten běží v podsložce `/TP-web/`.
+  by na draftu mířil vedle, protože ten běží v podsložce `/TV-web/`.
   Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro
   `preload` se ze stejného důvodu importují přes `?url` — jinak by preload
   stahoval jiný soubor, než jaký si pak vyžádá CSS.

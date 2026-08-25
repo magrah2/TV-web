@@ -125,14 +125,14 @@ objeví na GitHub Pages. Draft má `noindex` a pruh „Náhled — toto zatím n
 živý web", takže se nedostane do vyhledávačů ani si ho nikdo nesplete s ostrým
 webem. O nasazení se stará `.github/workflows/nasadit.yml`.
 
-Průběh je vidět na [kartě Actions](https://github.com/magrah2/TP-web/actions).
+Průběh je vidět na [kartě Actions](https://github.com/magrah2/TV-web/actions).
 Poznat se to dá podle názvu úlohy: má běžet **`Nasadit web`**. Když tam místo
 toho svítí *pages build and deployment*, je špatně nastavený zdroj — viz výš.
 
 **Naostro** se zatím nepouští. Až se bude přepínat doména, změní se dvě věci:
 
 1. Do sestavení přibude proměnná `NAOSTRO=1` — tím zmizí pruh i `noindex`
-   a odkazy se přepnou z podsložky `/TP-web/` do kořene domény.
+   a odkazy se přepnou z podsložky `/TV-web/` do kořene domény.
 2. U domény se přesměrují DNS záznamy na GitHub Pages.
 
 ⚠️ **Pozor při přepínání domény:** záznamy `MX` musí zůstat u původního

@@ -1,15 +1,15 @@
 /**
  * Skládá odkazy tak, aby fungovaly na draftu i na ostrém webu.
  *
- * Draft běží na github.io v podsložce `/TP-web/`, ostrý web bude v kořeni
+ * Draft běží na github.io v podsložce `/TV-web/`, ostrý web bude v kořeni
  * domény. Kdyby se odkazy psaly natvrdo, po přepnutí by všechny vedly vedle.
  * Proto se všude uvnitř webu odkazuje přes tuhle funkci.
  *
- *   odkaz('/lide/')  →  '/TP-web/lide/'  na draftu
+ *   odkaz('/lide/')  →  '/TV-web/lide/'  na draftu
  *                    →  '/lide/'         naostro
  */
 export function odkaz(cesta: string): string {
-  const zaklad = import.meta.env.BASE_URL; // '/TP-web/' nebo '/'
+  const zaklad = import.meta.env.BASE_URL; // '/TV-web/' nebo '/'
   const bezLomitka = cesta.startsWith('/') ? cesta.slice(1) : cesta;
   return zaklad.endsWith('/') ? zaklad + bezLomitka : `${zaklad}/${bezLomitka}`;
 }
