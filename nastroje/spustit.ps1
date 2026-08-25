@@ -59,13 +59,13 @@ function ZajistiNode {
   $node = NajdiNode
   if ($node) { return $node }
 
-  NapisKrok 'Node.js na tomhle počítači není. Zkusím ho nainstalovat.'
-  Napis '   (Node.js je program, který web sestaví. Instaluje se jednou.)'
+  NapisKrok 'Node.js na tomhle pocitaci neni. Zkusim ho nainstalovat.'
+  Napis '   (Node.js je program, ktery web sestavi. Instaluje se jednou.)'
 
   if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    NapisChybu 'Nepodařilo se to automaticky — chybí instalátor winget.'
-    Napis '   Stáhněte Node.js ručně z https://nodejs.org (verzi LTS),'
-    Napis '   nainstalujte ho a spusťte tuhle úlohu znovu.'
+    NapisChybu 'Nepodarilo se to automaticky - chybi instalator winget.'
+    Napis '   Stahnete Node.js rucne z https://nodejs.org (verzi LTS),'
+    Napis '   nainstalujte ho a spustte tuhle ulohu znovu.'
     exit 1
   }
 
@@ -74,8 +74,8 @@ function ZajistiNode {
 
   $node = NajdiNode
   if (-not $node) {
-    NapisChybu 'Node.js se nainstaloval, ale ještě není vidět.'
-    Napis '   Zavřete VS Code, znovu ho otevřete a spusťte úlohu znovu.'
+    NapisChybu 'Node.js se nainstaloval, ale jeste neni videt.'
+    Napis '   Zavrete VS Code, znovu ho otevrete a spustte ulohu znovu.'
     exit 1
   }
 
@@ -85,10 +85,10 @@ function ZajistiNode {
 
 function ZajistiBalicky {
   if (Test-Path 'node_modules') { return }
-  NapisKrok 'Doplňuji chybějící součástky (npm install). Chvíli to trvá.'
+  NapisKrok 'Doplnuji chybejici soucastky (npm install). Chvili to trva.'
   & npm install
   if ($LASTEXITCODE -ne 0) {
-    NapisChybu 'Instalace součástek se nepovedla. Zkuste to znovu, nebo zavolejte Vojtu.'
+    NapisChybu 'Instalace soucastek se nepovedla. Zkuste to znovu, nebo zavolejte Vojtu.'
     exit 1
   }
 }
@@ -102,14 +102,14 @@ ZajistiBalicky
 
 switch ($Prikaz) {
   'priprava' {
-    NapisKrok 'Počítač je připravený.'
-    Napis '   Teď můžete spustit úlohu "1 - Nahled webu".'
+    NapisKrok 'Pocitac je pripraveny.'
+    Napis '   Ted muzete spustit ulohu "1 - Nahled webu".'
   }
 
   'nahled' {
-    NapisKrok 'Spouštím náhled. Otevře se v prohlížeči.'
-    Napis '   Po uložení souboru se stránka obnoví sama.'
-    Napis '   Náhled zastavíte křížkem u tohohle panelu.'
+    NapisKrok 'Spoustim nahled. Otevre se v prohlizeci.'
+    Napis '   Po ulozeni souboru se stranka obnovi sama.'
+    Napis '   Nahled zastavite krizkem u tohohle panelu.'
     & npm run dev -- --open
   }
 

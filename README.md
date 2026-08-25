@@ -64,31 +64,52 @@ Pak u příslušného člověka vyplňte `foto: nazev-souboru.jpg`.
 
 ---
 
-## Jak si web pustit u sebe
+## Jak si web pustit a zveřejnit
 
-Potřebujete [Node.js](https://nodejs.org/) verze 20 nebo novější.
+Nejjednodušší cesta vede přes **úlohy ve VS Code**: nabídka
+**Terminál → Spustit úlohu…** (nebo Ctrl+Shift+P a „Run Task").
 
-```
-npm install      # jen poprvé
-npm run dev      # spustí web na http://localhost:4321
-```
+| Úloha | Co dělá |
+|---|---|
+| **0 - Pripravit pocitac** | Doplní vše potřebné. Stačí pustit jednou. Kdyby chyběl Node.js, nabídne se, že ho doinstaluje. |
+| **1 - Nahled webu** | Otevře web v prohlížeči. Po uložení souboru se stránka obnoví sama. Zavírá se křížkem u panelu. |
+| **2 - Zverejnit web** | Sestaví web, uloží změny a odešle je. Draft se pak do pár minut aktualizuje sám. |
 
-Po uložení souboru se stránka v prohlížeči obnoví sama.
+Úloha „1 - Nahled webu" je zároveň výchozí, takže jde spustit i klávesou
+**Ctrl+Shift+B**.
+
+Kdo VS Code nemá, může na náhled použít soubor **`NAHLED-WEBU.bat`** —
+stačí na něj dvakrát kliknout.
+
+### Kdyby zveřejnění hlásilo chybu
+
+Úloha web nejdřív sestaví a **teprve když se to povede, něco odešle**. Když
+sestavení spadne, nic se nezveřejní a v panelu je napsané proč. Nejčastěji
+je to překlep v souboru kandidáta — třeba téma, které není v seznamu.
+
+### Z terminálu
+
+Když jsou vám bližší příkazy než nabídky:
 
 | Příkaz | Co dělá |
 |---|---|
-| `npm run dev` | Web běží u vás na počítači, změny se projeví hned |
-| `npm run build` | Sestaví hotový web do složky `dist/` |
+| `npm install` | Jen poprvé — doplní součástky |
+| `npm run nahled` | Web běží u vás na počítači, změny se projeví hned |
+| `npm run zverejnit` | Sestaví, uloží a odešle |
+| `npm run sestavit` | Jen sestaví do složky `dist/` |
 | `npm run preview` | Ukáže sestavený web tak, jak ho uvidí návštěvník |
+| `npm run zkouska` | Proklikne medailonky a filtry, jestli fungují (musí běžet náhled) |
 
 ---
 
 ## Nasazení
 
-**Draft** se nasazuje sám. Cokoliv pushnete do větve `main`, se do pár minut
+**Draft** se nasazuje sám. Cokoliv se dostane do větve `main`, se do pár minut
 objeví na GitHub Pages. Draft má `noindex` a pruh „Náhled — toto zatím není
 živý web", takže se nedostane do vyhledávačů ani si ho nikdo nesplete s ostrým
 webem. O nasazení se stará `.github/workflows/nasadit.yml`.
+
+Průběh je vidět na [kartě Actions](https://github.com/magrah2/TP-web/actions).
 
 **Naostro** se zatím nepouští. Až se bude přepínat doména, změní se dvě věci:
 

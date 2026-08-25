@@ -508,24 +508,29 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 
   let posledniSpoustec: HTMLElement | null = null;
 
-  function otevrit(poradi: string, zeSpoustece?: HTMLElement) {
-    const cil = document.getElementById(`medailonek-${poradi}`);
-    if (!cil) return;
+  /** Vložili jsme do historie záznam, ze kterého se dá vrátit zpět? */
+  let mameZaznamVHistorii = false;
 
-    zavrit(false);
+  const KOTVA = /^#medailonek-(\d+)$/;
+
+  /** Jen přepne, co je vidět. S historií nedělá nic — o tu se stará volající. */
+  function ukaz(poradi: string, zeSpoustece?: HTMLElement) {
+    const cil = document.getElementById(`medailonek-${poradi}`);
+    if (!cil) return false;
+
+    const uzOtevreny = obalMedailonku!.querySelector<HTMLElement>('.je-otevreny');
+    if (uzOtevreny === cil) return true;
+    uzOtevreny?.classList.remove('je-otevreny');
+
     if (zeSpoustece) posledniSpoustec = zeSpoustece;
 
     cil.classList.add('je-otevreny');
     document.body.classList.add('medailonek-otevren');
-
-    // Adresa se mění bez skoku na kotvu, takže stránka pod překryvem
-    // zůstane tam, kde byla. Zpětné tlačítko medailonek zavře.
-    history.pushState({ medailonek: poradi }, '', `#medailonek-${poradi}`);
-
     cil.querySelector<HTMLElement>('[data-zavrit]')?.focus();
+    return true;
   }
 
-  function zavrit(vratitZamereni = true) {
+  function skryj(vratitZamereni = true) {
     const otevreny = obalMedailonku!.querySelector<HTMLElement>('.je-otevreny');
     if (!otevreny) return;
     otevreny.classList.remove('je-otevreny');
@@ -536,45 +541,103 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     }
   }
 
+  /**
+   * Otevření kliknutím.
+   *
+   * Klíčové je, že **přeskok na dalšího člověka historii nenafukuje**.
+   * Kdyby každý skok přidal záznam, křížek (který dělá krok zpět) by
+   * procházel zpátky přes všechny, koho si člověk otevřel, místo aby panel
+   * zavřel — a při delším listování by se zdálo, že zavřít vůbec nejde.
+   */
+  function otevriKliknutim(poradi: string, spoustec?: HTMLElement) {
+    const uzBylOtevreny = !!obalMedailonku!.querySelector('.je-otevreny');
+    if (!ukaz(poradi, spoustec)) return;
+
+    const adresa = `#medailonek-${poradi}`;
+    if (uzBylOtevreny && mameZaznamVHistorii) {
+      history.replaceState({ medailonek: poradi }, '', adresa);
+    } else {
+      history.pushState({ medailonek: poradi }, '', adresa);
+      mameZaznamVHistorii = true;
+    }
+  }
+
+  function zavriKliknutim() {
+    if (mameZaznamVHistorii) {
+      history.back(); // zbytek dořeší popstate níž
+    } else {
+      skryj();
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  }
+
   // Klik na kartu i na odkazy „předchozí / další" uvnitř panelu
   document.addEventListener('click', (e) => {
     const odkaz = (e.target as HTMLElement).closest<HTMLElement>('[data-medailonek]');
     if (odkaz) {
       e.preventDefault();
-      otevrit(odkaz.dataset.medailonek!, odkaz);
+      otevriKliknutim(odkaz.dataset.medailonek!, odkaz);
       return;
     }
 
-    // Zavírací křížek i podklad pod panelem
     const zaviraci = (e.target as HTMLElement).closest('[data-zavrit], .medailonek-podklad');
     if (zaviraci) {
       e.preventDefault();
-      history.back();
+      zavriKliknutim();
     }
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (obalMedailonku!.querySelector('.je-otevreny')) {
+    const otevreny = obalMedailonku!.querySelector<HTMLElement>('.je-otevreny');
+    if (!otevreny) return;
+
+    if (e.key === 'Escape') {
       e.preventDefault();
-      history.back();
+      zavriKliknutim();
+      return;
+    }
+
+    // Zaměření nesmí utéct za panel — pod ním je celá stránka a člověk,
+    // který se pohybuje tabulátorem, by se v ní ztratil.
+    if (e.key === 'Tab') {
+      const zameritelne = otevreny.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!zameritelne.length) return;
+      const prvni = zameritelne[0];
+      const posledni = zameritelne[zameritelne.length - 1];
+
+      if (e.shiftKey && document.activeElement === prvni) {
+        e.preventDefault();
+        posledni.focus();
+      } else if (!e.shiftKey && document.activeElement === posledni) {
+        e.preventDefault();
+        prvni.focus();
+      }
     }
   });
 
   // Zpětné tlačítko i vlastní volání history.back() končí tady.
   window.addEventListener('popstate', () => {
-    const shoda = location.hash.match(/^#medailonek-(\d+)$/);
-    if (shoda) otevrit(shoda[1]);
-    else zavrit();
+    const shoda = location.hash.match(KOTVA);
+    if (shoda) {
+      ukaz(shoda[1]);
+      mameZaznamVHistorii = true;
+    } else {
+      skryj();
+      mameZaznamVHistorii = false;
+    }
   });
 
-  // Příchod z jiné stránky rovnou na konkrétního člověka
-  // (například z šestice na úvodní stránce).
-  const naStartu = location.hash.match(/^#medailonek-(\d+)$/);
-  if (naStartu) {
-    const cil = document.getElementById(`medailonek-${naStartu[1]}`);
-    cil?.classList.add('je-otevreny');
-    document.body.classList.add('medailonek-otevren');
+  // Příchod rovnou na konkrétního člověka — třeba ze šestice na úvodní stránce.
+  // Historii je potřeba srovnat: pod otevřený panel se vloží záznam bez kotvy,
+  // aby bylo kam zavírat. Jinak by křížek neměl co udělat.
+  const naStartu = location.hash.match(KOTVA);
+  if (naStartu && ukaz(naStartu[1])) {
+    const kotva = location.hash; // po replaceState už bude prázdná
+    history.replaceState(null, '', location.pathname + location.search);
+    history.pushState({ medailonek: naStartu[1] }, '', kotva);
+    mameZaznamVHistorii = true;
   }
 
   /* ------------------------------------------------------------------ *

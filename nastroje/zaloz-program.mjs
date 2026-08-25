@@ -135,4 +135,4 @@ OBLASTI.forEach((oblast, index) => {
   zalozeno++;
 });
 
-console.log(`Založeno: ${zalozeno}   Přeskočeno: ${preskoceno}`);
+console.log(`Zalozeno: ${zalozeno}   Preskoceno: ${preskoceno}`);

@@ -14,6 +14,16 @@ budou sahat i lidé, kteří programovat neumí, a mají mít šanci se v tom vy
 
 Výjimka: klíčová slova jazyka a názvy z Astra (`getCollection`, `Astro.props`).
 
+## Výpisy do terminálu jsou bez diakritiky
+
+Windows konzole běží ve starším kódování a české znaky v ní vycházejí jako
+klikyháky. Cokoliv, co skript **tiskne** — hlášky, chybové zprávy, nápovědy —
+se píše bez háčků a čárek. Platí to pro `nastroje/*.mjs`, `nastroje/*.ps1`
+i dávkové soubory.
+
+Komentáře ve zdroji, texty na webu a zprávy do gitu diakritiku mít mají —
+ty se čtou v editoru nebo v prohlížeči, kde se zobrazí správně.
+
 ## Komentáře vysvětlují proč, ne co
 
 Kód říká, co dělá. Komentář má říct, proč to tak je — obzvlášť u věcí, které
@@ -81,6 +91,7 @@ Než něco prohlásím za hotové, musí projít:
 ```
 npm run build          # sestavení nesmí hlásit chybu ani varování
 npm run preview        # a pak se na to skutečně podívat
+npm run zkouska        # proklikání medailonků a filtrů
 ```
 
 Na vzhled se **dívám snímkem obrazovky**, nehádám ho z kódu. V minulosti
@@ -100,6 +111,16 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
 - **Delší tituly musí být v regexu před kratšími** (`Ph\.D` před `PhDr`).
 - **`<span>` neunese `<div>`.** Obal portrétu musí být `div`, protože
   komponenta `Portret` vrací blokový prvek.
+- **Přeskok mezi medailonky nesmí nafukovat historii.** Zavírací křížek dělá
+  krok zpět; kdyby každý skok na dalšího člověka přidal záznam, „zavřít" by
+  znamenalo „vrať se k předchozímu" a po delším listování by to vypadalo,
+  že panel zavřít nejde. Proto se při přeskoku volá `replaceState`,
+  ne `pushState`. Hlídá to `npm run zkouska`.
+- **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
+  by na draftu mířil vedle, protože ten běží v podsložce `/TP-web/`.
+  Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro
+  `preload` se ze stejného důvodu importují přes `?url` — jinak by preload
+  stahoval jiný soubor, než jaký si pak vyžádá CSS.
 
 ## Kde to stojí
 

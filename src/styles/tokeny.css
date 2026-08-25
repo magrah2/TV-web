@@ -7,11 +7,17 @@
 /* Inter je variabilní: jeden soubor umí všechny tučnosti i optické velikosti.
    Rozdělený na dvě podmnožiny — česká diakritika (ě š č ř ž ů) sedí
    v „latin-ext", takže se ostatním jazykům nestahuje zbytečně.
-   Hostujeme si ho sami, takže web neposílá IP adresy návštěvníků Googlu. */
+   Hostujeme si ho sami, takže web neposílá IP adresy návštěvníků Googlu.
+
+   Cesta je ZÁMĚRNĚ relativní a písma leží ve `src/`, ne v `public/`.
+   Napsané natvrdo jako `/pisma/…` by na draftu nefungovaly: ten běží
+   v podsložce `/TP-web/` a odkaz z kořene domény by mířil vedle.
+   Takhle si cestu dopočítá Astro samo a soubor navíc dostane otisk
+   obsahu do názvu, takže se nemusí řešit vyprázdnění mezipaměti. */
 
 @font-face {
   font-family: 'Inter';
-  src: url('/pisma/inter-latin-ext.woff2') format('woff2');
+  src: url('../pisma/inter-latin-ext.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -22,7 +28,7 @@
 
 @font-face {
   font-family: 'Inter';
-  src: url('/pisma/inter-latin.woff2') format('woff2');
+  src: url('../pisma/inter-latin.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;

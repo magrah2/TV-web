@@ -8,6 +8,11 @@
  * Když je v datech chyba (třeba překlep v tématu u kandidáta), sestavení
  * spadne tady a nic se neodešle. Kdyby se odesílalo první, chyba by se
  * projevila až na GitHubu, kde si jí nikdo nevšimne.
+ *
+ * POZOR: všechno, co se vypisuje do terminálu, je **bez diakritiky**.
+ * Windows konzole běží ve starším kódování a české znaky v ní vycházejí
+ * jako klikyháky. Komentáře ve zdroji diakritiku mít můžou — ty se čtou
+ * v editoru, ne v konzoli.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -31,21 +36,36 @@ function skonci(duvod, rada) {
 /**
  * Spustí příkaz a vrátí jeho výstup. `tise` = výstup se nevypisuje na obrazovku.
  *
- * Shell se zapíná **jen pro npm** a jen na Windows, kde je npm dávkový soubor
- * a jinak by se nespustil. Pro git shell zapnutý být nesmí: zpráva commitu
- * obsahuje mezery a shell by ji roztrhal na jednotlivá slova.
+ * Každý z obou programů potřebuje něco jiného a záměna nefunguje:
+ *
+ * - **npm** je na Windows dávkový soubor a Node ho od verze 20 odmítá spustit
+ *   napřímo (bezpečnostní oprava kvůli CVE-2024-27980). Musí přes shell.
+ *   Celý příkaz se předává jako jeden řetězec bez pole argumentů — jinak
+ *   Node hlásí, že se argumenty do shellu nedají bezpečně předat.
+ * - **git** přes shell jít nesmí. Zpráva commitu obsahuje mezery a shell
+ *   by ji roztrhal na jednotlivá slova.
+ *
+ * Výstup se ořezává jen zprava. Kdyby se ořezal i zleva, první řádek
+ * `git status --porcelain` by přišel o úvodní mezeru a název souboru
+ * by se pak vypsal o písmeno kratší.
  */
 function spust(prikaz, argumenty, { tise = false } = {}) {
-  const potrebujeShell = process.platform === 'win32' && prikaz === 'npm';
-  const vysledek = spawnSync(prikaz, argumenty, {
+  const nastaveni = {
     stdio: tise ? 'pipe' : 'inherit',
     encoding: 'utf8',
-    shell: potrebujeShell,
-  });
+  };
+
+  const vysledek =
+    prikaz === 'npm'
+      ? spawnSync(`npm ${argumenty.join(' ')}`, { ...nastaveni, shell: true })
+      : spawnSync(prikaz, argumenty, nastaveni);
+
+  const zprava = (text) => (text ?? '').replace(/\s+$/, '');
+
   return {
     ok: vysledek.status === 0,
-    vystup: (vysledek.stdout ?? '').trim(),
-    chyba: (vysledek.stderr ?? '').trim(),
+    vystup: zprava(vysledek.stdout),
+    chyba: zprava(vysledek.stderr),
   };
 }
 
@@ -55,19 +75,19 @@ function spust(prikaz, argumenty, { tise = false } = {}) {
 
 const zmeny = spust('git', ['status', '--porcelain'], { tise: true });
 if (!zmeny.ok) {
-  skonci('Nepodařilo se přečíst stav projektu.', 'Je nainstalovaný Git?');
+  skonci('Nepodarilo se precist stav projektu.', 'Je nainstalovany Git?');
 }
 
 const nezverejnene = spust('git', ['log', '--oneline', '@{u}..HEAD'], { tise: true });
 const maNeodeslaneCommity = nezverejnene.ok && nezverejnene.vystup.length > 0;
 
 if (!zmeny.vystup && !maNeodeslaneCommity) {
-  krok('Není co zveřejňovat — všechno je už odeslané.');
+  krok('Neni co zverejnovat - vsechno je uz odeslane.');
   process.exit(0);
 }
 
 if (zmeny.vystup) {
-  krok('Našel jsem tyhle změny:');
+  krok('Nasel jsem tyhle zmeny:');
   for (const radek of zmeny.vystup.split('\n')) {
     info(radek.slice(3));
   }
@@ -77,15 +97,15 @@ if (zmeny.vystup) {
 // 2. Sestavit — kontrola, že se web vůbec poskládá
 // ---------------------------------------------------------------------------
 
-krok('Zkouším web sestavit, aby se nezveřejnilo něco rozbitého.');
+krok('Zkousim web sestavit, aby se nezverejnilo neco rozbiteho.');
 
 const sestaveni = spust('npm', ['run', 'build']);
 if (!sestaveni.ok) {
   skonci(
-    'Web se nepodařilo sestavit, takže jsem nic neodeslal.',
-    'Chyba je vypsaná kousek výš. Nejčastěji je to překlep v souboru\n' +
-      '   kandidáta — třeba téma, které není v seznamu. Opravte to a spusťte\n' +
-      '   úlohu znovu. Když si nebudete vědět rady, zavolejte Vojtu.',
+    'Web se nepodarilo sestavit, takze jsem nic neodeslal.',
+    'Chyba je vypsana kousek vys. Nejcasteji je to preklep v souboru\n' +
+      '   kandidata - treba tema, ktere neni v seznamu. Opravte to a spustte\n' +
+      '   ulohu znovu. Kdyz si nebudete vedet rady, zavolejte Vojtu.',
   );
 }
 
@@ -96,50 +116,51 @@ hotovo('Web se sestavil bez chyby.');
 // ---------------------------------------------------------------------------
 
 if (zmeny.vystup) {
-  krok('Ukládám změny.');
+  krok('Ukladam zmeny.');
 
   if (!spust('git', ['add', '-A']).ok) {
-    skonci('Nepodařilo se změny připravit k uložení.');
+    skonci('Nepodarilo se zmeny pripravit k ulozeni.');
   }
 
   // Zpráva se sestaví z toho, co se skutečně změnilo, ať se v historii
-  // dá zpětně poznat, o co šlo.
+  // dá zpětně poznat, o co šlo. Tahle jde do souboru, ne do terminálu,
+  // takže diakritiku mít může.
   const zprava = sestavZpravu(zmeny.vystup);
   const ulozeni = spust('git', ['commit', '-m', zprava], { tise: true });
 
   if (!ulozeni.ok && !ulozeni.vystup.includes('nothing to commit')) {
-    skonci('Nepodařilo se změny uložit.', ulozeni.chyba || ulozeni.vystup);
+    skonci('Nepodarilo se zmeny ulozit.', ulozeni.chyba || ulozeni.vystup);
   }
 
-  hotovo(`Uloženo jako: ${zprava}`);
+  hotovo('Ulozeno.');
 }
 
 // ---------------------------------------------------------------------------
 // 4. Stáhnout cizí změny a odeslat
 // ---------------------------------------------------------------------------
 
-krok('Stahuji, co mezitím změnili ostatní.');
+krok('Stahuji, co mezitim zmenili ostatni.');
 
 const stazeni = spust('git', ['pull', '--rebase'], { tise: true });
 if (!stazeni.ok) {
   skonci(
-    'Vaše změny se střetly se změnami někoho jiného.',
-    'Tohle už neumím rozhodnout za vás — zavolejte Vojtu.\n' +
-      '   Nic se neztratilo, jen to potřebuje ruční srovnání.',
+    'Vase zmeny se stretly se zmenami nekoho jineho.',
+    'Tohle uz neumim rozhodnout za vas - zavolejte Vojtu.\n' +
+      '   Nic se neztratilo, jen to potrebuje rucni srovnani.',
   );
 }
 
-krok('Odesílám na GitHub.');
+krok('Odesilam na GitHub.');
 
 if (!spust('git', ['push']).ok) {
-  skonci('Odeslání se nepovedlo.', 'Zkontrolujte připojení k internetu a zkuste to znovu.');
+  skonci('Odeslani se nepovedlo.', 'Zkontrolujte pripojeni k internetu a zkuste to znovu.');
 }
 
 console.log(`\n${ZELENA}   Hotovo.${KONEC}`);
-info('Nasazení teď běží samo a trvá dvě až tři minuty.');
-info('Pak se změny objeví na náhledovém webu.');
+info('Nasazeni ted bezi samo a trva dve az tri minuty.');
+info('Pak se zmeny objevi na nahledovem webu.');
 info('');
-info('Průběh vidíte na https://github.com/magrah2/TP-web/actions');
+info('Prubeh vidite na https://github.com/magrah2/TP-web/actions');
 
 // ---------------------------------------------------------------------------
 

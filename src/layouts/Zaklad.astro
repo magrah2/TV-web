@@ -10,6 +10,11 @@ import { odkaz } from '../lib/odkaz';
 import '../styles/tokeny.css';
 import '../styles/zaklad.css';
 
+// Adresy písem si necháváme spočítat od Astra — díky tomu sedí i na draftu
+// v podsložce a nesou otisk obsahu. Napsané natvrdo by mířily vedle.
+import interLatin from '../pisma/inter-latin.woff2?url';
+import interLatinExt from '../pisma/inter-latin-ext.woff2?url';
+
 interface Props {
   titulek: string;
   popis: string;
@@ -56,8 +61,8 @@ const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
 
     {/* Písmo se přednačítá, aby text neproblikl náhradním fontem.
         Diakritika sedí v „latin-ext", proto se přednačítají obě podmnožiny. */}
-    <link rel="preload" href={odkaz('/pisma/inter-latin.woff2')} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={odkaz('/pisma/inter-latin-ext.woff2')} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={interLatinExt} as="font" type="font/woff2" crossorigin />
 
     <link rel="icon" href={odkaz('/favicon.svg')} type="image/svg+xml" />
 

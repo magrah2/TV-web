@@ -109,4 +109,4 @@ for (const clovek of LIDE) {
   zalozeno++;
 }
 
-console.log(`Založeno: ${zalozeno}   Přeskočeno (už existují): ${preskoceno}`);
+console.log(`Zalozeno: ${zalozeno}   Preskoceno (uz existuji): ${preskoceno}`);
