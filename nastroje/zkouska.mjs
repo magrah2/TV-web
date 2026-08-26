@@ -205,39 +205,83 @@ try {
   // bychom je do nespravne mistnosti — proto se kontroluje proti udajum
   // z uredni vyhlasky mesta.
   await stranka.goto(`${ADRESA}kde-volit/`, { waitUntil: 'networkidle' });
-  await stranka.waitForTimeout(400);
+  await stranka.waitForTimeout(500);
 
-  overit('vsech 26 okrsku ma plochu na mape', 26, await stranka.locator('.okrsek-plocha').count());
+  // Plochy se sluci podle budovy, ne podle okrsku: nekolik okrsku voli
+  // na stejnem miste a pro volice je to jedna oblast.
+  overit('mapa ma plochy budov', 15, await stranka.locator('.budova-plocha').count());
 
   const najdiAdresu = async (text) => {
     await stranka.fill('[data-vstup]', '');
     await stranka.fill('[data-vstup]', text);
-    await stranka.waitForTimeout(700);
+    await stranka.waitForTimeout(800);
     if (!(await stranka.locator('.navrhy li').count())) return null;
     await stranka.locator('.navrhy li').first().click();
-    await stranka.waitForTimeout(500);
-    return {
-      okrsek: (await stranka.textContent('.vysledek-okrsek')).trim(),
-      misto: (await stranka.textContent('.vysledek-misto')).trim(),
-    };
+    await stranka.waitForTimeout(600);
+    return (await stranka.textContent('.karta-misto')).trim();
   };
 
   // Podle vyhlasky mesta: Dukelska 2 patri do okrsku 2, ten voli v knihovne.
-  const dukelska = await najdiAdresu('Dukelská 2');
-  overit('Dukelska 2 -> okrsek 2', 'volební okrsek č. 2', dukelska && dukelska.okrsek);
-  overit('okrsek 2 voli v knihovne', true, !!dukelska && dukelska.misto.includes('Knihovna'));
+  overit('Dukelska 2 -> knihovna', true, (await najdiAdresu('Dukelská 2') ?? '').includes('Knihovna'));
 
-  // Mistni casti maji vlastni mistnost primo v obci.
-  const lhota = await najdiAdresu('Lhota 8');
-  overit('Lhota voli v Sokole ve Lhote', true, !!lhota && lhota.misto.includes('Sokol Lhota'));
+  // Vyhledavac musi zvladnout i zapis bez mezery.
+  overit('funguje i bez mezery', true, (await najdiAdresu('dukelska2') ?? '').includes('Knihovna'));
 
-  overit('nalezena adresa zvyrazni prave jeden okrsek', 1,
-    await stranka.locator('.okrsek-plocha[data-vybrany]').count());
+  // Cislo popisne i orientacni — clovek zna svuj dum podle jednoho z nich.
+  overit('najde i podle druheho cisla', true, (await najdiAdresu('Slovanská 111') ?? '').length > 0);
+
+  // Mistni casti maji vlastni mistnost primo v obci a nemaji nazev ulice.
+  overit('Lhota voli v Sokole ve Lhote', true, (await najdiAdresu('Lhota 8') ?? '').includes('Sokol Lhota'));
+
+  overit('nalezena adresa zvyrazni prave jednu oblast', 1,
+    await stranka.locator('.budova-plocha[data-vybrany]').count());
   overit('nalezena adresa se ukaze na mape', true, await stranka.locator('.moje-adresa').isVisible());
+  overit('do mapy se vypise cil', true, await stranka.locator('[data-popis-cile]').isVisible());
+  overit('do mapy se vypise adresa', true, await stranka.locator('[data-popis-adresy]').isVisible());
+  overit('vede se spojnice', true,
+    ((await stranka.getAttribute('.spojnice path', 'd')) ?? '').length > 5);
+
+  // Klik do mapy je druha cesta ke stejne odpovedi.
+  // Stred obalky nepravidelneho tvaru casto lezi mimo nej, takze se bod
+  // uvnitr najde pres isPointInFill a klika se na skutecne souradnice.
+  const bodUvnitr = await stranka.evaluate(() => {
+    const path = document.querySelector('.budova-plocha[data-okrsky~="20"] path');
+    if (!path) return null;
+    const b = path.getBBox();
+    const ctm = path.getScreenCTM();
+    for (let i = 1; i < 20; i++) {
+      for (let j = 1; j < 20; j++) {
+        const x = b.x + (b.width * i) / 20;
+        const y = b.y + (b.height * j) / 20;
+        if (path.isPointInFill(new DOMPoint(x, y))) {
+          const p = new DOMPoint(x, y).matrixTransform(ctm);
+          return { x: p.x, y: p.y };
+        }
+      }
+    }
+    return null;
+  });
+  overit('nasel jsem bod uvnitr oblasti', true, !!bodUvnitr);
+  if (bodUvnitr) {
+    await stranka.mouse.click(bodUvnitr.x, bodUvnitr.y);
+    await stranka.waitForTimeout(600);
+    overit('klik do mapy vybere oblast', true,
+      (await stranka.textContent('.karta-misto')).includes('Morávkova'));
+  }
+
+  // Mapa musi jit zvetsit a viewBox se pri tom musi zmenit — kdyby se
+  // zvetsovalo pres transform, SVG by se rozpixelovalo.
+  const pred = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
+  await stranka.click('[data-zoom="dovnitr"]');
+  await stranka.waitForTimeout(400);
+  const po = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
+  overit('priblizeni meni viewBox', true, pred !== po);
+  overit('mapa se nezvetsuje pres transform', '',
+    (await stranka.getAttribute('.mapa-plocha svg', 'style')) ?? '');
 
   await stranka.fill('[data-vstup]', '');
   await stranka.fill('[data-vstup]', 'Neexistujici ulice 999');
-  await stranka.waitForTimeout(700);
+  await stranka.waitForTimeout(800);
   overit('nesmyslna adresa neco rekne', true,
     (await stranka.textContent('[data-stav]')).trim().length > 0);
 } finally {

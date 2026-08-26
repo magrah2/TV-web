@@ -129,6 +129,22 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   metrů od sebe, což jsou na mapě města jednotky pixelů. `rozestrciBody()`
   je odsune, ale jen do omezené vzdálenosti — mapa je schematická, ne
   katastrální.
+- **Mapa se zvětšuje `viewBox`em, ne `transform: scale()`.** Se `scale()` si
+  prohlížeč SVG jednou vykreslí do bitmapy a tu pak natahuje — při přiblížení
+  z toho byly kostičky. Značky nad mapou jsou HTML a polohu si přepočítávají
+  podle `viewBox`u. Hlídá to `npm run zkouska`.
+- **Plochy na mapě se dělí podle budov, ne podle okrsků.** Voliče nezajímá
+  číslo okrsku, ale kam má jít; několik okrsků často volí na stejném místě.
+  Slučuje se to už při rasterizaci, jinak by uvnitř jedné oblasti zůstaly
+  zbytečné vnitřní hranice.
+- **Zelená na mapě „kde volit" je vyhrazená vybrané oblasti.** V paletě ploch
+  proto zelená není — jinak by nešlo poznat, která oblast je ta vaše.
+- **Z jednoho bodu obrysu může vycházet víc hran.** Stává se to tam, kde se
+  dvě části téže oblasti dotýkají rohem. Když se držela jen jedna, smyčky se
+  splácly dohromady a obrysem vedla přeložená čára napříč plochou.
+- **Adresa volební místnosti se hledá nejdřív podle čísla orientačního.**
+  Vyhláška píše čísla tak, jak jsou na domech. Stejné číslo existuje i v řadě
+  popisných, takže bez toho pořadí trefí „Slovanská 111" dům o 200 m vedle.
 - **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
   by na draftu mířil vedle, protože ten běží v podsložce `/TV-web/`.
   Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro

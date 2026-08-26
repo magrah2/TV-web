@@ -13,7 +13,9 @@
  * z OpenStreetMap: Krovak je konformni, takze na uzemi jednoho mesta je vztah
  * prakticky afinni. Skript si presnost sam zmeri a kdyz nesedi, skonci chybou.
  *
- * Vysledek: src/lib/okrsky.json  (commituje se, web uz nikam nesaha)
+ * Vysledky (obojí se commituje, web uz nikam nesaha):
+ *   public/data/okrsky.json   adresy pro vyhledavac
+ *   public/mapa-okrsky.svg    plochy okrsku jako skutecne vektorove obrysy
  */
 
 import fs from 'node:fs';
@@ -30,6 +32,7 @@ const CIL_PLOCHY = 'public/mapa-okrsky.svg';
 // Sirsi mapa cele obce — okrsky 24 a 25 (Rychtarov, Lhota) lezi mimo
 // tesny vyrez mesta a na te uzsi mape by je nikdo nenasel.
 const VYREZ_JSON = 'src/lib/mapa-vyrez-obec.json';
+const MISTNOSTI_JSON = 'src/lib/volebni-mistnosti.json';
 const NEJVETSI_ODCHYLKA = 5; // metru; nad tim prevod povazujeme za chybny
 
 const krok = (t) => console.log('\n>> ' + t);
@@ -106,12 +109,12 @@ const adresy = radky
   .slice(1)
   .map((r) => {
     const s = r.split(';');
+    const co = cislo(s[S.co]);
     return {
       cast: (s[S.cast] || '').trim(),
       ulice: (s[S.ulice] || '').trim(),
       cp: (s[S.cp] || '').trim(),
-      co: cislo(s[S.co]),
-      znak: (s[S.znak] || '').trim(),
+      co: co ? co + (s[S.znak] || '').trim() : '',
       x: parseFloat(s[S.x]),
       y: parseFloat(s[S.y]),
       okrsek: cislo(s[S.okrsek]),
@@ -224,18 +227,11 @@ if (nejvetsi > NEJVETSI_ODCHYLKA) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Sestaveni vysledku
+// 3. Adresy pro vyhledavac
 // ---------------------------------------------------------------------------
-
-/** Cislo domu tak, jak ho clovek zna: orientacni kdyz je, jinak popisne. */
-function popisCisla(a) {
-  if (a.co) return String(a.co) + a.znak;
-  return a.cp;
-}
-
-/** Klic pro vyhledavani — bez diakritiky a bez mezer navic. */
-const zjednodus = (t) =>
-  t.normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+//
+// Ukladaji se OBE cisla — orientacni i popisne. Nekdo zna svuj dum podle
+// jednoho, nekdo podle druheho a vyhledavac musi najit obe.
 
 const ulice = [];
 const indexUlic = new Map();
@@ -247,65 +243,72 @@ for (const a of adresy) {
   }
 }
 
-const zaznamy = adresy
-  .map((a) => {
-    const { lat, lon } = naStupne(a.x, a.y);
-    return [
-      indexUlic.get(a.ulice || a.cast),
-      popisCisla(a),
-      a.okrsek,
-      Math.round(lat * 1e5) / 1e5,
-      Math.round(lon * 1e5) / 1e5,
-      a.cast,
-    ];
-  })
-  .sort((p, q) => p[0] - q[0] || String(p[1]).localeCompare(q[1], 'cs', { numeric: true }));
+const zaznamy = adresy.map((a) => {
+  const { lat, lon } = naStupne(a.x, a.y);
+  return {
+    u: indexUlic.get(a.ulice || a.cast),
+    co: a.co,          // cislo orientacni ("12", "12a") nebo prazdne
+    cp: a.cp,          // cislo popisne
+    o: a.okrsek,
+    lat: Math.round(lat * 1e5) / 1e5,
+    lon: Math.round(lon * 1e5) / 1e5,
+    c: a.cast,
+  };
+});
 
-// Casti obce jako samostatny seznam, ať se neopakuji u kazde adresy
-const casti = [...new Set(zaznamy.map((z) => z[5]))];
-for (const z of zaznamy) z[5] = casti.indexOf(z[5]);
+const casti = [...new Set(zaznamy.map((z) => z.c))];
+const okrsky = [...new Set(zaznamy.map((z) => z.o))].sort((a, b) => a - b);
 
-const vysledek = {
-  zdroj: {
-    nazev: 'ČÚZK — RÚIAN, volební okrsky',
-    adresa: ZDROJ,
-    licence: 'CC-BY 4.0',
-    staženo: new Date().toISOString().slice(0, 10),
-  },
-  presnostPrevoduM: +nejvetsi.toFixed(2),
-  ulice,
-  casti,
-  hledaci: ulice.map(zjednodus),
-  // [index ulice, cislo, okrsek, lat, lon, index casti obce]
-  adresy: zaznamy,
-};
-
-fs.mkdirSync(path.dirname(CIL), { recursive: true });
-fs.writeFileSync(CIL, JSON.stringify(vysledek));
-
-const okrsky = [...new Set(zaznamy.map((z) => z[2]))].sort((a, b) => a - b);
-krok('Hotovo: ' + CIL);
-info(`adres: ${zaznamy.length}`);
-info(`ulic: ${ulice.length}`);
-info(`okrsku: ${okrsky.length} (${okrsky[0]}–${okrsky[okrsky.length - 1]})`);
-info(`velikost: ${Math.round(fs.statSync(CIL).size / 1024)} kB`);
+// Pole misto objektu — pri 5846 adresach usetri desitky kilobajtu.
+const adresyKompaktne = zaznamy
+  .map((z) => [z.u, z.co, z.cp, z.o, z.lat, z.lon, casti.indexOf(z.c)])
+  .sort((p, q) => p[0] - q[0] || String(p[2]).localeCompare(String(q[2]), 'cs', { numeric: true }));
 
 // ---------------------------------------------------------------------------
-// 4. Plochy okrsku pro mapu
+// 4. Plochy okrsku jako vektorove obrysy
 // ---------------------------------------------------------------------------
 //
 // Okrsky nemaji v datech nakreslenou hranici — je z nich jen seznam adres.
-// Uzemi se proto odvodi: mapa se pokryje jemnou mrizkou a kazde policko
-// dostane okrsek nejblizsi adresy. Sousedni policka stejneho okrsku se pak
-// v kazdem radku slouci do jednoho obdelniku, aby vysledek nebyl o statisicich
-// tvaru. Je to priblizeni, ne uredni hranice — na mape ale ukaze presne to,
-// co clovek potrebuje videt: kde konci "muj" okrsek.
+// Uzemi se proto odvodi: mapa se pokryje mrizkou a kazde policko dostane
+// okrsek nejblizsi adresy. Z mrizky se pak VYTRASUJE obrys a zjednodusi,
+// takze vysledkem jsou skutecne mnohouhelniky, ne schody z ctverecku.
+// Diky tomu mapa zustava ostra i pri zvetseni.
+//
+// Je to priblizeni, ne uredni hranice — na mape ale ukaze presne to, co clovek
+// potrebuje videt: kde konci "muj" okrsek.
 
 if (!fs.existsSync(VYREZ_JSON)) skonci(`Chybi ${VYREZ_JSON}. Spustte nejdriv nastroje/mapa.mjs.`);
 const vyrez = JSON.parse(fs.readFileSync(VYREZ_JSON, 'utf8'));
 
-const BUNKA = 3; // velikost policka v souradnicich mapy (1000 x ~717)
-const DOSAH = 55; // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
+// Plochy se kresli po BUDOVACH, ne po okrscich. Volice nezajima cislo okrsku,
+// ale do ktere budovy ma jit — a kdyz nekolik okrsku voli na stejnem miste,
+// jsou to z jeho pohledu jedna oblast. Slouceni uz pri rasterizaci navic
+// odstrani vnitrni hranice, ktere by jinak zbytecne delily jednu oblast.
+if (!fs.existsSync(MISTNOSTI_JSON)) skonci(`Chybi ${MISTNOSTI_JSON}.`);
+const mistnostiZdroj = JSON.parse(fs.readFileSync(MISTNOSTI_JSON, 'utf8')).mistnosti;
+
+const budovy = [];
+const okrsekNaBudovu = new Map();
+for (const m of mistnostiZdroj) {
+  const klic = m.nazev + '|' + m.adresa;
+  let i = budovy.findIndex((b) => b.klic === klic);
+  if (i < 0) {
+    i = budovy.length;
+    budovy.push({ klic, nazev: m.nazev, adresa: m.adresa, bezbarierovy: m.bezbarierovy, poznamka: m.poznamka ?? null, okrsky: [] });
+  }
+  budovy[i].okrsky.push(m.okrsek);
+  // Cislujeme od 1, aby 0 mohla znamenat "mimo dosah adres".
+  okrsekNaBudovu.set(m.okrsek, i + 1);
+}
+
+const chybejici = okrsky.filter((o) => !okrsekNaBudovu.has(o));
+if (chybejici.length) {
+  skonci(`Okrsky ${chybejici.join(', ')} nemaji ve ${MISTNOSTI_JSON} volebni mistnost.`);
+}
+
+const BUNKA = 2;      // jemnost mrizky v souradnicich mapy
+const DOSAH = 60;     // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
+const TOLERANCE = 1.6; // jak moc se smi obrys zjednodusit
 
 const merkator = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
 const yJih = merkator(vyrez.jih);
@@ -315,70 +318,268 @@ const naMapu = (lat, lon) => ({
   y: vyrez.vyska - (merkator(lat) - yJih) * (180 / Math.PI) * MERITKO,
 });
 
-// Adresy do mrizky, aby hledani nejblizsi nemuselo prochazet vsech 5846
+krok('Odvozuji plochy okrsku.');
+
 const PRIHRADKA = 60;
 const prihradky = new Map();
-const bodyMapy = [];
 for (const z of zaznamy) {
-  const b = naMapu(z[3], z[4]);
-  if (b.x < -DOSAH || b.x > vyrez.sirka + DOSAH || b.y < -DOSAH || b.y > vyrez.vyska + DOSAH) continue;
-  const zaznam = { x: b.x, y: b.y, okrsek: z[2] };
-  bodyMapy.push(zaznam);
+  const b = naMapu(z.lat, z.lon);
   const k = Math.floor(b.x / PRIHRADKA) + ':' + Math.floor(b.y / PRIHRADKA);
   if (!prihradky.has(k)) prihradky.set(k, []);
-  prihradky.get(k).push(zaznam);
+  prihradky.get(k).push({ x: b.x, y: b.y, budova: okrsekNaBudovu.get(z.o) ?? 0 });
 }
 
 function nejblizsiOkrsek(x, y) {
   const px = Math.floor(x / PRIHRADKA);
   const py = Math.floor(y / PRIHRADKA);
-  let nej = null;
+  let nej = 0;
   let nejD = DOSAH * DOSAH;
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       for (const b of prihradky.get(px + dx + ':' + (py + dy)) ?? []) {
         const d = (b.x - x) ** 2 + (b.y - y) ** 2;
-        if (d < nejD) { nejD = d; nej = b.okrsek; }
+        if (d < nejD) { nejD = d; nej = b.budova; }
       }
     }
   }
-  return nej;
+  return nej; // 0 = mimo dosah jakekoliv adresy
 }
 
 const sloupcu = Math.ceil(vyrez.sirka / BUNKA);
-const radku = Math.ceil(vyrez.vyska / BUNKA);
-const cesty = new Map(okrsky.map((o) => [o, []]));
+const radkuM = Math.ceil(vyrez.vyska / BUNKA);
+const mrizka = new Int16Array(sloupcu * radkuM);
+for (let r = 0; r < radkuM; r++) {
+  for (let s = 0; s < sloupcu; s++) {
+    mrizka[r * sloupcu + s] = nejblizsiOkrsek(s * BUNKA + BUNKA / 2, r * BUNKA + BUNKA / 2);
+  }
+}
 
-for (let r = 0; r < radku; r++) {
-  const y = r * BUNKA;
-  let zacatek = null;
-  let bezici = null;
-  for (let s = 0; s <= sloupcu; s++) {
-    const o = s < sloupcu ? nejblizsiOkrsek(s * BUNKA + BUNKA / 2, y + BUNKA / 2) : null;
-    if (o !== bezici) {
-      if (bezici !== null) {
-        const x0 = zacatek * BUNKA;
-        const sirka = (s - zacatek) * BUNKA;
-        cesty.get(bezici).push(`M${x0} ${y}h${sirka}v${BUNKA}h-${sirka}z`);
+const hodnota = (s, r) => (s < 0 || r < 0 || s >= sloupcu || r >= radkuM ? 0 : mrizka[r * sloupcu + s]);
+
+/**
+ * Vytrasuje obrysy jedne hodnoty v mrizce.
+ * Posbira hranicni hrany policek a spoji je do uzavrenych smycek.
+ */
+function obrysy(cil) {
+  // Z jednoho bodu muze vychazet VIC hran — stava se to tam, kde se dve casti
+  // teze oblasti dotykaji jen rohem. Kdyz se drzela jen jedna, smycky se
+  // v tom miste splacly dohromady a v obrysu vznikla prelozena cara, ktera
+  // pres oblast vedla napric.
+  const hrany = new Map(); // "x,y" pocatku -> pole koncu
+  const pridej = (x1, y1, x2, y2) => {
+    const k = x1 + ',' + y1;
+    if (!hrany.has(k)) hrany.set(k, []);
+    hrany.get(k).push([x2, y2]);
+  };
+
+  for (let r = 0; r < radkuM; r++) {
+    for (let s = 0; s < sloupcu; s++) {
+      if (hodnota(s, r) !== cil) continue;
+      const x = s * BUNKA;
+      const y = r * BUNKA;
+      // Smer hran drzi jednotne otaceni, aby na sebe navazovaly.
+      if (hodnota(s, r - 1) !== cil) pridej(x, y, x + BUNKA, y);
+      if (hodnota(s + 1, r) !== cil) pridej(x + BUNKA, y, x + BUNKA, y + BUNKA);
+      if (hodnota(s, r + 1) !== cil) pridej(x + BUNKA, y + BUNKA, x, y + BUNKA);
+      if (hodnota(s - 1, r) !== cil) pridej(x, y + BUNKA, x, y);
+    }
+  }
+
+  /**
+   * Ze vsech hran vychazejicich z bodu vybere tu, ktera zatoci nejvic doprava.
+   * Hrany jsou vedene tak, ze uvnitr oblasti je vpravo od smeru chuze —
+   * drzet se pri rozcesti vpravo tedy obchazi prave tu cast, ve ktere jsme,
+   * a druhou necha na samostatnou smycku.
+   */
+  function dalsi(klic, prichozi) {
+    const moznosti = hrany.get(klic);
+    if (!moznosti || !moznosti.length) return null;
+    if (moznosti.length === 1) return moznosti.splice(0, 1)[0];
+
+    const [px, py] = klic.split(',').map(Number);
+    let nejI = 0;
+    let nejPoradi = -Infinity;
+    for (let i = 0; i < moznosti.length; i++) {
+      const sx = Math.sign(moznosti[i][0] - px);
+      const sy = Math.sign(moznosti[i][1] - py);
+      // Uhel otoceni vuci prichozimu smeru: vektorovy soucin urcuje stranu,
+      // skalarni rozlisi rovne od otocky o 180 stupnu.
+      const kriz = prichozi[0] * sy - prichozi[1] * sx;
+      const skalar = prichozi[0] * sx + prichozi[1] * sy;
+      // Poradi od nejostrejsi pravotocive zatacky po otocku zpet.
+      const poradi = kriz > 0 ? 3 - skalar : kriz < 0 ? 1 - skalar : skalar > 0 ? 2 : 0;
+      if (poradi > nejPoradi) {
+        nejPoradi = poradi;
+        nejI = i;
       }
-      bezici = o;
-      zacatek = s;
+    }
+    return moznosti.splice(nejI, 1)[0];
+  }
+
+  const smycky = [];
+  let zbyva = 0;
+  for (const v of hrany.values()) zbyva += v.length;
+
+  while (zbyva > 0) {
+    let klic = null;
+    for (const [k, v] of hrany) {
+      if (v.length) {
+        klic = k;
+        break;
+      }
+    }
+    if (!klic) break;
+
+    const smycka = [];
+    let prichozi = [1, 0];
+    while (true) {
+      const dal = dalsi(klic, prichozi);
+      if (!dal) break;
+      zbyva--;
+      const [px, py] = klic.split(',').map(Number);
+      prichozi = [Math.sign(dal[0] - px), Math.sign(dal[1] - py)];
+      smycka.push(dal);
+      klic = dal[0] + ',' + dal[1];
+    }
+    if (smycka.length > 3) smycky.push(smycka);
+  }
+  return smycky;
+}
+
+/** Douglas–Peucker: ze schodu udela primky a rohy. */
+function zjednodus(body, tolerance) {
+  if (body.length < 3) return body;
+  const vzdalenostOdUsecky = (p, a, b) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const delka = dx * dx + dy * dy;
+    if (!delka) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / delka;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+  };
+  const rekurze = (od, do_) => {
+    let nejD = 0;
+    let nejI = -1;
+    for (let i = od + 1; i < do_; i++) {
+      const d = vzdalenostOdUsecky(body[i], body[od], body[do_]);
+      if (d > nejD) { nejD = d; nejI = i; }
+    }
+    if (nejD > tolerance) return [...rekurze(od, nejI), ...rekurze(nejI, do_).slice(1)];
+    return [body[od], body[do_]];
+  };
+  return rekurze(0, body.length - 1);
+}
+
+/** Sousedi okrsku — pro obarveni tak, aby dva sousedni nemely stejnou barvu. */
+const cisla = budovy.map((_, i) => i + 1);
+const sousede = new Map(cisla.map((c) => [c, new Set()]));
+for (let r = 0; r < radkuM; r++) {
+  for (let s = 0; s < sloupcu; s++) {
+    const a = hodnota(s, r);
+    if (!a) continue;
+    for (const [ds, dr] of [[1, 0], [0, 1]]) {
+      const b = hodnota(s + ds, r + dr);
+      if (b && b !== a) {
+        sousede.get(a)?.add(b);
+        sousede.get(b)?.add(a);
+      }
     }
   }
 }
 
-const skupiny = okrsky
-  .filter((o) => cesty.get(o).length)
-  .map((o) => `  <g class="okrsek-plocha" data-okrsek="${o}">\n    <path d="${cesty.get(o).join('')}"/>\n  </g>`);
+// Hladove barveni: okrsky s nejvic sousedy se resi prvni.
+const POCET_BAREV = 6;
+const barvy = new Map();
+for (const o of [...cisla].sort((p, q) => (sousede.get(q)?.size ?? 0) - (sousede.get(p)?.size ?? 0))) {
+  const obsazene = new Set([...(sousede.get(o) ?? [])].map((s) => barvy.get(s)).filter((b) => b != null));
+  let barva = 0;
+  while (obsazene.has(barva) && barva < POCET_BAREV - 1) barva++;
+  barvy.set(o, barva);
+}
+
+/**
+ * Prolozi mnohouhelnik hladkou krivkou.
+ *
+ * Obrys vytrasovany z mrizky ma na sikmych usecich schody. Douglas-Peucker
+ * z nich udela lomenou caru, ale porad jsou videt zuby. Kvadraticke krivky
+ * vedene STREDY hran, kde vrcholy slouzi jako ridici body, zuby zaobli
+ * a pritom nepridaji ani jeden bod navic.
+ */
+function vyhlad(body) {
+  // Trasovani vraci smycku, ktera konci tam, kde zacala.
+  const b = body.slice();
+  if (b.length > 1 && b[0][0] === b[b.length - 1][0] && b[0][1] === b[b.length - 1][1]) b.pop();
+  const n = b.length;
+  if (n < 3) return null;
+
+  const zaokrouhli = ([x, y]) => `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
+  const stred = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+
+  let d = 'M' + zaokrouhli(stred(b[0], b[1]));
+  for (let i = 1; i <= n; i++) {
+    const vrchol = b[i % n];
+    const dalsi = b[(i + 1) % n];
+    d += 'Q' + zaokrouhli(vrchol) + ' ' + zaokrouhli(stred(vrchol, dalsi));
+  }
+  return d + 'Z';
+}
+
+const skupiny = [];
+let celkemBodu = 0;
+for (const o of cisla) {
+  const cesty = obrysy(o)
+    .map((smycka) => zjednodus(smycka, TOLERANCE))
+    .filter((s) => s.length > 3)
+    .map((s) => {
+      celkemBodu += s.length;
+      return vyhlad(s);
+    })
+    .filter(Boolean);
+  if (!cesty.length) continue;
+  const b = budovy[o - 1];
+  skupiny.push(
+    `  <g class="budova-plocha" data-budova="${o - 1}" data-okrsky="${b.okrsky.join(' ')}" data-barva="${barvy.get(o)}">\n` +
+      `    <path d="${cesty.join('')}"/>\n  </g>`,
+  );
+}
 
 const svgPlochy = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vyrez.sirka} ${vyrez.vyska}" aria-hidden="true" focusable="false">
 <!-- Plochy volebnich okrsku, vygenerovane skriptem nastroje/okrsky.mjs.
-     Odvozene z adres (CUZK / RUIAN), nejsou to uredni hranice. Needitovat rucne. -->
+     Jedna plocha = jedna volebni budova (nekolik okrsku muze volit na stejnem
+     miste). Odvozene z adres (CUZK / RUIAN), nejsou to uredni hranice.
+     Needitovat rucne. -->
 ${skupiny.join('\n')}
 </svg>
 `;
 
 fs.writeFileSync(CIL_PLOCHY, svgPlochy);
-krok('Hotovo: ' + CIL_PLOCHY);
-info(`plochy pro ${skupiny.length} okrsku`);
-info(`velikost: ${Math.round(fs.statSync(CIL_PLOCHY).size / 1024)} kB`);
+
+// ---------------------------------------------------------------------------
+// 5. Zapis
+// ---------------------------------------------------------------------------
+
+const vysledek = {
+  zdroj: {
+    nazev: 'ČÚZK — RÚIAN, volební okrsky',
+    adresa: ZDROJ,
+    licence: 'CC-BY 4.0',
+    stazeno: new Date().toISOString().slice(0, 10),
+  },
+  presnostPrevoduM: +nejvetsi.toFixed(2),
+  ulice,
+  casti,
+  budovy: budovy.map((b, i) => ({ ...b, barva: barvy.get(i + 1) ?? 0 })),
+  okrsekNaBudovu: Object.fromEntries([...okrsekNaBudovu].map(([o, i]) => [o, i - 1])),
+  // [index ulice, cislo orientacni, cislo popisne, okrsek, lat, lon, index casti]
+  adresy: adresyKompaktne,
+};
+
+fs.mkdirSync(path.dirname(CIL), { recursive: true });
+fs.writeFileSync(CIL, JSON.stringify(vysledek));
+
+krok('Hotovo.');
+info(`${CIL}  (${Math.round(fs.statSync(CIL).size / 1024)} kB)`);
+info(`  adres: ${adresyKompaktne.length}, ulic: ${ulice.length}, okrsku: ${okrsky.length}`);
+info(`${CIL_PLOCHY}  (${Math.round(fs.statSync(CIL_PLOCHY).size / 1024)} kB)`);
+info(`  ploch: ${skupiny.length} (budov), bodu obrysu: ${celkemBodu}, barev: ${new Set(barvy.values()).size}`);
