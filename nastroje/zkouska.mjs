@@ -242,21 +242,32 @@ try {
     ((await stranka.getAttribute('.spojnice path', 'd')) ?? '').length > 5);
 
   // Klik do mapy je druha cesta ke stejne odpovedi.
+  // Predchozi hledani adresy mapu priblizilo ke Lhote, takze se nejdriv vrati
+  // pohled na celou obec — jinak by hledana oblast lezela mimo ram.
+  await stranka.click('[data-zoom="reset"]');
+  await stranka.waitForTimeout(400);
+  await stranka.locator('.mapa-plocha').scrollIntoViewIfNeeded();
+  await stranka.waitForTimeout(200);
+
   // Stred obalky nepravidelneho tvaru casto lezi mimo nej, takze se bod
   // uvnitr najde pres isPointInFill a klika se na skutecne souradnice.
+  // Musi lezet i uvnitr ramu mapy: `isPointInFill` o orezani nevi a vratil by
+  // i bod, ktery je odrolovany nebo schovany za okrajem.
   const bodUvnitr = await stranka.evaluate(() => {
     const path = document.querySelector('.budova-plocha[data-okrsky~="20"] path');
     if (!path) return null;
+    const ram = document.querySelector('.mapa-plocha').getBoundingClientRect();
     const b = path.getBBox();
     const ctm = path.getScreenCTM();
-    for (let i = 1; i < 20; i++) {
-      for (let j = 1; j < 20; j++) {
-        const x = b.x + (b.width * i) / 20;
-        const y = b.y + (b.height * j) / 20;
-        if (path.isPointInFill(new DOMPoint(x, y))) {
-          const p = new DOMPoint(x, y).matrixTransform(ctm);
-          return { x: p.x, y: p.y };
-        }
+    for (let i = 1; i < 40; i++) {
+      for (let j = 1; j < 40; j++) {
+        const x = b.x + (b.width * i) / 40;
+        const y = b.y + (b.height * j) / 40;
+        if (!path.isPointInFill(new DOMPoint(x, y))) continue;
+        const p = new DOMPoint(x, y).matrixTransform(ctm);
+        const uvnitrRamu =
+          p.x > ram.left + 4 && p.x < ram.right - 4 && p.y > ram.top + 4 && p.y < ram.bottom - 4;
+        if (uvnitrRamu) return { x: p.x, y: p.y };
       }
     }
     return null;
@@ -278,6 +289,40 @@ try {
   overit('priblizeni meni viewBox', true, pred !== po);
   overit('mapa se nezvetsuje pres transform', '',
     (await stranka.getAttribute('.mapa-plocha svg', 'style')) ?? '');
+
+  // Nazvy mistnich casti se rozestupuji podle skutecneho prekryvu. Kdyby se
+  // to rozbilo, mapa se necha prelepit nazvy pres sebe a stane se necitelnou.
+  const popisky = async () =>
+    await stranka.evaluate(() => {
+      const ram = document.querySelector('.mapa-plocha').getBoundingClientRect();
+      return [...document.querySelectorAll('.popisek-casti')]
+        .filter((p) => !p.hidden)
+        .map((p) => {
+          const r = p.getBoundingClientRect();
+          return {
+            nazev: p.textContent,
+            x1: r.left, y1: r.top, x2: r.right, y2: r.bottom,
+            vRamu: r.left >= ram.left - 1 && r.right <= ram.right + 1 &&
+                   r.top >= ram.top - 1 && r.bottom <= ram.bottom + 1,
+          };
+        });
+    });
+
+  const priblizene = await popisky();
+  const kolize = priblizene.some((a, i) =>
+    priblizene.some((b, j) => j > i && a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1));
+  overit('nazvy casti se neprekryvaji', false, kolize);
+  overit('nazvy casti nevycuhuji z mapy', true, priblizene.every((p) => p.vRamu));
+
+  // Pri oddaleni se do stredu mesta vsechny nazvy nevejdou, po priblizeni ano.
+  await stranka.click('[data-zoom="reset"]');
+  await stranka.waitForTimeout(400);
+  const naCelek = (await popisky()).length;
+  for (let i = 0; i < 3; i++) {
+    await stranka.click('[data-zoom="dovnitr"]');
+    await stranka.waitForTimeout(200);
+  }
+  overit('priblizeni odkryje dalsi nazvy', true, (await popisky()).length >= naCelek);
 
   await stranka.fill('[data-vstup]', '');
   await stranka.fill('[data-vstup]', 'Neexistujici ulice 999');

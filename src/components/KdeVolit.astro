@@ -126,29 +126,23 @@ for (const a of data.adresy) {
 }
 const popisky = [...soucty].map(([nazev, s]) => ({
   nazev,
+  pocet: s.pocet,
   ...naMapu(s.lat / s.pocet, s.lon / s.pocet),
 }));
 
-// --- Výchozí výřez mapy ----------------------------------------------------
-// Území obce je skoro čtvercové, kdežto rám mapy je široký. Kdyby se na první
-// pohled ukazovalo celé, vyplnilo by sotva polovinu šířky a zbytek by byl
-// prázdný. Výchozí pohled proto míří na hustě obydlenou část — spočítá se
-// jako rozsah, do kterého padne 85 % adres, takže odlehlé samoty a lesy
-// pohled netáhnou. Na celou obec je pak tlačítko.
-const percentil = (hodnoty: number[], p: number) => {
-  const s = [...hodnoty].sort((a, b) => a - b);
-  return s[Math.min(s.length - 1, Math.max(0, Math.round((s.length - 1) * p)))];
+// --- Obydlená plocha -------------------------------------------------------
+// Výřez mapy zabírá celé katastrální území včetně polí a lesů, kde nikdo
+// nebydlí. Kdyby se výchozí pohled řídil jím, obec by se scvrkla doprostřed
+// a názvy částí by se v ní slily. Pohled se proto řídí rozsahem adres —
+// vidět je pořád všechno až po Rychtářov, ale vyplní to rám.
+const body = data.adresy.map((a) => naMapu(a[4], a[5]));
+const celek = {
+  x1: Math.min(...body.map((b) => b.mx)),
+  x2: Math.max(...body.map((b) => b.mx)),
+  y1: Math.min(...body.map((b) => b.my)),
+  y2: Math.max(...body.map((b) => b.my)),
 };
 
-const vsechnyBody = data.adresy.map((a) => naMapu(a[4], a[5]));
-const xs = vsechnyBody.map((b) => b.mx);
-const ys = vsechnyBody.map((b) => b.my);
-const jadro = {
-  x1: percentil(xs, 0.075),
-  x2: percentil(xs, 0.925),
-  y1: percentil(ys, 0.075),
-  y2: percentil(ys, 0.925),
-};
 ---
 
 <section class="kde-volit pas-noc" id="kde-volit">
@@ -196,7 +190,7 @@ const jadro = {
       <Fragment set:html={mapaSpojena} />
 
       <div class="mapa-body">
-        {popisky.map((p) => <span class="popisek-casti" data-mx={p.mx} data-my={p.my}>{p.nazev}</span>)}
+        {popisky.map((p) => <span class="popisek-casti" data-mx={p.mx} data-my={p.my} data-pocet={p.pocet}>{p.nazev}</span>)}
         {
           budovy.map((b, i) => (
             <span
@@ -460,7 +454,7 @@ const jadro = {
     position: relative;
     /* Pevná výška místo poměru stran: mapa je skoro čtvercová a při plné
        šířce by byla přes celou obrazovku — vyhledávač by se pod ni nevešel. */
-    height: clamp(320px, 56vh, 600px);
+    height: clamp(340px, 68vh, 720px);
     overflow: hidden;
     background: #081a29;
     border: 1px solid var(--linka-na-noci);
@@ -600,6 +594,8 @@ const jadro = {
      samy o sobě neřeknou, jestli se člověk dívá na Dědice nebo na Rychtářov. */
   .popisek-casti {
     position: absolute;
+    /* Výchozí poloha je na těžišti; kam nápis nakonec sedne, rozhodne
+       `rozmistiPopisky()` — dopíše si vlastní `transform`. */
     transform: translate(-50%, -50%);
     white-space: nowrap;
     font-size: var(--text-drobny);
@@ -791,7 +787,7 @@ const jadro = {
   }
 </style>
 
-<script define:vars={{ cestaKDatum: odkaz('/data/okrsky.json'), budovy, vyrez, jadro }}>
+<script define:vars={{ cestaKDatum: odkaz('/data/okrsky.json'), budovy, vyrez, celek }}>
   const mapa = document.querySelector('[data-mapa]');
   const svg = mapa?.querySelector('svg');
   const ovladani = document.querySelector('[data-mapa-ovladani]');
@@ -826,15 +822,25 @@ const jadro = {
    * ------------------------------------------------------------------ */
 
   const NEJMENSI_SIRKA = vyrez.sirka / 16; // nejvyšší přiblížení
-  let pohled = { x: 0, y: 0, w: vyrez.sirka };
+
+  // Kolem obce se nechává volné místo. Bez něj končí okrajové čtvrti natvrdo
+  // u hrany rámu: přiblížení je drží u kraje, kde je vidět jen jejich půlka,
+  // a doprostřed se posunout nedají, protože posun se zaráží o hranici mapy.
+  const OKRAJ = Math.round(Math.max(celek.x2 - celek.x1, celek.y2 - celek.y1) * 0.07);
+  const CELA_SIRKA = celek.x2 - celek.x1 + OKRAJ * 2;
+  const CELA_VYSKA = celek.y2 - celek.y1 + OKRAJ * 2;
+  const STRED_X = (celek.x1 + celek.x2) / 2;
+  const STRED_Y = (celek.y1 + celek.y2) / 2;
+
+  let pohled = { x: celek.x1 - OKRAJ, y: celek.y1 - OKRAJ, w: CELA_SIRKA };
   // Nápověda zmizí, jakmile člověk s mapou poprvé pohne — pak už ji nepotřebuje.
   let uzHnul = false;
 
   /** Poměr stran rámu. Měří se za běhu, protože výška mapy je daná v CSS. */
   const pomer = () => (mapa.clientHeight || 1) / (mapa.clientWidth || 1);
 
-  /** Nejmenší přiblížení: takové, aby se celá obec vešla do rámu. */
-  const nejvetsiSirka = () => Math.max(vyrez.sirka, vyrez.vyska / pomer());
+  /** Nejmenší přiblížení: takové, aby se celá obydlená plocha vešla do rámu. */
+  const nejvetsiSirka = () => Math.max(CELA_SIRKA, CELA_VYSKA / pomer());
 
   function srovnej() {
     const maxW = nejvetsiSirka();
@@ -843,13 +849,13 @@ const jadro = {
     // Když je výřez větší než mapa, mapa se v něm vystředí — jinak by se
     // dala odsunout do prázdna.
     pohled.x =
-      pohled.w >= vyrez.sirka
-        ? (vyrez.sirka - pohled.w) / 2
-        : Math.min(vyrez.sirka - pohled.w, Math.max(0, pohled.x));
+      pohled.w >= CELA_SIRKA
+        ? STRED_X - pohled.w / 2
+        : Math.min(celek.x2 + OKRAJ - pohled.w, Math.max(celek.x1 - OKRAJ, pohled.x));
     pohled.y =
-      h >= vyrez.vyska
-        ? (vyrez.vyska - h) / 2
-        : Math.min(vyrez.vyska - h, Math.max(0, pohled.y));
+      h >= CELA_VYSKA
+        ? STRED_Y - h / 2
+        : Math.min(celek.y2 + OKRAJ - h, Math.max(celek.y1 - OKRAJ, pohled.y));
   }
 
   function vykresli() {
@@ -868,12 +874,104 @@ const jadro = {
       if (!znacka.dataset.vzdyVidet) znacka.hidden = x < -3 || x > 103 || y < -3 || y > 103;
     }
 
+    rozmistiPopisky();
+
     if (ovladani) {
       const naDoraz = pohled.w >= nejvetsiSirka() - 0.01;
       ovladani.querySelector('[data-zoom="dovnitr"]').disabled = pohled.w <= NEJMENSI_SIRKA + 0.01;
       ovladani.querySelector('[data-zoom="ven"]').disabled = naDoraz;
       ovladani.querySelector('[data-zoom="reset"]').disabled = naDoraz;
       if (napoveda) napoveda.hidden = uzHnul;
+    }
+  }
+
+  /**
+   * Rozestoupí názvy místních částí.
+   *
+   * Ve středu města leží Vyškov-Město, Nosálovice, Nouzka, Brňany, Křečkovice
+   * a Pazderna namačkané na sebe. Při oddálení se jejich názvy překrývají
+   * navzájem i s body volebních místností a je z toho slepenec. Velikost té
+   * části o tom rozhodnout nemůže — Vyškov-Město je stejně velké jako
+   * Rychtářov, jen má sousedy. Rozhoduje proto skutečný překryv na obrazovce:
+   * název se vykreslí, jen když se vejde vedle už vykreslených. Přednost mají
+   * části s víc adresami. Jak se mapa přiblíží, místa přibude a zbylé názvy
+   * naskočí samy.
+   */
+  function rozmistiPopisky() {
+    const sirkaPx = mapa.clientWidth;
+    const vyskaPx = mapa.clientHeight;
+    if (!sirkaPx || !vyskaPx) return;
+
+    const zabrane = [];
+    const volno = (a) =>
+      !zabrane.some((b) => a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1);
+
+    // Body volebních místností jsou důležitější než názvy — ty se jim uhnou.
+    for (const pin of mapa.querySelectorAll('.budova-pin')) {
+      if (pin.hidden) continue;
+      const x = (parseFloat(pin.style.left) / 100) * sirkaPx;
+      const y = (parseFloat(pin.style.top) / 100) * vyskaPx;
+      zabrane.push({ x1: x - 11, y1: y - 11, x2: x + 11, y2: y + 11 });
+    }
+
+    // Změřit se dá jen to, co je vidět, takže se nejdřív měří a teprve pak
+    // schovává. Uvnitř jednoho běhu se mezistav nevykreslí, takže to neproblikne.
+    const merene = [];
+    for (const p of mapa.querySelectorAll('.popisek-casti')) {
+      if (p.hidden) continue;
+      merene.push({
+        prvek: p,
+        pocet: Number(p.dataset.pocet),
+        x: (parseFloat(p.style.left) / 100) * sirkaPx,
+        y: (parseFloat(p.style.top) / 100) * vyskaPx,
+        w: p.offsetWidth,
+        h: p.offsetHeight,
+      });
+    }
+
+    merene.sort((a, b) => b.pocet - a.pocet);
+    for (const m of merene) {
+      // Pořadí, ve kterém se název pokouší usadit. Nad bodem to vypadá
+      // nejlíp, ale trvat na tom by ho zbytečně schovalo i tam, kde by se
+      // kousek vedle v pohodě vešel.
+      const kam = [
+        [0, -m.h - 12],
+        [0, m.h + 12],
+        [m.w / 2 + 16, 0],
+        [-m.w / 2 - 16, 0],
+        [m.w / 2 + 14, -m.h - 4],
+        [-m.w / 2 - 14, -m.h - 4],
+      ];
+      let usadil = null;
+      for (const [dxKam, dyKam] of kam) {
+        // Nápis se musí vejít do rámu celý. U okrajových částí — Pařezovice,
+        // Rychtářov — by jinak vyčuhoval ven a zůstalo by z něj „ařezovice".
+        const dx = Math.min(
+          sirkaPx - 4 - m.w / 2 - m.x,
+          Math.max(4 + m.w / 2 - m.x, dxKam),
+        );
+        const dy = Math.min(
+          vyskaPx - 4 - m.h / 2 - m.y,
+          Math.max(4 + m.h / 2 - m.y, dyKam),
+        );
+        const ram = {
+          x1: m.x + dx - m.w / 2 - 2,
+          y1: m.y + dy - m.h / 2 - 1,
+          x2: m.x + dx + m.w / 2 + 2,
+          y2: m.y + dy + m.h / 2 + 1,
+        };
+        if (volno(ram)) {
+          usadil = { dx, dy, ram };
+          break;
+        }
+      }
+      if (!usadil) {
+        m.prvek.hidden = true;
+        continue;
+      }
+      m.prvek.style.transform =
+        'translate(-50%, -50%) translate(' + usadil.dx + 'px, ' + usadil.dy + 'px)';
+      zabrane.push(usadil.ram);
     }
   }
 
@@ -901,14 +999,15 @@ const jadro = {
     vykresli();
   }
 
-  /** Výchozí pohled: hustě obydlená část obce, ne celé katastrální území. */
-  function naJadro() {
-    const okraj = 40;
-    const sirka = jadro.x2 - jadro.x1 + okraj * 2;
-    const zVysky = (jadro.y2 - jadro.y1 + okraj * 2) / pomer();
-    pohled.w = Math.min(nejvetsiSirka(), Math.max(NEJMENSI_SIRKA, Math.max(sirka, zVysky)));
-    pohled.x = (jadro.x1 + jadro.x2) / 2 - pohled.w / 2;
-    pohled.y = (jadro.y1 + jadro.y2) / 2 - (pohled.w * pomer()) / 2;
+  /**
+   * Výchozí pohled: celá obec. Kdo bydlí v Rychtářově nebo na Hamiltonech,
+   * musí svou čtvrť vidět hned — přiblížit si ji umí každý sám, ale hledat
+   * ji posouváním po výřezu, ve kterém není, je otrava.
+   */
+  function naCelek() {
+    pohled.w = nejvetsiSirka();
+    pohled.x = STRED_X - pohled.w / 2;
+    pohled.y = STRED_Y - (pohled.w * pomer()) / 2;
   }
 
   /** Nastaví výřez tak, aby se do něj vešly oba body i s okrajem. */
@@ -1220,7 +1319,7 @@ const jadro = {
       if (co === 'dovnitr') zoomKolem(1.6);
       else if (co === 'ven') zoomKolem(1 / 1.6);
       else {
-        pohled = { x: 0, y: 0, w: nejvetsiSirka() };
+        naCelek();
         vykresli();
       }
     });
@@ -1331,7 +1430,7 @@ const jadro = {
     mapa.addEventListener('pointercancel', pustil);
 
     window.addEventListener('resize', vykresli);
-    naJadro();
+    naCelek();
     vykresli();
   }
 </script>

@@ -329,20 +329,66 @@ for (const z of zaznamy) {
   prihradky.get(k).push({ x: b.x, y: b.y, budova: okrsekNaBudovu.get(z.o) ?? 0 });
 }
 
-function nejblizsiOkrsek(x, y) {
+/**
+ * Ke ktere budove policko patri.
+ *
+ * NEstaci vzit jedinou nejblizsi adresu. Ulice jsou ve meste proplete: treba
+ * Kasikova patri cela ke knihovne, ale ze vsech stran ji lemuji domy z Nadrazni,
+ * Nerudovy a II. odboje, ktere patri jinam a lezi bliz (18-35 m) nez sousedni
+ * dum na same Kasikove (31 m). Pri rozhodovani podle jedine nejblizsi adresy
+ * ulici okoli "seralo" a zbyly z ni ostruvky u jednotlivych domu.
+ *
+ * Hlasuje proto NEKOLIK nejblizsich adres s vahou 1/d^2. Uprostred ulice tak
+ * prevazi nekolik jejich vlastnich domu nad jednim cizim, ktery je shodou
+ * okolnosti o par metru bliz.
+ */
+const HLASUJICICH = 8;
+
+function budovaProBunku(x, y) {
   const px = Math.floor(x / PRIHRADKA);
   const py = Math.floor(y / PRIHRADKA);
-  let nej = 0;
-  let nejD = DOSAH * DOSAH;
+
+  // Nejblizsi adresy: staci si drzet HLASUJICICH nejlepsich, seznam je kratky.
+  const nejlepsi = [];
+  let nejD = Infinity;
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       for (const b of prihradky.get(px + dx + ':' + (py + dy)) ?? []) {
         const d = (b.x - x) ** 2 + (b.y - y) ** 2;
-        if (d < nejD) { nejD = d; nej = b.budova; }
+        if (d > DOSAH * DOSAH) continue;
+        if (d < nejD) nejD = d;
+        if (nejlepsi.length < HLASUJICICH) {
+          nejlepsi.push({ d, budova: b.budova });
+        } else {
+          let nejhorsi = 0;
+          for (let i = 1; i < nejlepsi.length; i++) {
+            if (nejlepsi[i].d > nejlepsi[nejhorsi].d) nejhorsi = i;
+          }
+          if (d < nejlepsi[nejhorsi].d) nejlepsi[nejhorsi] = { d, budova: b.budova };
+        }
       }
     }
   }
-  return nej; // 0 = mimo dosah jakekoliv adresy
+
+  if (!nejlepsi.length) return 0; // mimo dosah jakekoliv adresy
+
+  // Vaha 1/d^2, aby blizsi adresy rozhodovaly vyrazneji. Konstanta v jmenovateli
+  // brani tomu, aby jedina adresa presne pod polickem prehlasila vsechny ostatni.
+  const hlasy = new Map();
+  for (const n of nejlepsi) {
+    const vaha = 1 / (n.d + 9);
+    hlasy.set(n.budova, (hlasy.get(n.budova) ?? 0) + vaha);
+  }
+
+  let vitez = 0;
+  let nejvic = -1;
+  for (const [budova, vaha] of hlasy) {
+    if (vaha > nejvic) {
+      nejvic = vaha;
+      vitez = budova;
+    }
+  }
+  return vitez;
 }
 
 const sloupcu = Math.ceil(vyrez.sirka / BUNKA);
@@ -350,11 +396,38 @@ const radkuM = Math.ceil(vyrez.vyska / BUNKA);
 const mrizka = new Int16Array(sloupcu * radkuM);
 for (let r = 0; r < radkuM; r++) {
   for (let s = 0; s < sloupcu; s++) {
-    mrizka[r * sloupcu + s] = nejblizsiOkrsek(s * BUNKA + BUNKA / 2, r * BUNKA + BUNKA / 2);
+    mrizka[r * sloupcu + s] = budovaProBunku(s * BUNKA + BUNKA / 2, r * BUNKA + BUNKA / 2);
   }
 }
 
 const hodnota = (s, r) => (s < 0 || r < 0 || s >= sloupcu || r >= radkuM ? 0 : mrizka[r * sloupcu + s]);
+
+// --- Kontrola: sedi barva pod kazdym domem? --------------------------------
+// Primy test toho, co clovek na mape overuje: "je muj dum v te spravne barve?"
+// Kdyz se to rozejde, je neco spatne v rasterizaci a radeji to rekneme nahlas,
+// nez aby web ukazoval lidem cizi volebni mistnost.
+let sedi = 0;
+const rozchazi = new Map();
+for (const z of zaznamy) {
+  const b = naMapu(z.lat, z.lon);
+  const s = Math.floor(b.x / BUNKA);
+  const r = Math.floor(b.y / BUNKA);
+  const ocekavano = (okrsekNaBudovu.get(z.o) ?? 0);
+  if (hodnota(s, r) === ocekavano) sedi++;
+  else {
+    const k = ulice[z.u] || z.c;
+    rozchazi.set(k, (rozchazi.get(k) ?? 0) + 1);
+  }
+}
+const podil = (100 * sedi) / zaznamy.length;
+info(`domu ve spravne barve: ${sedi} z ${zaznamy.length} (${podil.toFixed(1)} %)`);
+if (rozchazi.size) {
+  const nejhorsi = [...rozchazi].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  info('rozchazi se: ' + nejhorsi.map(([u, n]) => `${u} (${n})`).join(', '));
+}
+if (podil < 97) {
+  skonci(`Na mape by mel ${(100 - podil).toFixed(1)} % domu spatnou barvu. Data se nezapsala.`);
+}
 
 /**
  * Vytrasuje obrysy jedne hodnoty v mrizce.
