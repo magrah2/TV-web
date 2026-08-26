@@ -34,3 +34,7 @@ pnpm-debug.log*
 
 # stazena data OpenStreetMap - mezipamet generatoru mapy
 nastroje/.mapa-data.json
+
+# stazena data pro generatory map a okrsku
+nastroje/.mapa-data-*.json
+nastroje/.okrsky/

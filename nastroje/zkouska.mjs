@@ -199,6 +199,47 @@ try {
   await stranka.waitForTimeout(300);
   const skrytych = await stranka.locator('.mapa-bod[data-skryty]').count();
   overit('filtr mapy neco skryl', true, skrytych > 0 && skrytych < bodu);
+
+  // --- Kde volit -----------------------------------------------------------
+  // Vyhledavac rika lidem, kam maji jit volit. Kdyby ukazoval spatne, poslali
+  // bychom je do nespravne mistnosti — proto se kontroluje proti udajum
+  // z uredni vyhlasky mesta.
+  await stranka.goto(`${ADRESA}kde-volit/`, { waitUntil: 'networkidle' });
+  await stranka.waitForTimeout(400);
+
+  overit('vsech 26 okrsku ma plochu na mape', 26, await stranka.locator('.okrsek-plocha').count());
+
+  const najdiAdresu = async (text) => {
+    await stranka.fill('[data-vstup]', '');
+    await stranka.fill('[data-vstup]', text);
+    await stranka.waitForTimeout(700);
+    if (!(await stranka.locator('.navrhy li').count())) return null;
+    await stranka.locator('.navrhy li').first().click();
+    await stranka.waitForTimeout(500);
+    return {
+      okrsek: (await stranka.textContent('.vysledek-okrsek')).trim(),
+      misto: (await stranka.textContent('.vysledek-misto')).trim(),
+    };
+  };
+
+  // Podle vyhlasky mesta: Dukelska 2 patri do okrsku 2, ten voli v knihovne.
+  const dukelska = await najdiAdresu('Dukelská 2');
+  overit('Dukelska 2 -> okrsek 2', 'volební okrsek č. 2', dukelska && dukelska.okrsek);
+  overit('okrsek 2 voli v knihovne', true, !!dukelska && dukelska.misto.includes('Knihovna'));
+
+  // Mistni casti maji vlastni mistnost primo v obci.
+  const lhota = await najdiAdresu('Lhota 8');
+  overit('Lhota voli v Sokole ve Lhote', true, !!lhota && lhota.misto.includes('Sokol Lhota'));
+
+  overit('nalezena adresa zvyrazni prave jeden okrsek', 1,
+    await stranka.locator('.okrsek-plocha[data-vybrany]').count());
+  overit('nalezena adresa se ukaze na mape', true, await stranka.locator('.moje-adresa').isVisible());
+
+  await stranka.fill('[data-vstup]', '');
+  await stranka.fill('[data-vstup]', 'Neexistujici ulice 999');
+  await stranka.waitForTimeout(700);
+  overit('nesmyslna adresa neco rekne', true,
+    (await stranka.textContent('[data-stav]')).trim().length > 0);
 } finally {
   await stranka.close();
   await prohlizec.close();

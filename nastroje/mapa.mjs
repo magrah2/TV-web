@@ -1,109 +1,45 @@
 /**
- * Vyrobi podkladovou mapu Vyskova jako SVG: nastroje/mapa.mjs
- *
- *   node nastroje/mapa.mjs
+ * Vyrobi podkladove mapy jako SVG:  node nastroje/mapa.mjs
  *
  * Data se stahuji z OpenStreetMap pres Overpass API. Delaji se JEDNOU
- * a vysledek (public/mapa-vyskov.svg) se commituje, takze hotovy web
- * uz nikam nesaha - zadna mapova sluzba, zadne trackovani navstevniku,
- * zadne cekani na cizi server. To je u strany s timhle nazvem podstatne.
+ * a vysledek se commituje, takze hotovy web uz nikam nesaha - zadna mapova
+ * sluzba, zadne trackovani navstevniku, zadne cekani na cizi server.
+ * To je u strany s timhle nazvem podstatne.
  *
- * SVG zamerne neobsahuje zadne barvy. Vsechno se obarvuje az v CSS
- * pres tridy, aby mapa sedla do tmaveho pasu i na svetle pozadi.
+ * Vyrabi se dve mapy, protoze kazda ma jiny ukol:
+ *
+ *   mesto  - tesny orez kolem Vyskova pro mapu zameru. Mistni casti se do nej
+ *            nevejdou, ale zamery jsou stejne vsechny ve meste a na sirsim
+ *            zaberu by se mesto ztratilo.
+ *   obec   - cele uzemi obce vcetne Rychtarova, Lhoty a Opatovic pro mapu
+ *            volebnich okrsku. Tam musi byt videt uplne vsechny okrsky,
+ *            jinak by nekteri lide svuj na mape nenasli.
+ *
+ * SVG zamerne neobsahuje zadne barvy. Vsechno se obarvuje az v CSS pres tridy,
+ * aby mapa sedla do tmaveho pasu i na svetle pozadi.
  *
  * Data (c) prispevatele OpenStreetMap, licence ODbL.
  */
 
 import fs from 'node:fs';
+import path from 'node:path';
 
-// Vyrez kolem mesta. Sirsi zaber uz zabira okolni obce a mesto se v nem ztraci.
-const VYREZ = { jih: 49.2636, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 };
 const SIRKA = 1000;
-const CIL = 'public/mapa-vyskov.svg';
-const VYREZ_JSON = 'src/lib/mapa-vyrez.json';
-const MEZIPAMET = 'nastroje/.mapa-data.json';
 
-const DOTAZ = `[out:json][timeout:120];
-(
-  way["landuse"~"^(residential|industrial|commercial|retail)$"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-  way["leisure"~"^(park|garden)$"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-  way["waterway"~"^(river|stream)$"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-  way["natural"="water"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-  way["railway"="rail"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified)$"](${VYREZ.jih},${VYREZ.zapad},${VYREZ.sever},${VYREZ.vychod});
-);
-out geom;`;
-
-async function stahniData() {
-  if (fs.existsSync(MEZIPAMET)) {
-    console.log('Pouzivam ulozena data z ' + MEZIPAMET);
-    return JSON.parse(fs.readFileSync(MEZIPAMET, 'utf8'));
-  }
-  console.log('Stahuji data z OpenStreetMap...');
-  // Overpass odmita pozadavky bez hlavicky User-Agent (odpovi 406),
-  // takze se slusne predstavime.
-  const odpoved = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'transparentnivyskov.cz generator mapy (jednorazove)',
-    },
-    body: new URLSearchParams({ data: DOTAZ }),
-  });
-  if (!odpoved.ok) throw new Error('Overpass odpovedel ' + odpoved.status);
-  const data = await odpoved.json();
-  fs.writeFileSync(MEZIPAMET, JSON.stringify(data));
-  console.log('Ulozeno do ' + MEZIPAMET + ' (' + data.elements.length + ' prvku)');
-  return data;
-}
-
-// --- Prevod zemepisnych souradnic na body v obrazku ------------------------
-// Mercator: pri tehle velikosti by stacila i primka, ale spravna projekce
-// stoji tri radky a mesto pak nevypada natazene na vysku.
-
-const merkator = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
-
-const yJih = merkator(VYREZ.jih);
-const ySever = merkator(VYREZ.sever);
-const MERITKO = SIRKA / (VYREZ.vychod - VYREZ.zapad);
-const VYSKA = Math.round((ySever - yJih) * (180 / Math.PI) * MERITKO);
-
-function bod(p) {
-  const x = (p.lon - VYREZ.zapad) * MERITKO;
-  const y = VYSKA - (merkator(p.lat) - yJih) * (180 / Math.PI) * MERITKO;
-  return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
-}
-
-/** Body daleko za vyrezem se zahazuji a cesta se v tom miste preterhne,
-    aby dalnice mirici pryc netahla do souboru stovky zbytecnych souradnic. */
-const OKRAJ = SIRKA * 0.2;
-const uvnitr = ([x, y]) => x > -OKRAJ && x < SIRKA + OKRAJ && y > -OKRAJ && y < VYSKA + OKRAJ;
-
-function cesta(geometrie, uzavrena) {
-  const useky = [];
-  let usek = [];
-  for (const g of geometrie) {
-    const b = bod(g);
-    if (uvnitr(b)) usek.push(b);
-    else if (usek.length) {
-      usek.push(b); // jeden bod za okrajem, at cara dojede ke krajl
-      useky.push(usek);
-      usek = [];
-    }
-  }
-  if (usek.length) useky.push(usek);
-
-  return useky
-    .map((body) => {
-      // Vyhodit body, ktere po zaokrouhleni splynuly se sousedem
-      const cistne = body.filter((b, i) => i === 0 || b[0] !== body[i - 1][0] || b[1] !== body[i - 1][1]);
-      if (cistne.length < 2) return '';
-      const d = 'M' + cistne.map((b) => b.join(',')).join('L');
-      return uzavrena ? d + 'Z' : d;
-    })
-    .filter(Boolean)
-    .join('');
-}
+const MAPY = [
+  {
+    nazev: 'mesto',
+    vyrez: { jih: 49.2636, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 },
+    svg: 'public/mapa-vyskov.svg',
+    json: 'src/lib/mapa-vyrez.json',
+  },
+  {
+    nazev: 'obec',
+    vyrez: { jih: 49.2542, sever: 49.3388, zapad: 16.8995, vychod: 17.0327 },
+    svg: 'public/mapa-obec.svg',
+    json: 'src/lib/mapa-vyrez-obec.json',
+  },
+];
 
 // --- Roztrideni do vrstev --------------------------------------------------
 
@@ -122,47 +58,135 @@ function vrstva(prvek) {
 
 const PLOCHY = new Set(['zastavba', 'prumysl', 'zelen', 'vodni-plocha']);
 
-// Poradi vykreslovani: co je vys v seznamu, to je vespod.
+/** Poradi vykreslovani: co je vys v seznamu, to je vespod. */
 const PORADI = [
   'zastavba', 'prumysl', 'zelen', 'vodni-plocha',
   'ulice', 'zeleznice', 'silnice', 'silnice-hlavni',
   'potok', 'reka',
 ];
 
-const data = await stahniData();
+// --- Stazeni dat -----------------------------------------------------------
 
-const skupiny = Object.fromEntries(PORADI.map((v) => [v, []]));
-for (const prvek of data.elements) {
-  if (!prvek.geometry || prvek.geometry.length < 2) continue;
-  const v = vrstva(prvek);
-  if (!skupiny[v]) continue;
-  const d = cesta(prvek.geometry, PLOCHY.has(v));
-  if (d) skupiny[v].push(d);
+async function stahniData(mapa) {
+  const mezipamet = `nastroje/.mapa-data-${mapa.nazev}.json`;
+  if (fs.existsSync(mezipamet)) {
+    console.log('   pouzivam ulozena data z ' + mezipamet);
+    return JSON.parse(fs.readFileSync(mezipamet, 'utf8'));
+  }
+
+  const v = mapa.vyrez;
+  const bbox = `${v.jih},${v.zapad},${v.sever},${v.vychod}`;
+  const dotaz = `[out:json][timeout:180];
+(
+  way["landuse"~"^(residential|industrial|commercial|retail)$"](${bbox});
+  way["leisure"~"^(park|garden)$"](${bbox});
+  way["waterway"~"^(river|stream)$"](${bbox});
+  way["natural"="water"](${bbox});
+  way["railway"="rail"](${bbox});
+  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified)$"](${bbox});
+);
+out geom;`;
+
+  console.log('   stahuji data z OpenStreetMap...');
+  // Overpass odmita pozadavky bez hlavicky User-Agent (odpovi 406),
+  // takze se slusne predstavime.
+  const odpoved = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'transparentnivyskov.cz generator mapy (jednorazove)',
+    },
+    body: new URLSearchParams({ data: dotaz }),
+  });
+  if (!odpoved.ok) throw new Error('Overpass odpovedel ' + odpoved.status);
+  const data = await odpoved.json();
+  fs.writeFileSync(mezipamet, JSON.stringify(data));
+  console.log('   ulozeno do ' + mezipamet + ' (' + data.elements.length + ' prvku)');
+  return data;
 }
 
-const casti = PORADI.filter((v) => skupiny[v].length).map(
-  (v) => `  <g class="mapa-${v}">\n` + skupiny[v].map((d) => `    <path d="${d}"/>`).join('\n') + '\n  </g>',
-);
+// --- Vyroba jedne mapy -----------------------------------------------------
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIRKA} ${VYSKA}" aria-hidden="true" focusable="false">
+async function vyrobMapu(mapa) {
+  console.log('\n>> Mapa "' + mapa.nazev + '"');
+  const data = await stahniData(mapa);
+  const v = mapa.vyrez;
+
+  // Mercator: pri tehle velikosti by stacila i primka, ale spravna projekce
+  // stoji tri radky a mesto pak nevypada natazene na vysku.
+  const merkator = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
+  const yJih = merkator(v.jih);
+  const meritko = SIRKA / (v.vychod - v.zapad);
+  const vyska = Math.round((merkator(v.sever) - yJih) * (180 / Math.PI) * meritko);
+
+  const bod = (p) => [
+    Math.round((p.lon - v.zapad) * meritko * 10) / 10,
+    Math.round((vyska - (merkator(p.lat) - yJih) * (180 / Math.PI) * meritko) * 10) / 10,
+  ];
+
+  // Body daleko za vyrezem se zahazuji a cesta se v tom miste pretrhne,
+  // aby dalnice mirici pryc netahla do souboru stovky zbytecnych souradnic.
+  const okraj = SIRKA * 0.2;
+  const uvnitr = ([x, y]) => x > -okraj && x < SIRKA + okraj && y > -okraj && y < vyska + okraj;
+
+  function cesta(geometrie, uzavrena) {
+    const useky = [];
+    let usek = [];
+    for (const g of geometrie) {
+      const b = bod(g);
+      if (uvnitr(b)) usek.push(b);
+      else if (usek.length) {
+        usek.push(b); // jeden bod za okrajem, at cara dojede ke kraji
+        useky.push(usek);
+        usek = [];
+      }
+    }
+    if (usek.length) useky.push(usek);
+
+    return useky
+      .map((body) => {
+        // Vyhodit body, ktere po zaokrouhleni splynuly se sousedem
+        const cistne = body.filter((b, i) => i === 0 || b[0] !== body[i - 1][0] || b[1] !== body[i - 1][1]);
+        if (cistne.length < 2) return '';
+        const d = 'M' + cistne.map((b) => b.join(',')).join('L');
+        return uzavrena ? d + 'Z' : d;
+      })
+      .filter(Boolean)
+      .join('');
+  }
+
+  const skupiny = Object.fromEntries(PORADI.map((n) => [n, []]));
+  for (const prvek of data.elements) {
+    if (!prvek.geometry || prvek.geometry.length < 2) continue;
+    const n = vrstva(prvek);
+    if (!skupiny[n]) continue;
+    const d = cesta(prvek.geometry, PLOCHY.has(n));
+    if (d) skupiny[n].push(d);
+  }
+
+  const casti = PORADI.filter((n) => skupiny[n].length).map(
+    (n) => `  <g class="mapa-${n}">\n` + skupiny[n].map((d) => `    <path d="${d}"/>`).join('\n') + '\n  </g>',
+  );
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIRKA} ${vyska}" aria-hidden="true" focusable="false">
 <!-- Podklad vygenerovany skriptem nastroje/mapa.mjs - needitovat rucne.
      Data (c) prispevatele OpenStreetMap, licence ODbL. -->
 ${casti.join('\n')}
 </svg>
 `;
 
-fs.writeFileSync(CIL, svg);
+  fs.mkdirSync(path.dirname(mapa.svg), { recursive: true });
+  fs.writeFileSync(mapa.svg, svg);
 
-// Výřez si ukládáme vedle mapy. Body záměrů jsou v datech uložené jako
-// zeměpisné souřadnice a web si z nich polohu na mapě dopočítá právě podle
-// tohohle souboru — takže když se výřez změní, body se posunou samy.
-fs.writeFileSync(
-  VYREZ_JSON,
-  JSON.stringify({ ...VYREZ, sirka: SIRKA, vyska: VYSKA }, null, 2) + '\n',
-);
+  // Vyrez si ukladame vedle mapy. Body zameru jsou v datech ulozene jako
+  // zemepisne souradnice a web si z nich polohu na mape dopocita prave podle
+  // tohohle souboru — takze kdyz se vyrez zmeni, body se posunou samy.
+  fs.writeFileSync(mapa.json, JSON.stringify({ ...v, sirka: SIRKA, vyska }, null, 2) + '\n');
 
-console.log('\nHotovo: ' + CIL);
-console.log('        ' + VYREZ_JSON);
-console.log('  rozmer ' + SIRKA + ' x ' + VYSKA);
-console.log('  velikost ' + Math.round(svg.length / 1024) + ' kB');
-for (const v of PORADI) if (skupiny[v].length) console.log('  ' + v.padEnd(16) + skupiny[v].length);
+  console.log('   ' + mapa.svg + '  (' + SIRKA + ' x ' + vyska + ', ' + Math.round(svg.length / 1024) + ' kB)');
+  console.log('   ' + mapa.json);
+  for (const n of PORADI) if (skupiny[n].length) console.log('     ' + n.padEnd(16) + skupiny[n].length);
+}
+
+for (const mapa of MAPY) await vyrobMapu(mapa);
+console.log('\nHotovo.');

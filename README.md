@@ -174,6 +174,31 @@ příkazem `node nastroje/mapa.mjs`, ale je to potřeba jen při změně výřez
 
 ---
 
+## Kde volit — vyhledávač volební místnosti
+
+Člověk napíše adresu a web mu řekne, do kterého okrsku patří a kde volí.
+Data se skládají ze dvou zdrojů:
+
+| Co | Odkud | Kdo to udržuje |
+|---|---|---|
+| Která adresa patří do kterého okrsku | [ČÚZK / RÚIAN](https://services.cuzk.gov.cz/sestavy/VO/) — otevřená data, CC BY 4.0 | vymezení tam zapisuje starosta |
+| Kde je volební místnost | úřední vyhláška města | přepsané ručně do `src/lib/volebni-mistnosti.ts` |
+
+Data se stáhnou a připraví příkazem:
+
+```
+node nastroje/okrsky.mjs
+```
+
+Skript si sám ověří, že převod souřadnic sedí (porovná ho s adresními body
+z OpenStreetMap) a když ne, skončí chybou a nic nezapíše.
+
+⚠️ **Před každými volbami se musí znovu projít `src/lib/volebni-mistnosti.ts`.**
+Volební místnosti se mezi volbami mění a v otevřených datech nejsou — tenhle
+seznam je jediné místo, kde se udržují ručně.
+
+---
+
 ## Co ještě chybí
 
 - [ ] Portréty kandidátů a fotky Vyškova

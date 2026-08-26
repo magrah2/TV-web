@@ -152,6 +152,22 @@ ověřená proti zákonu č. 491/2001 Sb. a shodně je popisuje Ministerstvo vni
 Každé z těch pravidel hlídá `npm run zkouska`. Když se logika mění, musí se
 měnit i zkouška — ne naopak.
 
+## Vyhledávač volební místnosti
+
+Říká lidem, kam mají jít volit — tedy věc, u které chyba pošle člověka do
+špatné místnosti. Proto se nikde neopisuje ručně to, co jde vzít z dat:
+přiřazení adres k okrskům je z otevřených dat ČÚZK (RÚIAN), kde ho vede
+starosta. Ručně se udržuje jen seznam místností, který v datech není.
+
+Ověřuje se to křížem: `npm run zkouska` kontroluje, že vyhledávač dá stejný
+výsledek jako úřední vyhláška města (Dukelská 2 → okrsek 2 → knihovna).
+
+Souřadnice z ČÚZK jsou v S-JTSK. Převod se **nepočítá z Křovákových konstant**,
+ale napasuje se na skutečné adresní body z OpenStreetMap — Křovák je konformní,
+takže na území jednoho města je vztah prakticky afinní. Generátor si přesnost
+sám změří (naposledy 0,44 m průměrně, 2,89 m nejhůř) a když by přesáhla pět
+metrů, skončí chybou a nic nezapíše.
+
 ## Kde to stojí
 
 Otevřené body jsou v README v sekci „Co ještě chybí". Zkráceně: chybí fotky

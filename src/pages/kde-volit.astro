@@ -1,0 +1,44 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+import KdeVolit from '../components/KdeVolit.astro';
+import { odkaz } from '../lib/odkaz';
+---
+
+<Zaklad
+  titulek="Kde volit"
+  popis="Napište svoji adresu ve Vyškově a web vám řekne, do kterého volebního okrsku patříte, kde je vaše volební místnost a kdy má otevřeno."
+  bezOdsazeni
+>
+  <KdeVolit />
+
+  <section class="sekce">
+    <div class="pruh dovetek">
+      <h2>Než půjdete volit</h2>
+      <p class="perex">
+        Do zastupitelstva máte 27 křížků a komunální volby fungují jinak než všechny
+        ostatní. Ukážeme vám to na hlasovacím lístku, který si můžete vyzkoušet nanečisto.
+      </p>
+      <p class="dovetek-tlacitka">
+        <a class="tlacitko tlacitko-hlavni" href={odkaz('/jak-volit/')}>Jak volit</a>
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Naši kandidáti</a>
+      </p>
+    </div>
+  </section>
+</Zaklad>
+
+<style>
+  .dovetek h2 {
+    max-width: 20ch;
+  }
+
+  .dovetek .perex {
+    margin-top: 0.9rem;
+  }
+
+  .dovetek-tlacitka {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1.75rem;
+  }
+</style>
