@@ -1,10 +1,13 @@
 ---
 poradi: 1
-nazev: Transparentní správa
+nazev: "Transparentní správa"
+nadpis: "Poctivá radnice, která rozhoduje s občany, ne za ně"
 tema: Hospodaření
 shrnuti: "Smlouvy, zakázky a hospodaření města na jednom místě, kde si je kdokoliv zkontroluje."
 ---
 
-- Zveřejňovat smlouvy, zakázky a hospodaření města tak, aby si je občan našel a porozuměl jim.
-- Férové veřejné zakázky s jasnými pravidly.
-- Participativní rozpočet — o části městských peněz rozhodnou přímo obyvatelé.
+- Budeme zveřejňovat smlouvy, zakázky i hospodaření města, městských firem i příspěvkových organizací přehledně a srozumitelně.
+- Každý bude moci jednoduše zjistit, za co město utrácí veřejné peníze a jak s nimi hospodaří.
+- Veřejné zakázky budou probíhat férově a bez výjimek.
+- O důležitých projektech budeme jednat s občany dříve, než padne rozhodnutí.
+- Zavedeme participativní rozpočet, aby lidé mohli rozhodovat o části městských peněz.

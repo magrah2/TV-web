@@ -1,11 +1,13 @@
 ---
 poradi: 2
-nazev: Dostupné bydlení
+nazev: "Dostupné bydlení"
+nadpis: "Dostupné bydlení"
 tema: Bydlení
-shrnuti: "Bydlení pro lidi, kteří tu chtějí žít — ne pro developery. A pravidla, která platí pro všechny stejně."
+shrnuti: "Bydlení pro lidi, kteří tu chtějí žít — a pravidla, která platí pro všechny stejně."
 ---
 
-- Pilotní projekt družstevního bydlení.
-- Jasná pravidla spolupráce s investory.
-- Férová pravidla pro přidělování městských bytů.
-- Rozvoj fondu obecních bytů místo rozprodávání majetku.
+- Připravíme pilotní projekt družstevního bydlení.
+- Nastavíme jasná a předvídatelná pravidla spolupráce s investory.
+- Budeme podporovat prodej pozemků pro individuální výstavbu.
+- Zavedeme férová pravidla pro přidělování městských bytů. Každý bude vědět, kolik jich město má, v jakém jsou stavu a podle jakých pravidel se přidělují.
+- Zastavíme úbytek obecních bytů a začneme jejich fond znovu rozvíjet s využitím dostupných státních programů.

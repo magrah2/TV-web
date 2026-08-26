@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Zaklad from '../layouts/Zaklad.astro';
-import Krivka from '../components/Krivka.astro';
 import KartaKandidata from '../components/KartaKandidata.astro';
 import { odkaz } from '../lib/odkaz';
 
@@ -27,7 +26,6 @@ const prvni = kandidati.slice(0, 6);
 >
   {/* ---------- Hero ---------- */}
   <section class="hero">
-    <Krivka varianta="podklad" class="hero-krivka" />
 
     <div class="pruh hero-vnitrek">
       <div class="hero-text">
@@ -131,11 +129,12 @@ const prvni = kandidati.slice(0, 6);
         <p class="nadtitulek">Mapa záměrů</p>
         <h2>Program není seznam přání. Jsou to&nbsp;místa, která denně míjíte.</h2>
         <p class="perex">
-          Náměstí, kde se dá jen parkovat. Řeka, ke které se nedostanete. Nádraží, které
-          je první, co z Vyškova uvidí návštěva. Ukazujeme na mapě, co a kde chceme udělat.
+          Náměstí z velké části zabrané parkovištěm. Řeka, ke které se nedostanete.
+          Nádraží, které je první, co z Vyškova uvidí návštěva. Ukazujeme na mapě,
+          co a kde chceme udělat.
         </p>
         <p class="zamery-tlacitko">
-          <a class="tlacitko tlacitko-hlavni" href={odkaz('/zamery/')}>Otevřít mapu</a>
+          <a class="tlacitko tlacitko-hlavni" href={odkaz('/mapa/')}>Otevřít mapu</a>
         </p>
       </div>
     </div>
@@ -231,37 +230,15 @@ const prvni = kandidati.slice(0, 6);
 
   /* Křivka z loga jako podklad — velká, přetéká přes pravý okraj.
      Má se dát vytušit, ne přečíst, proto tak nízká sytost v tokenech. */
-  /* Stopa sedí celá uvnitř stránky, v prázdném místě pod logem. Když
-     přetékala přes okraj, zbyl z ní jen klín a tvar nebyl k poznání —
-     přitom je to jediný grafický motiv webu, takže má být čitelný. */
-  .hero :global(.hero-krivka) {
-    top: 36%;
-    bottom: auto;
-    left: auto;
-    right: 13%;
-    width: min(268px, 23vw);
-    height: auto;
-    opacity: 0.16;
-    transform: rotate(-4deg);
-  }
 
   /* Pod 900 px se logo stěhuje nad text a pravá strana volná není,
      takže se stopa schová — jinak by ležela pod odstavcem. */
   @media (max-width: 899px) {
-    .hero :global(.hero-krivka) {
-      display: none;
-    }
   }
 
   /* Na úzkém displeji je text přes celou šířku, takže by křivka ležela
      přímo pod odstavcem. Odsuneme ji nahoru a za okraj, ať jen prosvítá. */
   @media (max-width: 720px) {
-    .hero :global(.hero-krivka) {
-      top: -8%;
-      right: -34%;
-      width: 74vw;
-      opacity: 0.075;
-    }
   }
 
   .hero-logo {

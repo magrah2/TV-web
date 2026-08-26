@@ -17,9 +17,10 @@
 import fs from 'node:fs';
 
 // Vyrez kolem mesta. Sirsi zaber uz zabira okolni obce a mesto se v nem ztraci.
-const VYREZ = { jih: 49.2645, sever: 49.3015, zapad: 16.9505, vychod: 17.0295 };
+const VYREZ = { jih: 49.2636, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 };
 const SIRKA = 1000;
 const CIL = 'public/mapa-vyskov.svg';
+const VYREZ_JSON = 'src/lib/mapa-vyrez.json';
 const MEZIPAMET = 'nastroje/.mapa-data.json';
 
 const DOTAZ = `[out:json][timeout:120];
@@ -152,7 +153,16 @@ ${casti.join('\n')}
 
 fs.writeFileSync(CIL, svg);
 
+// Výřez si ukládáme vedle mapy. Body záměrů jsou v datech uložené jako
+// zeměpisné souřadnice a web si z nich polohu na mapě dopočítá právě podle
+// tohohle souboru — takže když se výřez změní, body se posunou samy.
+fs.writeFileSync(
+  VYREZ_JSON,
+  JSON.stringify({ ...VYREZ, sirka: SIRKA, vyska: VYSKA }, null, 2) + '\n',
+);
+
 console.log('\nHotovo: ' + CIL);
+console.log('        ' + VYREZ_JSON);
 console.log('  rozmer ' + SIRKA + ' x ' + VYSKA);
 console.log('  velikost ' + Math.round(svg.length / 1024) + ' kB');
 for (const v of PORADI) if (skupiny[v].length) console.log('  ' + v.padEnd(16) + skupiny[v].length);

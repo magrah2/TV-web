@@ -2,16 +2,23 @@
 /**
  * Hlavička — logo a navigace.
  *
- * Na mobilu se nabídka schová pod tlačítko. Používá nativní <details>,
- * takže funguje i bez JavaScriptu a nepotřebuje žádnou knihovnu.
+ * Na širokém displeji jsou položky vypsané vedle sebe, na úzkém se sbalí
+ * do rozbalovací nabídky. Jsou to **dva samostatné prvky**, ne jeden
+ * přepínaný CSS — a je to schválně:
+ *
+ * Dřív tu byl jediný <details>, který se na širokém displeji odkrýval přes
+ * `display: block !important`. Novější prohlížeče ale obsah <details> skrývají
+ * přes `::details-content { content-visibility: hidden }`, na což `display`
+ * nestačí — a navigace na počítači zmizela úplně. Dva prvky tenhle problém
+ * nemají a fungují i bez JavaScriptu.
  */
 
 import { odkaz } from '../lib/odkaz';
 
 const POLOZKY = [
   { text: 'Program', cil: '/program/' },
-  { text: 'Záměry', cil: '/zamery/' },
-  { text: 'Lidé', cil: '/lide/' },
+  { text: 'Mapa', cil: '/mapa/' },
+  { text: 'Kandidáti', cil: '/lide/' },
   { text: 'Jak volit', cil: '/jak-volit/' },
   { text: 'Kontakt', cil: '/kontakt/' },
 ];
@@ -37,10 +44,26 @@ const jeAktivni = (cil: string) => zdeCesta.endsWith(cil.replace(/\/+$/, ''));
       />
     </a>
 
-    <details class="nabidka">
-      <summary aria-label="Nabídka">
-        <span class="carky" aria-hidden="true"><span></span><span></span></span>
-        <span class="carky-popis">Nabídka</span>
+    {/* Široký displej: položky vedle sebe */}
+    <nav class="nabidka-siroka" aria-label="Hlavní nabídka">
+      <ul>
+        {
+          POLOZKY.map((polozka) => (
+            <li>
+              <a href={odkaz(polozka.cil)} aria-current={jeAktivni(polozka.cil) ? 'page' : undefined}>
+                {polozka.text}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    {/* Úzký displej: rozbalovací nabídka */}
+    <details class="nabidka-uzka">
+      <summary>
+        <span class="carky" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span>Nabídka</span>
       </summary>
 
       <nav aria-label="Hlavní nabídka">
@@ -92,141 +115,146 @@ const jeAktivni = (cil: string) => zdeCesta.endsWith(cil.replace(/\/+$/, ''));
     height: auto;
   }
 
-  /* --- Navigace ---------------------------------------------------------- */
+  /* --- Společný vzhled odkazů --------------------------------------------- */
 
-  .nabidka nav ul {
-    display: flex;
-    align-items: center;
-    gap: clamp(1rem, 2.6vw, 2.1rem);
+  .hlavicka ul {
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  .nabidka a {
+  .hlavicka nav a {
     display: block;
-    padding: 0.35rem 0;
     color: var(--inkoust);
     font-size: var(--text-maly);
     font-weight: 500;
     text-decoration: none;
     white-space: nowrap;
-    border-bottom: 2px solid transparent;
-    transition: color var(--prechod), border-color var(--prechod);
+    transition: color var(--prechod), border-color var(--prechod), background var(--prechod);
   }
 
-  .nabidka a:hover {
+  /* --- Široký displej ------------------------------------------------------ */
+
+  .nabidka-siroka ul {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2.4vw, 2rem);
+  }
+
+  .nabidka-siroka a {
+    padding: 0.35rem 0;
+    border-bottom: 2px solid transparent;
+  }
+
+  .nabidka-siroka a:hover {
     color: var(--modra-text);
     border-bottom-color: var(--zelena);
   }
 
-  .nabidka a[aria-current='page'] {
+  .nabidka-siroka a[aria-current='page'] {
     color: var(--modra-text);
     border-bottom-color: var(--modra);
   }
 
-  /* Na širokém displeji se <details> chová jako obyčejná lišta —
-     tlačítko zmizí a nabídka je vidět pořád. */
-  @media (min-width: 780px) {
-    .nabidka > summary {
+  @media (max-width: 859px) {
+    .nabidka-siroka {
       display: none;
-    }
-    .nabidka > nav {
-      display: block !important;
     }
   }
 
-  /* --- Mobilní tlačítko --------------------------------------------------- */
+  /* --- Úzký displej -------------------------------------------------------- */
 
-  @media (max-width: 779px) {
-    .nabidka {
-      position: relative;
-    }
-
-    .nabidka > summary {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.9rem;
-      border: 1px solid var(--linka-vyrazna);
-      border-radius: 999px;
-      font-size: var(--text-maly);
-      font-weight: 600;
-      cursor: pointer;
-      list-style: none;
-    }
-
-    .nabidka > summary::-webkit-details-marker {
+  @media (min-width: 860px) {
+    .nabidka-uzka {
       display: none;
-    }
-
-    .carky {
-      display: grid;
-      gap: 4px;
-      width: 16px;
-    }
-
-    .carky span {
-      display: block;
-      height: 2px;
-      background: var(--inkoust);
-      border-radius: 1px;
-      transition: transform var(--prechod);
-    }
-
-    .nabidka[open] .carky span:first-child {
-      transform: translateY(3px) rotate(45deg);
-    }
-
-    .nabidka[open] .carky span:last-child {
-      transform: translateY(-3px) rotate(-45deg);
-    }
-
-    .nabidka > nav {
-      position: absolute;
-      right: 0;
-      top: calc(100% + 0.6rem);
-      min-width: 12rem;
-      padding: 0.6rem;
-      background: var(--plocha);
-      border: 1px solid var(--linka);
-      border-radius: var(--radius);
-      box-shadow: var(--stin-zvednuty);
-    }
-
-    .nabidka nav ul {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0;
-    }
-
-    .nabidka nav a {
-      padding: 0.6rem 0.7rem;
-      border-bottom: none;
-      border-radius: var(--radius-maly);
-    }
-
-    .nabidka nav a:hover,
-    .nabidka nav a[aria-current='page'] {
-      background: var(--modra-jemna);
-      border-bottom: none;
     }
   }
 
-  .carky-popis {
-    /* Slovo „Nabídka" vedle ikony — samotné tři čárky spousta lidí nepozná. */
+  .nabidka-uzka {
+    position: relative;
+  }
+
+  .nabidka-uzka > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--linka-vyrazna);
+    border-radius: 999px;
     font-size: var(--text-maly);
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .nabidka-uzka > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .carky {
+    display: grid;
+    gap: 3px;
+    width: 16px;
+  }
+
+  .carky span {
+    display: block;
+    height: 2px;
+    background: var(--inkoust);
+    border-radius: 1px;
+    transition: transform var(--prechod), opacity var(--prechod);
+  }
+
+  .nabidka-uzka[open] .carky span:first-child {
+    transform: translateY(5px) rotate(45deg);
+  }
+
+  .nabidka-uzka[open] .carky span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nabidka-uzka[open] .carky span:last-child {
+    transform: translateY(-5px) rotate(-45deg);
+  }
+
+  .nabidka-uzka > nav {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.6rem);
+    min-width: 12rem;
+    padding: 0.5rem;
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin-zvednuty);
+  }
+
+  .nabidka-uzka nav ul {
+    display: grid;
+  }
+
+  .nabidka-uzka nav a {
+    padding: 0.65rem 0.7rem;
+    border-radius: var(--radius-maly);
+  }
+
+  .nabidka-uzka nav a:hover,
+  .nabidka-uzka nav a[aria-current='page'] {
+    background: var(--modra-jemna);
+    color: var(--modra-text);
   }
 </style>
 
 <script>
-  // Zavře mobilní nabídku po kliknutí mimo ni nebo po Escape.
-  // Bez tohohle nabídka zůstane viset otevřená, což na dotyku otravuje.
-  const nabidka = document.querySelector<HTMLDetailsElement>('.nabidka');
+  // Zavře rozbalenou nabídku po kliknutí mimo ni nebo po Escape.
+  // Bez tohohle zůstane viset otevřená, což na dotyku otravuje.
+  const nabidka = document.querySelector<HTMLDetailsElement>('.nabidka-uzka');
+
   if (nabidka) {
     document.addEventListener('click', (e) => {
       if (nabidka.open && !nabidka.contains(e.target as Node)) nabidka.open = false;
     });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && nabidka.open) {
         nabidka.open = false;

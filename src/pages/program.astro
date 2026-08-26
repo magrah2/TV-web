@@ -35,7 +35,7 @@ const sObsahem = await Promise.all(
                 {String(oblast.data.poradi).padStart(2, '0')}
               </span>
               <div>
-                <h2>{oblast.data.nazev}</h2>
+                <h2>{oblast.data.nadpis ?? oblast.data.nazev}</h2>
                 <p class="oblast-shrnuti">{oblast.data.shrnuti}</p>
               </div>
             </div>

@@ -1,0 +1,155 @@
+---
+/**
+ * Stránka pro nenalezenou adresu.
+ *
+ * Astro ji vysází do `dist/404.html` a GitHub Pages ji sám použije, když
+ * někdo trefí adresu, která neexistuje. Smyslem je, aby i chybová stránka
+ * vypadala jako součást webu a hlavně aby z ní vedla cesta dál — ne aby
+ * návštěvník skončil u hlášky od serveru.
+ */
+
+import Zaklad from '../layouts/Zaklad.astro';
+import { odkaz } from '../lib/odkaz';
+
+const KAM_DAL = [
+  { text: 'Náš program', cil: '/program/', popis: 'Osm oblastí, ve kterých chceme Vyškov posunout' },
+  { text: 'Mapa záměrů', cil: '/mapa/', popis: 'Konkrétní místa ve městě a co tam chceme udělat' },
+  { text: 'Naši kandidáti', cil: '/lide/', popis: 'Sedmadvacet lidí, kteří tady žijí' },
+  { text: 'Jak volit', cil: '/jak-volit/', popis: 'Máte 27 křížků — ukážeme vám, jak s nimi naložit' },
+];
+---
+
+<Zaklad
+  titulek="Stránka nenalezena"
+  popis="Tuhle stránku jsme nenašli. Zkuste program, mapu záměrů nebo naše kandidáty."
+  bezOdsazeni
+  neindexovat
+>
+  <section class="ctyristacyri">
+
+    <div class="pruh ctyristacyri-vnitrek">
+      <p class="cislo" aria-hidden="true">404</p>
+      <h1>Tuhle stránku jsme nenašli<span class="tecka">.</span></h1>
+      <p class="perex uvod">
+        Buď je v adrese překlep, nebo odkaz vedl na stránku, která už neexistuje.
+        Nic se neděje — tady je, co hledáte nejspíš.
+      </p>
+
+      <ul class="rozcestnik">
+        {
+          KAM_DAL.map((polozka) => (
+            <li>
+              <a href={odkaz(polozka.cil)}>
+                <span class="rozcestnik-nazev">{polozka.text}</span>
+                <span class="rozcestnik-popis">{polozka.popis}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="domu">
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/')}>← Na úvodní stránku</a>
+      </p>
+    </div>
+  </section>
+</Zaklad>
+
+<style>
+  .ctyristacyri {
+    position: relative;
+    overflow: hidden;
+    padding-block: clamp(3rem, 8vw, 6rem) clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .ctyristacyri-vnitrek {
+    position: relative;
+    z-index: 1;
+  }
+
+
+  @media (max-width: 720px) {
+  }
+
+  /* Číslo je velké, ale zůstává jen dekorací — nadpis nese sdělení,
+     takže čtečka přečte větu, ne tři číslice. */
+  .cislo {
+    margin: 0 0 0.4rem;
+    font-size: clamp(3rem, 9vw, 5.5rem);
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--modra);
+    opacity: 0.22;
+  }
+
+  h1 {
+    max-width: 18ch;
+    font-size: var(--text-nadpis-1);
+  }
+
+  .tecka {
+    color: var(--zelena);
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .rozcestnik {
+    display: grid;
+    gap: 0.6rem;
+    margin: clamp(2rem, 4vw, 2.75rem) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 720px) {
+    .rozcestnik {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 46rem;
+    }
+  }
+
+  .rozcestnik a {
+    display: block;
+    height: 100%;
+    padding: 1rem 1.15rem;
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin);
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--prechod), border-color var(--prechod), box-shadow var(--prechod);
+  }
+
+  .rozcestnik a:hover {
+    transform: translateY(-2px);
+    border-color: var(--modra);
+    box-shadow: var(--stin-zvednuty);
+  }
+
+  .rozcestnik-nazev {
+    display: block;
+    font-size: var(--text-nadpis-3);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .rozcestnik a:hover .rozcestnik-nazev {
+    color: var(--modra-text);
+  }
+
+  .rozcestnik-popis {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: var(--text-maly);
+    line-height: 1.45;
+    color: var(--inkoust-tlum);
+  }
+
+  .domu {
+    margin: clamp(2rem, 4vw, 2.75rem) 0 0;
+  }
+</style>

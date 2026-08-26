@@ -116,6 +116,19 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   znamenalo „vrať se k předchozímu" a po delším listování by to vypadalo,
   že panel zavřít nejde. Proto se při přeskoku volá `replaceState`,
   ne `pushState`. Hlídá to `npm run zkouska`.
+- **`<details>` už nejde odkrýt přes `display`.** Novější prohlížeče skrývají
+  jeho obsah přes `::details-content { content-visibility: hidden }`, takže
+  `display: block !important` nestačí. Proto má hlavička dva samostatné prvky:
+  vypsané odkazy pro široký displej a `<details>` pro úzký. Kvůli tomuhle
+  navigace na počítači jednou zmizela úplně.
+- **Body na mapě se ukládají jako `lat`/`lon`, ne jako procenta.** Procenta
+  platí jen pro jeden výřez; po oddálení mapy by se všechny rozjely.
+  Přepočet dělá `src/lib/mapa.ts` podle `mapa-vyrez.json`, který zapisuje
+  generátor — jeden zdroj pravdy.
+- **Odznaky na mapě se rozestrkávají.** Půlka záměrů leží v centru pár set
+  metrů od sebe, což jsou na mapě města jednotky pixelů. `rozestrciBody()`
+  je odsune, ale jen do omezené vzdálenosti — mapa je schematická, ne
+  katastrální.
 - **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
   by na draftu mířil vedle, protože ten běží v podsložce `/TV-web/`.
   Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro

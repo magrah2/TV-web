@@ -147,25 +147,30 @@ Body na mapě jsou v `src/content/zamery/`, jeden soubor na místo:
 
 ```
 ---
-poradi: 2
-nazev: Řeka Haná v centru
+poradi: 4
+nazev: Řeka Haná ve Smetanových sadech
 tema: Zeleň a voda
-x: 67          # poloha zleva, v procentech šířky mapy
-y: 69          # poloha shora, v procentech výšky mapy
-stav: navrh    # až text potvrdíte, přepište na: overeno
+lat: 49.28297     # zeměpisné souřadnice místa
+lon: 16.99325
+stav: navrh       # až text potvrdíte, přepište na: overeno
 ---
 
-Řeka protéká městem, ale lidé se k ní skoro nedostanou.
+Řeka protéká přímo parkem, ale je z něj skoro nepoznat.
 ```
 
 Dokud je `stav: navrh`, vykreslí se u bodu oranžová značka „návrh". **Polohy
-bodů jsou skutečné**, odvozené ze souřadnic OpenStreetMap — texty jsou návrh
-k diskuzi a čekají, až je někdo z týmu potvrdí nebo přepíše.
+bodů jsou skutečné**, dohledané z OpenStreetMap — texty jsou návrh k diskuzi
+a čekají, až je někdo z týmu potvrdí nebo přepíše.
 
-Souřadnice `x` a `y` se hledají nejrychleji tak, že si pustíte náhled a bod
-posunete o pár procent, dokud nesedí. Podklad mapy je hotový soubor
-`public/mapa-vyskov.svg`; přegenerovat se dá příkazem `node nastroje/mapa.mjs`,
-ale je to potřeba jen při změně výřezu.
+Souřadnice se nejsnáz zjistí na [mapy.cz](https://mapy.cz): pravým tlačítkem
+kliknete na místo a vyberete „Souřadnice". Zadávají se zeměpisně, ne v pixelech,
+takže když se výřez mapy někdy změní, body se posunou samy.
+
+Když bod omylem umístíte mimo výřez, sestavení se zastaví a napíše který —
+lepší, než aby bod potichu zmizel za okrajem.
+
+Podklad mapy je hotový soubor `public/mapa-vyskov.svg`. Přegenerovat se dá
+příkazem `node nastroje/mapa.mjs`, ale je to potřeba jen při změně výřezu.
 
 ---
 

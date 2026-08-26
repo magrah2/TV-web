@@ -48,7 +48,10 @@
   --plocha: #ffffff;
 
   --inkoust: #0e1d28;      /* text — tmavá modro-šedá, ne černá */
-  --inkoust-tlum: #5a6c78; /* popisky, meta údaje */
+  /* Tlumený text musí projít i v nejtmavším rohu podkladového přechodu.
+     Původní #5a6c78 tam mělo 4,2 : 1 a #4e606c 4,4 : 1 — obojí pod normou.
+     Tenhle odstín má 5,0 : 1, takže projde i po zesílení přechodu. */
+  --inkoust-tlum: #475864; /* popisky, meta údaje */
 
   --modra: #1d6eb0;        /* značka — plochy, ikony, výplně */
   --modra-text: #145286;   /* modrá jako text (kontrast 6,1 : 1 na papíru) */

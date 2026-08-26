@@ -20,9 +20,11 @@ interface Props {
   popis: string;
   /** Titulní strana má nadpis rovnou v obsahu, nechce vlastní hlavičku sekce. */
   bezOdsazeni?: boolean;
+  /** Stránka, která nemá co dělat ve vyhledávačích (třeba chybová 404). */
+  neindexovat?: boolean;
 }
 
-const { titulek, popis, bezOdsazeni = false } = Astro.props;
+const { titulek, popis, bezOdsazeni = false, neindexovat = false } = Astro.props;
 
 const NAZEV = 'Transparentní Vyškov';
 const celyTitulek = titulek === NAZEV ? `${NAZEV} — jde to i jinak` : `${titulek} — ${NAZEV}`;
@@ -33,6 +35,7 @@ const celyTitulek = titulek === NAZEV ? `${NAZEV} — jde to i jinak` : `${titul
  * sestavení naostro (NAOSTRO=1) běží na vlastní doméně a pruh ani noindex nedostane.
  */
 const jeDraft = Astro.site?.hostname !== 'transparentnivyskov.cz';
+const skryvatPredVyhledavaci = jeDraft || neindexovat;
 
 const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
 ---
@@ -47,7 +50,7 @@ const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
     <meta name="description" content={popis} />
     <link rel="canonical" href={kanonicka} />
 
-    {jeDraft && <meta name="robots" content="noindex, nofollow" />}
+    {skryvatPredVyhledavaci && <meta name="robots" content="noindex, nofollow" />}
 
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="cs_CZ" />

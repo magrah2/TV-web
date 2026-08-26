@@ -40,7 +40,10 @@ const program = defineCollection({
   loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/program' }),
   schema: z.object({
     poradi: z.number().int(),
+    /** Krátký název na dlaždici na úvodní stránce — musí se vejít na řádek. */
     nazev: z.string(),
+    /** Plný nadpis oblasti tak, jak je na stránce programu. */
+    nadpis: z.string().nullish(),
     /** Jedna věta na dlaždici na úvodní stránce. */
     shrnuti: z.string(),
     tema: z.enum(TEMATA),
@@ -53,9 +56,13 @@ const zamery = defineCollection({
     poradi: z.number().int(),
     nazev: z.string(),
     tema: z.enum(TEMATA),
-    /** Poloha v procentech podkladu mapy (public/mapa-vyskov.svg, 1000 x 718). */
-    x: z.number().min(0).max(100),
-    y: z.number().min(0).max(100),
+    /**
+     * Zeměpisné souřadnice místa. Web si z nich polohu na mapě dopočítá sám
+     * (src/lib/mapa.ts), takže když se změní výřez mapy, body se posunou
+     * s ním. Zjistí se nejsnáz na mapy.cz — pravý klik na místo.
+     */
+    lat: z.number().min(48).max(51),
+    lon: z.number().min(12).max(19),
     /**
      * `navrh` = bod, u kterého text zatím nikdo z týmu nepotvrdil.
      * Vykreslí se s viditelnou značkou, aby si ho nikdo nespletl se závazkem.

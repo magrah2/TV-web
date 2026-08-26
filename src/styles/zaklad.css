@@ -27,9 +27,40 @@ body {
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* Vodorovné přetečení nesmí nikdy vzniknout — dekorativní křivka
-     v hlavičce přesahuje přes okraj a bez tohohle by web šel posouvat do stran. */
+  /* Vodorovné přetečení nesmí nikdy vzniknout — dekorativní prvky
+     přesahují přes okraj a bez tohohle by web šel posouvat do stran. */
   overflow-x: hidden;
+}
+
+/* --- Podklad stránky -----------------------------------------------------
+   Velmi jemný nádech značkových barev. Leží pod obsahem a je připíchnutý
+   k oknu, takže se při rolování nehýbe a stránka nepůsobí jako list papíru
+   na prázdném stole.
+
+   Je to systém, ne ozdoba: platí na každé stránce stejně. Dřív tu místo toho
+   levitovala jedna velká zelená stopa jen na úvodní stránce — působila
+   náhodně a navíc tutéž stopu nese logo vedle claimu.
+
+   Sytost je schválně na hranici viditelnosti. Kdyby byla vyšší, ubírala by
+   kontrast textu, který na ní leží. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Jen modrá, a jen jedna skvrna. Zelená protiváha v druhém rohu vypadala
+     jako skvrna, ne jako podklad — zelená má na webu svoje místo (řeka na
+     mapě, tečka za claimem, linka pod odkazem), na ploše ji netřeba.
+
+     Skvrna musí být větší než okno a mít těžiště za jeho rohem. Když byla
+     menší, končila kousek pod hlavičkou a zbytek stránky zůstal úplně plochý —
+     tedy k nerozeznání od obyčejné jednobarevné plochy. */
+  background: radial-gradient(
+    135% 115% at -10% -12%,
+    color-mix(in srgb, var(--modra) 25%, transparent),
+    transparent 74%
+  );
 }
 
 /* --- Nadpisy -------------------------------------------------------------

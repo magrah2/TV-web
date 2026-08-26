@@ -188,7 +188,7 @@ try {
   overit('28 jednotlivcu = neplatny', true, await jeNeplatny());
 
   // --- Mapa zameru ---------------------------------------------------------
-  await stranka.goto(`${ADRESA}zamery/`, { waitUntil: 'networkidle' });
+  await stranka.goto(`${ADRESA}mapa/`, { waitUntil: 'networkidle' });
   await stranka.waitForTimeout(300);
   await stranka.click('.mapa-bod[data-bod="2"]');
   await stranka.waitForTimeout(400);
