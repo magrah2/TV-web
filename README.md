@@ -13,7 +13,7 @@ Web je statický — žádný server, žádná databáze, žádné cookies ani m
 |---|---|
 | `src/content/kandidati/` | **Kandidáti** — jeden soubor na člověka, tady se vyplňují medailonky |
 | `src/content/program/` | **Program** — osm oblastí |
-| `src/assets/portrety/` | Portrétní fotky (zatím prázdné, používají se siluety) |
+| `src/assets/portrety/` | Portrétní fotky, jedna složka na kandidáta (zatím prázdné, používají se siluety) |
 | `src/pages/` | Jednotlivé stránky webu |
 | `src/components/` | Opakující se části (hlavička, karta kandidáta, patička…) |
 | `src/styles/tokeny.css` | **Barvy, písmo, rozestupy** — jediné místo, kde se mění vzhled globálně |
@@ -35,7 +35,6 @@ vek: 31
 povolani: výzkumník kvantové optiky
 prislusnost: příznivec České pirátské strany
 temata: [Školství, Hospodaření]
-foto: vojtech-liska.jpg
 citace: Věta, která se v medailonku vytáhne velkým písmem.
 ---
 
@@ -51,16 +50,23 @@ Pár pravidel, která web hlídá sám a upozorní, když se poruší:
 - `temata` musí být 1 až 3 oblasti **přesně** ze seznamu v `src/lib/temata.ts`.
   Překlep shodí sestavení, takže se chyba nedostane na web.
 - `poradi` musí být vyplněné.
-- `foto` je název souboru ve `src/assets/portrety/`. Dokud je prázdné,
-  ukáže se zástupná silueta — fotky se tak dají dodávat postupně po jedné.
+
+Fotky se do frontmatteru nepíšou vůbec — viz další oddíl.
 
 ---
 
 ## Jak přidat fotky
 
-Nakopírujte je do `src/assets/portrety/` **v původní velikosti**, nezmenšené.
-Web si sám vyrobí zmenšeniny, převede je do moderních formátů a doplní ořezy.
-Pak u příslušného člověka vyplňte `foto: nazev-souboru.jpg`.
+Ke každému kandidátovi existuje **složka stejného jména jako jeho soubor**
+ve `src/assets/portrety/` — třeba fotky Vojtěcha Lišky (`20-vojtech-liska.md`)
+patří do `src/assets/portrety/20-vojtech-liska/`.
+
+Do složky nakopírujte fotku **v původní velikosti**, nezmenšenou, a pojmenujte
+ji `01.jpg` (nebo `.png`/`.webp`). Web si sám vyrobí zmenšeniny, převede je do
+moderních formátů a doplní ořezy — nic dalšího se nemusí nastavovat. Dokud
+fotka chybí, ukáže se zástupná silueta.
+
+Prázdná složka nic nerozbije.
 
 ---
 

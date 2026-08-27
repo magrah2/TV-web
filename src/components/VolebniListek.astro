@@ -297,13 +297,9 @@ const STRANY = [
     flex: 1;
   }
 
-  /* Křížek, který se kvůli označené straně nepočítá, se přeškrtne —
-     je to přesně ta situace, kterou zákon řeší a nikdo o ní neví. */
-  .radek[data-ignorovany] .radek-jmeno {
-    text-decoration: line-through;
-    color: var(--inkoust-tlum);
-  }
-
+  /* Křížek, který se kvůli označené straně nepočítá, se jen ztlumí —
+     jméno zůstává čitelné, protože přeškrtnutí působilo, že člověk
+     nedostane hlas vůbec, což často není pravda (viz .radek-znacka). */
   .radek[data-ignorovany] .ramecek {
     opacity: 0.45;
   }
@@ -323,16 +319,19 @@ const STRANY = [
     background: color-mix(in srgb, var(--zelena) 12%, transparent);
   }
 
+  /* Text řádku dosazuje skript (prepocitat) — u ignorovaného křížku
+     totiž nestačí jen "hlas" nebo nic, je potřeba říct, proč. */
   .radek-znacka {
     flex: none;
     font-size: 0.6875rem;
-    font-weight: 600;
-    color: var(--zelena-text);
+    font-weight: 500;
+    color: var(--inkoust-tlum);
     white-space: nowrap;
   }
 
-  .radek[data-hlas] .radek-znacka::after {
-    content: 'hlas';
+  .radek[data-hlas] .radek-znacka {
+    font-weight: 600;
+    color: var(--zelena-text);
   }
 
   /* ---------- Rámeček s křížkem ---------- */
@@ -452,8 +451,8 @@ const STRANY = [
         const [stranaId, poradi] = klic.split(':');
         const index = Number(poradi);
 
-        const ignorovany = ignorovani.includes(klic);
-        radek.toggleAttribute('data-ignorovany', ignorovany && !neplatny);
+        const ignorovany = ignorovani.includes(klic) && !neplatny;
+        radek.toggleAttribute('data-ignorovany', ignorovany);
 
         let maHlas = false;
         if (!neplatny) {
@@ -461,6 +460,14 @@ const STRANY = [
           else if (jedinaStrana === stranaId && index < zbyvaStrane) maHlas = true;
         }
         radek.toggleAttribute('data-hlas', maHlas);
+
+        // Ignorovaný křížek potřebuje vysvětlit proč — samotné "hlas", nebo
+        // žádný text, by vypadalo jako rozpor s tím, že řádek je ztlumený.
+        const znacka = radek.querySelector<HTMLElement>('[data-znacka]');
+        if (znacka) {
+          if (ignorovany && !maHlas) znacka.textContent = 'bez hlasu';
+          else znacka.textContent = maHlas ? 'hlas' : '';
+        }
       }
 
       // --- Počítadlo --------------------------------------------------------

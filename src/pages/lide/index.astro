@@ -4,6 +4,7 @@ import Zaklad from '../../layouts/Zaklad.astro';
 import KartaKandidata from '../../components/KartaKandidata.astro';
 import Portret from '../../components/Portret.astro';
 import { TEMATA, temaDoAdresy } from '../../lib/temata';
+import { fotkaKandidata } from '../../lib/portrety';
 
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
 
@@ -93,7 +94,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
             povolani={clovek.data.povolani}
             temata={clovek.data.temata}
             prislusnost={clovek.data.prislusnost ?? undefined}
-            foto={clovek.data.foto ?? undefined}
+            foto={fotkaKandidata(clovek.id)}
           />
         ))
       }
@@ -114,6 +115,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
       sObsahem.map((clovek, index) => {
         const predchozi = sObsahem[index - 1];
         const dalsi = sObsahem[index + 1];
+        const foto = fotkaKandidata(clovek.id);
         return (
           <article class="medailonek" id={`medailonek-${clovek.data.poradi}`} aria-labelledby={`jmeno-${clovek.data.poradi}`}>
             <a class="medailonek-podklad" href="#kandidatka" tabindex="-1" aria-label="Zavřít medailonek" />
@@ -126,7 +128,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 
               <div class="medailonek-obsah">
                 <div class="medailonek-portret">
-                  <Portret foto={clovek.data.foto ?? undefined} jmeno={clovek.data.jmeno} velikost="detail" />
+                  <Portret foto={foto} jmeno={clovek.data.jmeno} velikost="detail" />
                   <span class="medailonek-cislo">{clovek.data.poradi}</span>
                 </div>
 
@@ -166,14 +168,14 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 
               <nav class="medailonek-sousede" aria-label="Další kandidáti">
                 {predchozi ? (
-                  <a href={`#medailonek-${predchozi.data.poradi}`} data-medailonek={predchozi.data.poradi}>
+                  <a href={`#medailonek-${predchozi.data.poradi}`} data-medailonek={predchozi.data.poradi} data-smer="predchozi">
                     ← {predchozi.data.jmeno}
                   </a>
                 ) : (
                   <span />
                 )}
                 {dalsi && (
-                  <a href={`#medailonek-${dalsi.data.poradi}`} data-medailonek={dalsi.data.poradi}>
+                  <a href={`#medailonek-${dalsi.data.poradi}`} data-medailonek={dalsi.data.poradi} data-smer="dalsi">
                     {dalsi.data.jmeno} →
                   </a>
                 )}
@@ -594,6 +596,21 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     if (e.key === 'Escape') {
       e.preventDefault();
       zavriKliknutim();
+      return;
+    }
+
+    // Šipky přeskakují na dalšího/předchozího kandidáta — ale ne uvnitř
+    // textu medailonku, kde by tím šlo psát/označovat (např. selectbox).
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const zamerene = e.target as HTMLElement;
+      if (zamerene.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+      const smer = e.key === 'ArrowLeft' ? 'predchozi' : 'dalsi';
+      const odkaz = otevreny.querySelector<HTMLElement>(`[data-smer="${smer}"]`);
+      if (odkaz) {
+        e.preventDefault();
+        otevriKliknutim(odkaz.dataset.medailonek!, odkaz);
+      }
       return;
     }
 

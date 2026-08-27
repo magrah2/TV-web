@@ -3,6 +3,7 @@ import { getCollection, render } from 'astro:content';
 import Zaklad from '../layouts/Zaklad.astro';
 import KartaKandidata from '../components/KartaKandidata.astro';
 import { odkaz } from '../lib/odkaz';
+import { fotkaKandidata } from '../lib/portrety';
 
 const VOLBY = new Date('2026-10-09T14:00:00+02:00');
 
@@ -130,7 +131,7 @@ const prvni = kandidati.slice(0, 6);
         <h2>Program není seznam přání. Jsou to&nbsp;místa, která denně míjíte.</h2>
         <p class="perex">
           Náměstí z velké části zabrané parkovištěm. Řeka, ke které se nedostanete.
-          Nádraží, které je první, co z Vyškova uvidí návštěva. Ukazujeme na mapě,
+          Nádraží, které jako první uvidí každý, kdo do Vyškova přijede. Ukazujeme na mapě,
           co a kde chceme udělat.
         </p>
         <p class="zamery-tlacitko">
@@ -161,7 +162,7 @@ const prvni = kandidati.slice(0, 6);
               povolani={clovek.data.povolani}
               temata={clovek.data.temata}
               prislusnost={clovek.data.prislusnost}
-              foto={clovek.data.foto}
+              foto={fotkaKandidata(clovek.id)}
             />
           ))
         }

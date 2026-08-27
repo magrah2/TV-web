@@ -96,7 +96,6 @@ for (const clovek of LIDE) {
     clovek.temata.length
       ? `temata: [${clovek.temata.map(yaml).join(', ')}]   # NÁVRH odvozený z povolání — potvrďte nebo přepište`
       : 'temata: []   # doplňte 1–3 oblasti ze seznamu v src/lib/temata.ts',
-    'foto:   # název souboru ve src/assets/portrety/ — prázdné = zástupná silueta',
     'citace:   # jedna věta, která se na medailonku vytáhne velkým písmem',
     '---',
     '',
