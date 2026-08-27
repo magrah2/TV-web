@@ -1413,6 +1413,9 @@ const celek = {
       // posunutí mapy náhodně přepnulo oblast.
       if (e.type === 'pointerup' && posledni && !taholJsem && budovaPodStiskem != null) {
         ukazBudovu(budovaPodStiskem);
+        // Popisek cíle dostal souřadnice až teď — bez přepočtu by zůstal
+        // na staré (nebo žádné) pozici, useknutý u okraje mapy.
+        vykresli();
         // Popisek adresy a spojnice patří jen k vyhledané adrese.
         if (moje) {
           moje.hidden = true;
