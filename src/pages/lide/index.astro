@@ -3,7 +3,7 @@ import { getCollection, render } from 'astro:content';
 import Zaklad from '../../layouts/Zaklad.astro';
 import KartaKandidata from '../../components/KartaKandidata.astro';
 import Portret from '../../components/Portret.astro';
-import { TEMATA, temaDoAdresy } from '../../lib/temata';
+import { temaDoAdresy } from '../../lib/temata';
 import { fotkaKandidata } from '../../lib/portrety';
 
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
@@ -17,12 +17,6 @@ const sObsahem = await Promise.all(
     const telo = (clovek.body ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
     return { ...clovek, Obsah: Content, maTelo: telo.length > 0 };
   }),
-);
-
-/** Nabízí se jen to, co je na kandidátce skutečně zastoupené —
-    prázdný filtr, který nic nenajde, je horší než žádný filtr. */
-const pouziteTemata = TEMATA.filter((tema) =>
-  kandidati.some((clovek) => clovek.data.temata.includes(tema)),
 );
 
 const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter(Boolean))] as string[];
@@ -41,22 +35,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 
     {/* ---------- Filtry ---------- */}
     <div class="filtry" data-filtry hidden>
-      <div class="filtr-skupina">
-        <h2 class="filtr-nadpis">Čemu se chtějí věnovat</h2>
-        <div class="filtr-tlacitka" role="group" aria-label="Filtrovat podle tématu">
-          <button type="button" class="filtr je-aktivni" data-filtr="tema" data-hodnota="">
-            Vše
-          </button>
-          {
-            pouziteTemata.map((tema) => (
-              <button type="button" class="filtr" data-filtr="tema" data-hodnota={temaDoAdresy(tema)}>
-                {tema}
-              </button>
-            ))
-          }
-        </div>
-      </div>
-
       {
         prislusnosti.length > 0 && (
           <div class="filtr-skupina">
@@ -92,7 +70,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
             jmeno={clovek.data.jmeno}
             vek={clovek.data.vek}
             povolani={clovek.data.povolani}
-            temata={clovek.data.temata}
             prislusnost={clovek.data.prislusnost ?? undefined}
             foto={fotkaKandidata(clovek.id)}
           />
@@ -145,14 +122,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
                   )}
 
                   {clovek.data.citace && <blockquote class="medailonek-citace">{clovek.data.citace}</blockquote>}
-
-                  {clovek.data.temata.length > 0 && (
-                    <ul class="medailonek-temata">
-                      {clovek.data.temata.map((tema) => (
-                        <li class="stitek">{tema}</li>
-                      ))}
-                    </ul>
-                  )}
 
                   {
                     clovek.maTelo ? (
@@ -210,13 +179,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     background: var(--plocha);
     border: 1px solid var(--linka);
     border-radius: var(--radius);
-  }
-
-  @media (min-width: 860px) {
-    .filtry {
-      grid-template-columns: 1.4fr 1fr;
-      gap: 2rem;
-    }
   }
 
   .filtr-nadpis {
@@ -441,15 +403,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     letter-spacing: -0.015em;
   }
 
-  .medailonek-temata {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin: 1.25rem 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
   .medailonek-telo {
     margin-top: 1.25rem;
     max-width: var(--sirka-textu);
@@ -665,7 +618,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
   // by to byla mrtvá tlačítka, která nic nedělají.
   if (panelFiltru) panelFiltru.hidden = false;
 
-  const vyber = { tema: '', prislusnost: '' };
+  let vybranaPrislusnost = '';
 
   function sklonuj(pocet: number) {
     if (pocet === 1) return '1 kandidát';
@@ -677,10 +630,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     let videno = 0;
 
     for (const karta of karty) {
-      const temata = (karta.dataset.temata ?? '').split(' ').filter(Boolean);
-      const sedi =
-        (!vyber.tema || temata.includes(vyber.tema)) &&
-        (!vyber.prislusnost || karta.dataset.prislusnost === vyber.prislusnost);
+      const sedi = !vybranaPrislusnost || karta.dataset.prislusnost === vybranaPrislusnost;
 
       karta.toggleAttribute('data-skryta', !sedi);
       if (sedi) videno++;
@@ -694,8 +644,7 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 
     // Nastavený filtr se propíše do adresy, takže se dá poslat dál.
     const parametry = new URLSearchParams();
-    if (vyber.tema) parametry.set('tema', vyber.tema);
-    if (vyber.prislusnost) parametry.set('prislusnost', vyber.prislusnost);
+    if (vybranaPrislusnost) parametry.set('prislusnost', vybranaPrislusnost);
     const dotaz = parametry.toString();
     history.replaceState(history.state, '', dotaz ? `?${dotaz}` : location.pathname);
   }
@@ -704,35 +653,33 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.filtr');
     if (!tlacitko) return;
 
-    const druh = tlacitko.dataset.filtr as 'tema' | 'prislusnost';
-    vyber[druh] = tlacitko.dataset.hodnota ?? '';
+    vybranaPrislusnost = tlacitko.dataset.hodnota ?? '';
 
-    for (const jine of panelFiltru.querySelectorAll<HTMLElement>(`[data-filtr="${druh}"]`)) {
+    for (const jine of panelFiltru.querySelectorAll<HTMLElement>('[data-filtr="prislusnost"]')) {
       jine.classList.toggle('je-aktivni', jine === tlacitko);
     }
     pouzitFiltry();
   });
 
   document.querySelector('[data-zrusit-filtry]')?.addEventListener('click', () => {
-    vyber.tema = '';
-    vyber.prislusnost = '';
+    vybranaPrislusnost = '';
     for (const tlacitko of panelFiltru!.querySelectorAll<HTMLElement>('.filtr')) {
       tlacitko.classList.toggle('je-aktivni', tlacitko.dataset.hodnota === '');
     }
     pouzitFiltry();
   });
 
-  // Filtr z adresy — odkaz typu /lide/?tema=skolstvi otevře rovnou výběr.
+  // Filtr z adresy — odkaz typu /lide/?prislusnost=strana-zelenych otevře rovnou výběr.
   const zAdresy = new URLSearchParams(location.search);
-  for (const druh of ['tema', 'prislusnost'] as const) {
-    const hodnota = zAdresy.get(druh);
-    if (!hodnota) continue;
-    const tlacitko = panelFiltru?.querySelector<HTMLElement>(`[data-filtr="${druh}"][data-hodnota="${hodnota}"]`);
-    if (!tlacitko) continue;
-    vyber[druh] = hodnota;
-    for (const jine of panelFiltru!.querySelectorAll<HTMLElement>(`[data-filtr="${druh}"]`)) {
-      jine.classList.toggle('je-aktivni', jine === tlacitko);
+  const hodnotaZAdresy = zAdresy.get('prislusnost');
+  if (hodnotaZAdresy) {
+    const tlacitko = panelFiltru?.querySelector<HTMLElement>(`[data-filtr="prislusnost"][data-hodnota="${hodnotaZAdresy}"]`);
+    if (tlacitko) {
+      vybranaPrislusnost = hodnotaZAdresy;
+      for (const jine of panelFiltru!.querySelectorAll<HTMLElement>('[data-filtr="prislusnost"]')) {
+        jine.classList.toggle('je-aktivni', jine === tlacitko);
+      }
     }
   }
-  if (vyber.tema || vyber.prislusnost) pouzitFiltry();
+  if (vybranaPrislusnost) pouzitFiltry();
 </script>

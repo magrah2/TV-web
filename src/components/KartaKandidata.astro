@@ -16,12 +16,11 @@ interface Props {
   jmeno: string;
   vek?: number;
   povolani: string;
-  temata: string[];
   prislusnost?: string;
   foto?: ImageMetadata;
 }
 
-const { poradi, jmeno, vek, povolani, temata, prislusnost, foto } = Astro.props;
+const { poradi, jmeno, vek, povolani, prislusnost, foto } = Astro.props;
 
 const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
 ---
@@ -29,7 +28,6 @@ const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
 <article
   class="karta-kandidata"
   data-poradi={poradi}
-  data-temata={temata.map(temaDoAdresy).join(' ')}
   data-prislusnost={prislusnost ? temaDoAdresy(prislusnost) : 'nezavisly'}
 >
   <a class="karta-odkaz" href={cil} data-medailonek={poradi}>
@@ -49,16 +47,6 @@ const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
 
     <span class="jen-pro-ctecky">{jmeno} — otevřít medailonek</span>
   </a>
-
-  {
-    temata.length > 0 && (
-      <ul class="karta-temata">
-        {temata.map((tema) => (
-          <li class="stitek">{tema}</li>
-        ))}
-      </ul>
-    )
-  }
 </article>
 
 <style>
@@ -128,14 +116,5 @@ const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
     font-size: var(--text-maly);
     line-height: 1.4;
     color: var(--inkoust-tlum);
-  }
-
-  .karta-temata {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
   }
 </style>

@@ -1,9 +1,10 @@
 /**
  * Programové oblasti — jediný seznam, ze kterého čerpá všechno ostatní:
- * schéma kandidátů, filtry na kandidátce, štítky u bodů na mapě.
+ * schéma programu a záměrů, filtry a štítky u bodů na mapě.
  *
- * Když se sem něco přidá, objeví se to všude. Když se u kandidáta napíše
- * téma, které tady není, Astro shodí sestavení a chyba se nedostane na web.
+ * Když se sem něco přidá, objeví se to všude. Když se u záměru nebo
+ * programové oblasti napíše téma, které tady není, Astro shodí sestavení
+ * a chyba se nedostane na web.
  */
 
 export const TEMATA = [

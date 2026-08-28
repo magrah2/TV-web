@@ -119,14 +119,14 @@ try {
 
   // --- Filtry -------------------------------------------------------------
   await stranka.goto(`${ADRESA}lide/`, { waitUntil: 'networkidle' });
-  await stranka.click('.filtr[data-hodnota="skolstvi"]');
+  await stranka.click('.filtr[data-hodnota="strana-zelenych"]');
   await stranka.waitForTimeout(250);
   const videno = await stranka.evaluate(
     () => document.querySelectorAll('.karta-kandidata:not([data-skryta])').length,
   );
   const vsech = await stranka.evaluate(() => document.querySelectorAll('.karta-kandidata').length);
   overit('filtr neco odfiltroval', true, videno > 0 && videno < vsech);
-  overit('filtr se propsal do adresy', true, stranka.url().includes('tema=skolstvi'));
+  overit('filtr se propsal do adresy', true, stranka.url().includes('prislusnost=strana-zelenych'));
 
   // --- Volebni listek -----------------------------------------------------
   // Tohle pocita, komu pripadne hlas. Kdyby to pocitalo spatne, ucili bychom

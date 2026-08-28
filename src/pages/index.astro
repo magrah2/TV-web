@@ -30,7 +30,7 @@ const prvni = kandidati.slice(0, 6);
 
     <div class="pruh hero-vnitrek">
       <div class="hero-text">
-        <h1 class="hero-claim">Jde to i&nbsp;jinak<span class="tecka">.</span></h1>
+        <h1 class="hero-claim">#Jdetoijinak</h1>
 
         <p class="hero-perex">
           Jsme sdružení nezávislých kandidátů z Vyškova. Spojila nás nespokojenost s tím, jak
@@ -160,7 +160,6 @@ const prvni = kandidati.slice(0, 6);
               jmeno={clovek.data.jmeno}
               vek={clovek.data.vek}
               povolani={clovek.data.povolani}
-              temata={clovek.data.temata}
               prislusnost={clovek.data.prislusnost}
               foto={fotkaKandidata(clovek.id)}
             />
@@ -262,11 +261,7 @@ const prvni = kandidati.slice(0, 6);
     font-weight: 650;
     line-height: 0.95;
     letter-spacing: -0.042em;
-  }
-
-  /* Tečka v barvě značky — claim tím dostane podpis, aniž by cokoliv přibylo. */
-  .tecka {
-    color: var(--zelena);
+    color: var(--modra-text);
   }
 
   .hero-perex {

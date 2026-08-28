@@ -24,8 +24,6 @@ const kandidati = defineCollection({
     vek: z.number().int().optional(),
     povolani: z.string(),
     prislusnost: z.string().optional(),
-    /** 1–3 oblasti, kterým se člověk chce věnovat. Musí být ze seznamu v temata.ts. */
-    temata: z.array(z.enum(TEMATA)).max(3).default([]),
     /** Jedna věta, která se na medailonku vytáhne velkým písmem. */
     citace: z.string().nullish(),
     /** Zapojení mimo práci — spolky, sdružení. */
