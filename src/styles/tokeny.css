@@ -95,7 +95,7 @@
   --stin-zvednuty: 0 2px 4px rgb(14 29 40 / 0.05), 0 12px 32px rgb(14 29 40 / 0.10);
 
   /* --- Typografická škála ----------------------------------------------- */
-  --text-hero: clamp(2.9rem, 10.5vw, 7rem);
+  --text-hero: clamp(2.6rem, 8vw, 5.5rem);
   --text-nadpis-1: clamp(2rem, 5vw, 3.25rem);
   --text-nadpis-2: clamp(1.4rem, 3vw, 2rem);
   --text-nadpis-3: clamp(1.1rem, 2vw, 1.3rem);
