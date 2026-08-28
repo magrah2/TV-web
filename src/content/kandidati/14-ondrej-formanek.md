@@ -3,7 +3,6 @@ poradi: 14
 jmeno: Ondřej Formánek
 vek: 21
 povolani: student herního designu na VŠMU
-temata: [Zeleň a voda, Doprava]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

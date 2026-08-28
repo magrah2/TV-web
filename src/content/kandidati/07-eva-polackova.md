@@ -3,7 +3,6 @@ poradi: 7
 jmeno: Mgr. Eva Poláčková
 vek: 43
 povolani: učitelka na gymnáziu
-temata: [Školství, Kultura]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

@@ -4,7 +4,6 @@ jmeno: Bc. Iveta Adámková
 vek: 40
 povolani: finanční poradkyně, OSVČ
 pusobeni: Divadlo Haná, TJ Sokol Hamiltony
-temata: [Hospodaření, Kultura]   # NÁVRH odvozený z povolání — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

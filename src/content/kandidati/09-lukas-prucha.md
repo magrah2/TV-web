@@ -4,7 +4,6 @@ jmeno: Lukáš Průcha
 vek: 46
 povolani: státní zaměstnanec, OSVČ
 pusobeni: Divadlo Haná, TJ Sokol Hamiltony
-temata: [Kultura, Doprava, Bydlení]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

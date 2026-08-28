@@ -4,7 +4,6 @@ jmeno: Ing. Antonín Bílý
 vek: 60
 povolani: strojní konstruktér
 prislusnost: příznivec České pirátské strany
-temata: [Zeleň a voda]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

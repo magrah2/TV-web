@@ -3,7 +3,6 @@ poradi: 2
 jmeno: Ing. Jakub Burian
 vek: 39
 povolani: poradce pro finance a strategický rozvoj, OSVČ
-temata: [Bezpečnost, Bydlení]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

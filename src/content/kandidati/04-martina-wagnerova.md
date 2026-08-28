@@ -4,7 +4,6 @@ jmeno: Martina Wagnerová
 vek: 51
 povolani: OSVČ
 pusobeni: Komunitní nadace Tři brány
-temata: []   # POZOR: text mluví o sociální pomoci/nadaci, žádné z osmi témat to nepokrývá — doplňte ručně
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

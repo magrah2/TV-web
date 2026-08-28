@@ -3,7 +3,6 @@ poradi: 6
 jmeno: Veronika Červinková
 vek: 47
 povolani: referentka prodeje
-temata: [Bydlení]   # NÁVRH podle vlastního textu (zmiňuje jen změnu územního plánu, dost slabá vazba) — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

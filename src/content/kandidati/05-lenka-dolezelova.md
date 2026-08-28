@@ -3,7 +3,6 @@ poradi: 5
 jmeno: Ing. Lenka Doleželová
 vek: 40
 povolani: referentka životního prostředí
-temata: [Zeleň a voda]   # NÁVRH odvozený z povolání — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

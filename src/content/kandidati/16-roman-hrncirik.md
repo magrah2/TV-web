@@ -3,7 +3,6 @@ poradi: 16
 jmeno: Ing. Roman Hrnčiřík
 vek: 46
 povolani: učitel ekonomických předmětů na střední škole
-temata: [Školství, Hospodaření]   # NÁVRH odvozený z povolání — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

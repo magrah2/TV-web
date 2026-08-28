@@ -4,7 +4,6 @@ jmeno: Bc. et Bc. Eva Formánková
 vek: 51
 povolani: učitelka, OSVČ
 pusobeni: TJ Sokol Hamiltony
-temata: [Zeleň a voda, Kultura]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

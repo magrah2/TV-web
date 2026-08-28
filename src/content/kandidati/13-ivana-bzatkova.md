@@ -3,7 +3,6 @@ poradi: 13
 jmeno: Ing. Ivana Bžatková
 vek: 42
 povolani: úvěrová analytička
-temata: [Doprava]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

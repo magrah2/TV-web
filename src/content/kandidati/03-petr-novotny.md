@@ -4,7 +4,6 @@ jmeno: doc. Mgr. Petr Novotný, Ph.D.
 vek: 54
 povolani: docent Masarykovy univerzity, konzultant
 prislusnost: Strana zelených
-temata: [Školství, Zeleň a voda, Doprava]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

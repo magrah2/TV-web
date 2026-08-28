@@ -3,7 +3,6 @@ poradi: 19
 jmeno: Ing. Jan Buřival
 vek: 75
 povolani: přírodovědec, lektor jógy
-temata: [Zeleň a voda]   # NÁVRH odvozený z povolání — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

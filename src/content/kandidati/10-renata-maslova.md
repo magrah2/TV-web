@@ -3,7 +3,6 @@ poradi: 10
 jmeno: Mgr. Renata Máslová
 vek: 43
 povolani: učitelka na gymnáziu
-temata: [Doprava, Bydlení, Zeleň a voda]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

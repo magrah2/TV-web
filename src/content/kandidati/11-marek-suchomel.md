@@ -4,7 +4,6 @@ jmeno: Ing. Marek Suchomel
 vek: 59
 povolani: IT analytik, lektor line dance
 prislusnost: Strana zelených
-temata: [Zeleň a voda, Doprava, Kultura]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

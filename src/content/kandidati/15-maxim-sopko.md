@@ -3,7 +3,6 @@ poradi: 15
 jmeno: Maxim Sopko
 vek: 20
 povolani: student 1. lékařské fakulty UK
-temata: [Kultura]   # NÁVRH podle vlastního textu — potvrďte nebo přepište
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 

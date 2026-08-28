@@ -3,7 +3,6 @@ poradi: 25
 jmeno: Petr Pokorný
 vek: 53
 povolani: prodavač
-temata: []   # doplňte 1–3 oblasti ze seznamu v src/lib/temata.ts
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
 
