@@ -101,18 +101,36 @@ const prvni = kandidati.slice(0, 6);
       <div class="program-mrizka">
         {
           programSObsahem.map((oblast) => (
-            <details class="dlazdice">
-              <summary>
-                <span class="dlazdice-nadpis">
-                  <span class="dlazdice-nazev">{oblast.data.nazev}</span>
-                  <span class="dlazdice-znak" aria-hidden="true" />
-                </span>
-                <span class="dlazdice-shrnuti">{oblast.data.shrnuti}</span>
-              </summary>
+            <a class="dlazdice" href={`#oblast-${oblast.id}`} data-dlazdice={oblast.id}>
+              <span class="dlazdice-nadpis">
+                <span class="dlazdice-nazev">{oblast.data.nazev}</span>
+                <span class="dlazdice-znak" aria-hidden="true">→</span>
+              </span>
+              <span class="dlazdice-shrnuti">{oblast.data.shrnuti}</span>
+            </a>
+          ))
+        }
+      </div>
+
+      {/* ---------- Sdílený panel ----------
+          Jen jeden na stránce, přes celou šířku, pod mřížkou. Otevírá ho
+          CSS `:target` (funguje i bez JavaScriptu), takže se dlaždice
+          nikdy samy nerozbalují a mřížka se nehýbe — ať je otevřené
+          cokoliv, ostatní dlaždice zůstávají přesně tam, kde byly. */}
+      <div class="program-panely" data-program-panely>
+        {
+          programSObsahem.map((oblast) => (
+            <div class="program-panel" id={`oblast-${oblast.id}`} data-panel={oblast.id}>
+              <a class="program-panel-zavrit" href="#program" data-zavrit>
+                <span aria-hidden="true">×</span>
+                <span class="jen-pro-ctecky">Zavřít</span>
+              </a>
+              <p class="program-panel-nadtitulek">{oblast.data.nazev}</p>
+              <h3 class="program-panel-nadpis">{oblast.data.nadpis ?? oblast.data.nazev}</h3>
               <div class="dlazdice-obsah">
                 <oblast.Obsah />
               </div>
-            </details>
+            </div>
           ))
         }
       </div>
@@ -146,8 +164,8 @@ const prvni = kandidati.slice(0, 6);
     <div class="pruh">
       <div class="lide-hlava">
         <div>
-          <p class="nadtitulek">Naši kandidáti</p>
-          <h2>Lidé, které volíte</h2>
+          <p class="nadtitulek">Komu dáte hlas</p>
+          <h2>Naši kandidáti</h2>
         </div>
         <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Všech 27 →</a>
       </div>
@@ -357,12 +375,17 @@ const prvni = kandidati.slice(0, 6);
     }
   }
 
-  /* Dlaždice se rozbaluje na místě — žádné okno, nic nikam neodskočí. */
+  /* Dlaždice sama nic nerozbaluje — jen odkazuje na svůj panel níž.
+     Díky tomu se nikdy nemění výška mřížky, ať je otevřené cokoliv. */
   .dlazdice {
+    display: block;
     background: var(--plocha);
     border: 1px solid var(--linka);
     border-radius: var(--radius);
     box-shadow: var(--stin);
+    padding: 1.15rem 1.25rem;
+    color: inherit;
+    text-decoration: none;
     transition: box-shadow var(--prechod), border-color var(--prechod);
   }
 
@@ -371,19 +394,8 @@ const prvni = kandidati.slice(0, 6);
     box-shadow: var(--stin-zvednuty);
   }
 
-  .dlazdice[open] {
+  .dlazdice.je-aktivni {
     border-color: var(--modra);
-  }
-
-  .dlazdice > summary {
-    display: block;
-    padding: 1.15rem 1.25rem;
-    cursor: pointer;
-    list-style: none;
-  }
-
-  .dlazdice > summary::-webkit-details-marker {
-    display: none;
   }
 
   .dlazdice-nadpis {
@@ -399,34 +411,18 @@ const prvni = kandidati.slice(0, 6);
     letter-spacing: -0.015em;
   }
 
-  /* Znaménko plus, které se po otevření překlopí na minus.
-     Dvě čárky přes ::before a ::after, aby se nemusela načítat ikona. */
   .dlazdice-znak {
-    position: relative;
     flex: none;
-    width: 1.15rem;
-    height: 1.15rem;
-  }
-
-  .dlazdice-znak::before,
-  .dlazdice-znak::after {
-    content: '';
-    position: absolute;
-    inset: 50% 0 auto 0;
-    height: 2px;
-    background: var(--modra);
-    border-radius: 1px;
-    transform: translateY(-50%);
-    transition: transform var(--prechod), opacity var(--prechod);
-  }
-
-  .dlazdice-znak::after {
-    transform: translateY(-50%) rotate(90deg);
-  }
-
-  .dlazdice[open] .dlazdice-znak::after {
-    transform: translateY(-50%) rotate(0deg);
+    color: var(--modra);
     opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--prechod), transform var(--prechod);
+  }
+
+  .dlazdice:hover .dlazdice-znak,
+  .dlazdice.je-aktivni .dlazdice-znak {
+    opacity: 1;
+    transform: translateX(0);
   }
 
   .dlazdice-shrnuti {
@@ -437,9 +433,69 @@ const prvni = kandidati.slice(0, 6);
     color: var(--inkoust-tlum);
   }
 
-  .dlazdice-obsah {
-    padding: 0 1.25rem 1.25rem;
-    font-size: var(--text-maly);
+  /* ---------- Sdílený panel ----------
+     Beze všeho otevřeného nezabírá vůbec žádné místo — každý panel má
+     `display: none` a zviditelní ho, spolu s odsazením, teprve `:target`. */
+  .program-panel {
+    display: none;
+  }
+
+  .program-panel:target {
+    position: relative;
+    display: block;
+    margin-top: 1.25rem;
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    background: var(--plocha);
+    border: 1px solid var(--linka);
+    border-radius: var(--radius);
+    box-shadow: var(--stin-zvednuty);
+    scroll-margin-top: 6rem;
+    animation: panel-nahoru 0.22s ease-out;
+  }
+
+  @keyframes panel-nahoru {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  .program-panel-zavrit {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 999px;
+    background: var(--papir);
+    color: var(--inkoust);
+    font-size: 1.3rem;
+    line-height: 1;
+    text-decoration: none;
+    transition: background var(--prechod);
+  }
+
+  .program-panel-zavrit:hover {
+    background: var(--modra-jemna);
+    color: var(--modra-text);
+  }
+
+  .program-panel-nadtitulek {
+    margin: 0;
+    max-width: calc(100% - 3rem);
+  }
+
+  .program-panel-nadpis {
+    margin: 0.3rem 0 0;
+    max-width: 40ch;
+  }
+
+  .program-panel .dlazdice-obsah {
+    margin-top: 1.25rem;
+    max-width: var(--sirka-textu);
+    font-size: var(--text-zakladni);
   }
 
   .dlazdice-obsah :global(ul) {
@@ -448,7 +504,7 @@ const prvni = kandidati.slice(0, 6);
   }
 
   .dlazdice-obsah :global(li) {
-    margin-bottom: 0.4em;
+    margin-bottom: 0.5em;
   }
 
   .dlazdice-obsah :global(li)::marker {
@@ -531,4 +587,21 @@ const prvni = kandidati.slice(0, 6);
       prvek.textContent = 'po volbách';
     }
   }
+</script>
+
+<script>
+  // Zvýraznění dlaždice, jejíž panel je zrovna otevřený. Čistě kosmetické —
+  // panel se otevírá i zavírá přes CSS `:target`, tohle jen dokresluje,
+  // odkud otevřený obsah pochází.
+  const dlazdice = [...document.querySelectorAll<HTMLAnchorElement>('.dlazdice')];
+
+  function oznacAktivni() {
+    const aktualni = location.hash.match(/^#oblast-(.+)$/)?.[1];
+    for (const d of dlazdice) {
+      d.classList.toggle('je-aktivni', !!aktualni && d.dataset.dlazdice === aktualni);
+    }
+  }
+
+  window.addEventListener('hashchange', oznacAktivni);
+  oznacAktivni();
 </script>
