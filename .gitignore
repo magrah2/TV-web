@@ -38,3 +38,8 @@ nastroje/.mapa-data.json
 # stazena data pro generatory map a okrsku
 nastroje/.mapa-data-*.json
 nastroje/.okrsky/
+
+# puvodni fotky kandidatu v plne velikosti (desitky MB) - do gitu jde jen
+# zmensena verze v src/assets/portrety/, kterou z nich vyrobi
+# nastroje/zmensit-fotky.mjs
+/fotky-original/

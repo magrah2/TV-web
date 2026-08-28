@@ -13,7 +13,7 @@ Web je statický — žádný server, žádná databáze, žádné cookies ani m
 |---|---|
 | `src/content/kandidati/` | **Kandidáti** — jeden soubor na člověka, tady se vyplňují medailonky |
 | `src/content/program/` | **Program** — osm oblastí |
-| `src/assets/portrety/` | Portrétní fotky, jedna složka na kandidáta (zatím prázdné, používají se siluety) |
+| `src/assets/portrety/` | Portrétní fotky, jeden soubor na kandidáta pojmenovaný podle jeho id |
 | `src/pages/` | Jednotlivé stránky webu |
 | `src/components/` | Opakující se části (hlavička, karta kandidáta, patička…) |
 | `src/styles/tokeny.css` | **Barvy, písmo, rozestupy** — jediné místo, kde se mění vzhled globálně |
@@ -34,7 +34,6 @@ jmeno: Mgr. Vojtěch Liška, Ph.D.
 vek: 31
 povolani: výzkumník kvantové optiky
 prislusnost: příznivec České pirátské strany
-temata: [Školství, Hospodaření]
 citace: Věta, která se v medailonku vytáhne velkým písmem.
 ---
 
@@ -47,8 +46,6 @@ vykreslí bez něj a nic se nerozbije.
 
 Pár pravidel, která web hlídá sám a upozorní, když se poruší:
 
-- `temata` musí být 1 až 3 oblasti **přesně** ze seznamu v `src/lib/temata.ts`.
-  Překlep shodí sestavení, takže se chyba nedostane na web.
 - `poradi` musí být vyplněné.
 
 Fotky se do frontmatteru nepíšou vůbec — viz další oddíl.
@@ -57,16 +54,22 @@ Fotky se do frontmatteru nepíšou vůbec — viz další oddíl.
 
 ## Jak přidat fotky
 
-Ke každému kandidátovi existuje **složka stejného jména jako jeho soubor**
-ve `src/assets/portrety/` — třeba fotky Vojtěcha Lišky (`20-vojtech-liska.md`)
-patří do `src/assets/portrety/20-vojtech-liska/`.
+Fotky z fotoaparátu mají v původní velikosti klidně několik MB každá a do
+gitu nepatří — jinak by si je při každém stažení repozitáře musel stáhnout
+úplně každý, i když je nikdy neupravuje. Proto se nejdřív zmenší:
 
-Do složky nakopírujte fotku **v původní velikosti**, nezmenšenou, a pojmenujte
-ji `01.jpg` (nebo `.png`/`.webp`). Web si sám vyrobí zmenšeniny, převede je do
+1. Fotku v původní velikosti pojmenujte **stejně jako soubor kandidáta**
+   a uložte do `fotky-original/` — třeba fotka Vojtěcha Lišky
+   (`20-vojtech-liska.md`) je `fotky-original/20-vojtech-liska.jpg`.
+   Tahle složka se do gitu neukládá (viz `.gitignore`).
+2. Spusťte `npm run zmensit-fotky`. Skript zmenší všechny fotky ze
+   `fotky-original/` na rozumnou velikost a uloží je do
+   `src/assets/portrety/` — tuhle složku už web skutečně používá a
+   commituje se.
+
+Odtud si web sám vyrobí zmenšeniny pro různé displeje, převede je do
 moderních formátů a doplní ořezy — nic dalšího se nemusí nastavovat. Dokud
 fotka chybí, ukáže se zástupná silueta.
-
-Prázdná složka nic nerozbije.
 
 ---
 
@@ -91,7 +94,8 @@ stačí na něj dvakrát kliknout.
 
 Úloha web nejdřív sestaví a **teprve když se to povede, něco odešle**. Když
 sestavení spadne, nic se nezveřejní a v panelu je napsané proč. Nejčastěji
-je to překlep v souboru kandidáta — třeba téma, které není v seznamu.
+je to překlep v datech — třeba chybějící pořadí, nebo u záměru téma,
+které není v seznamu.
 
 ### Z terminálu
 

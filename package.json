@@ -13,7 +13,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "zkouska": "node nastroje/zkouska.mjs"
+    "zkouska": "node nastroje/zkouska.mjs",
+    "zmensit-fotky": "node nastroje/zmensit-fotky.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
@@ -23,6 +24,7 @@
     "esbuild": true
   },
   "devDependencies": {
-    "playwright-core": "^1.62.1"
+    "playwright-core": "^1.62.1",
+    "sharp": "^0.35.3"
   }
 }
