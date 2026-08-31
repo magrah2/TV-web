@@ -3,7 +3,6 @@ import { getCollection, render } from 'astro:content';
 import Zaklad from '../../layouts/Zaklad.astro';
 import KartaKandidata from '../../components/KartaKandidata.astro';
 import Portret from '../../components/Portret.astro';
-import { temaDoAdresy } from '../../lib/temata';
 import { fotkaKandidata } from '../../lib/portrety';
 
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
@@ -18,8 +17,6 @@ const sObsahem = await Promise.all(
     return { ...clovek, Obsah: Content, maTelo: telo.length > 0 };
   }),
 );
-
-const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter(Boolean))] as string[];
 ---
 
 <Zaklad
@@ -33,34 +30,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
       Nikdo z nás není profesionální politik. Kliknutím na kohokoliv se dozvíte víc.
     </p>
 
-    {/* ---------- Filtry ---------- */}
-    <div class="filtry" data-filtry hidden>
-      {
-        prislusnosti.length > 0 && (
-          <div class="filtr-skupina">
-            {/* Příslušnost je uvedená na kandidátní listině, takže ji ukazujeme
-                dobrovolně i na webu — schovávat ji by se s názvem strany pralo. */}
-            <h2 class="filtr-nadpis">Příslušnost</h2>
-            <div class="filtr-tlacitka" role="group" aria-label="Filtrovat podle příslušnosti">
-              <button type="button" class="filtr je-aktivni" data-filtr="prislusnost" data-hodnota="">
-                Vše
-              </button>
-              <button type="button" class="filtr" data-filtr="prislusnost" data-hodnota="nezavisly">
-                Bez stranické příslušnosti
-              </button>
-              {prislusnosti.map((p) => (
-                <button type="button" class="filtr" data-filtr="prislusnost" data-hodnota={temaDoAdresy(p)}>
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        )
-      }
-    </div>
-
-    <p class="pocet" data-pocet aria-live="polite">Zobrazeno všech {kandidati.length} kandidátů</p>
-
     {/* ---------- Mřížka ---------- */}
     <div class="mrizka" id="kandidatka">
       {
@@ -70,16 +39,11 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
             jmeno={clovek.data.jmeno}
             vek={clovek.data.vek}
             povolani={clovek.data.povolani}
-            prislusnost={clovek.data.prislusnost ?? undefined}
             foto={fotkaKandidata(clovek.id)}
           />
         ))
       }
     </div>
-
-    <p class="prazdno" data-prazdno hidden>
-      Tomuhle filtru zatím nikdo neodpovídá. <button type="button" data-zrusit-filtry>Zrušit filtry</button>
-    </p>
   </div>
 
   {/* ---------- Medailonky ----------
@@ -162,86 +126,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     margin-top: 1rem;
   }
 
-  /* ---------- Filtry ---------- */
-
-  /* Bez tohohle by `hidden` neúčinkovalo: `display: grid` z třídy přebije
-     `display: none`, které prohlížeč atributu `hidden` dává sám.
-     Následek by byla mrtvá tlačítka u lidí s vypnutým JavaScriptem. */
-  .filtry[hidden] {
-    display: none;
-  }
-
-  .filtry {
-    display: grid;
-    gap: 1.25rem;
-    margin-top: clamp(2rem, 4vw, 3rem);
-    padding: 1.25rem;
-    background: var(--plocha);
-    border: 1px solid var(--linka);
-    border-radius: var(--radius);
-  }
-
-  .filtr-nadpis {
-    margin: 0 0 0.6rem;
-    font-size: var(--text-drobny);
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--inkoust-tlum);
-  }
-
-  .filtr-tlacitka {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .filtr {
-    padding: 0.35rem 0.8rem;
-    border: 1px solid var(--linka-vyrazna);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--inkoust);
-    font: inherit;
-    font-size: var(--text-drobny);
-    font-weight: 500;
-    cursor: pointer;
-    transition: background var(--prechod), border-color var(--prechod), color var(--prechod);
-  }
-
-  .filtr:hover {
-    border-color: var(--modra);
-    color: var(--modra-text);
-  }
-
-  .filtr.je-aktivni {
-    background: var(--modra);
-    border-color: var(--modra);
-    color: #fff;
-  }
-
-  .pocet {
-    margin: 1.25rem 0 0;
-    font-size: var(--text-maly);
-    color: var(--inkoust-tlum);
-  }
-
-  .prazdno {
-    margin-top: 2rem;
-    font-size: var(--text-maly);
-    color: var(--inkoust-tlum);
-  }
-
-  .prazdno button {
-    border: none;
-    background: none;
-    padding: 0;
-    font: inherit;
-    color: var(--modra-text);
-    text-decoration: underline;
-    cursor: pointer;
-  }
-
   /* ---------- Mřížka ---------- */
 
   .mrizka {
@@ -268,11 +152,6 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     .mrizka {
       grid-template-columns: repeat(5, 1fr);
     }
-  }
-
-  /* Karta odfiltrovaná pryč — `hidden` by nestačilo, mřížka drží display */
-  .mrizka :global(.karta-kandidata[data-skryta]) {
-    display: none;
   }
 
   /* ---------- Medailonek ---------- */
@@ -447,15 +326,9 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
 </style>
 
 <script>
-  const mrizka = document.querySelector<HTMLElement>('#kandidatka');
   const obalMedailonku = document.querySelector<HTMLElement>('[data-medailonky]');
-  const pocitadlo = document.querySelector<HTMLElement>('[data-pocet]');
-  const prazdno = document.querySelector<HTMLElement>('[data-prazdno]');
-  const panelFiltru = document.querySelector<HTMLElement>('[data-filtry]');
 
-  if (!mrizka || !obalMedailonku) throw new Error('Kandidátka: chybí mřížka nebo medailonky');
-
-  const karty = [...mrizka.querySelectorAll<HTMLElement>('.karta-kandidata')];
+  if (!obalMedailonku) throw new Error('Kandidátka: chybí medailonky');
 
   /* ------------------------------------------------------------------ *
    *  Medailonek                                                         *
@@ -609,77 +482,4 @@ const prislusnosti = [...new Set(kandidati.map((k) => k.data.prislusnost).filter
     history.pushState({ medailonek: naStartu[1] }, '', kotva);
     mameZaznamVHistorii = true;
   }
-
-  /* ------------------------------------------------------------------ *
-   *  Filtry                                                             *
-   * ------------------------------------------------------------------ */
-
-  // Panel filtrů je v HTML skrytý a odkrývá ho až skript — bez JavaScriptu
-  // by to byla mrtvá tlačítka, která nic nedělají.
-  if (panelFiltru) panelFiltru.hidden = false;
-
-  let vybranaPrislusnost = '';
-
-  function sklonuj(pocet: number) {
-    if (pocet === 1) return '1 kandidát';
-    if (pocet >= 2 && pocet <= 4) return `${pocet} kandidáti`;
-    return `${pocet} kandidátů`;
-  }
-
-  function pouzitFiltry() {
-    let videno = 0;
-
-    for (const karta of karty) {
-      const sedi = !vybranaPrislusnost || karta.dataset.prislusnost === vybranaPrislusnost;
-
-      karta.toggleAttribute('data-skryta', !sedi);
-      if (sedi) videno++;
-    }
-
-    if (pocitadlo) {
-      pocitadlo.textContent =
-        videno === karty.length ? `Zobrazeno všech ${karty.length} kandidátů` : `Zobrazeno ${sklonuj(videno)}`;
-    }
-    if (prazdno) prazdno.hidden = videno > 0;
-
-    // Nastavený filtr se propíše do adresy, takže se dá poslat dál.
-    const parametry = new URLSearchParams();
-    if (vybranaPrislusnost) parametry.set('prislusnost', vybranaPrislusnost);
-    const dotaz = parametry.toString();
-    history.replaceState(history.state, '', dotaz ? `?${dotaz}` : location.pathname);
-  }
-
-  panelFiltru?.addEventListener('click', (e) => {
-    const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.filtr');
-    if (!tlacitko) return;
-
-    vybranaPrislusnost = tlacitko.dataset.hodnota ?? '';
-
-    for (const jine of panelFiltru.querySelectorAll<HTMLElement>('[data-filtr="prislusnost"]')) {
-      jine.classList.toggle('je-aktivni', jine === tlacitko);
-    }
-    pouzitFiltry();
-  });
-
-  document.querySelector('[data-zrusit-filtry]')?.addEventListener('click', () => {
-    vybranaPrislusnost = '';
-    for (const tlacitko of panelFiltru!.querySelectorAll<HTMLElement>('.filtr')) {
-      tlacitko.classList.toggle('je-aktivni', tlacitko.dataset.hodnota === '');
-    }
-    pouzitFiltry();
-  });
-
-  // Filtr z adresy — odkaz typu /lide/?prislusnost=strana-zelenych otevře rovnou výběr.
-  const zAdresy = new URLSearchParams(location.search);
-  const hodnotaZAdresy = zAdresy.get('prislusnost');
-  if (hodnotaZAdresy) {
-    const tlacitko = panelFiltru?.querySelector<HTMLElement>(`[data-filtr="prislusnost"][data-hodnota="${hodnotaZAdresy}"]`);
-    if (tlacitko) {
-      vybranaPrislusnost = hodnotaZAdresy;
-      for (const jine of panelFiltru!.querySelectorAll<HTMLElement>('[data-filtr="prislusnost"]')) {
-        jine.classList.toggle('je-aktivni', jine === tlacitko);
-      }
-    }
-  }
-  if (vybranaPrislusnost) pouzitFiltry();
 </script>

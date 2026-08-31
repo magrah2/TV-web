@@ -117,17 +117,6 @@ try {
   await stranka.waitForTimeout(300);
   overit('Escape po prichodu s kotvou', null, await otevreny());
 
-  // --- Filtry -------------------------------------------------------------
-  await stranka.goto(`${ADRESA}lide/`, { waitUntil: 'networkidle' });
-  await stranka.click('.filtr[data-hodnota="strana-zelenych"]');
-  await stranka.waitForTimeout(250);
-  const videno = await stranka.evaluate(
-    () => document.querySelectorAll('.karta-kandidata:not([data-skryta])').length,
-  );
-  const vsech = await stranka.evaluate(() => document.querySelectorAll('.karta-kandidata').length);
-  overit('filtr neco odfiltroval', true, videno > 0 && videno < vsech);
-  overit('filtr se propsal do adresy', true, stranka.url().includes('prislusnost=strana-zelenych'));
-
   // --- Volebni listek -----------------------------------------------------
   // Tohle pocita, komu pripadne hlas. Kdyby to pocitalo spatne, ucili bychom
   // lidi volit spatne - proto se kazde pravidlo hlida zvlast.

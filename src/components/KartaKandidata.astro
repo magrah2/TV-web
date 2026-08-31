@@ -9,27 +9,21 @@
 
 import Portret from './Portret.astro';
 import { odkaz, jmenoBezTitulu } from '../lib/odkaz';
-import { temaDoAdresy } from '../lib/temata';
 
 interface Props {
   poradi: number;
   jmeno: string;
   vek?: number;
   povolani: string;
-  prislusnost?: string;
   foto?: ImageMetadata;
 }
 
-const { poradi, jmeno, vek, povolani, prislusnost, foto } = Astro.props;
+const { poradi, jmeno, vek, povolani, foto } = Astro.props;
 
 const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
 ---
 
-<article
-  class="karta-kandidata"
-  data-poradi={poradi}
-  data-prislusnost={prislusnost ? temaDoAdresy(prislusnost) : 'nezavisly'}
->
+<article class="karta-kandidata" data-poradi={poradi}>
   <a class="karta-odkaz" href={cil} data-medailonek={poradi}>
     {/* Číslo musí být uvnitř obalu portrétu, ne v celém odkazu —
         jinak se usadí až pod textem a přeleze přes jméno. */}
