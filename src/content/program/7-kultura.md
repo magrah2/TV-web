@@ -3,7 +3,7 @@ poradi: 7
 nazev: "Kultura"
 nadpis: "Kultura"
 tema: Kultura
-shrnuti: "Peníze na kulturu podle jasných pravidel a podpora těch, kdo tvoří tady."
+shrnuti: "Kultura i mimo náměstí, průhledné dotace a podpora lidí, kteří tvoří ve Vyškově."
 ---
 
 - Budeme aktivně vyhledávat dotační tituly, abychom zrekonstruovali budovu zámku a pivovaru.

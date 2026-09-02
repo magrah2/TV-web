@@ -3,7 +3,7 @@ poradi: 8
 nazev: "Bezpečný pohyb"
 nadpis: "Bezpečný pohyb po městě"
 tema: Doprava
-shrnuti: "Propojit město tak, aby se dalo bezpečně projít i projet na kole."
+shrnuti: "Propojené trasy pro pěší i cyklisty, bezpečná cesta dětí do školy a sdílená kola."
 ---
 
 - Podpoříme bezpečný pohyb pěších i cyklistů po celém městě.

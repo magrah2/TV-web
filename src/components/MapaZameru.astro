@@ -12,7 +12,7 @@
 import { getCollection, render } from 'astro:content';
 import { BARVA_TEMATU, temaDoAdresy } from '../lib/temata';
 import type { Tema } from '../lib/temata';
-import { naMape, jeVeVyrezu, rozestrciBody } from '../lib/mapa';
+import { naMape, jeVeVyrezu, rozestrciBody, ROZMER } from '../lib/mapa';
 import podklad from '../../public/mapa-vyskov.svg?raw';
 
 const vsechny = (await getCollection('zamery')).sort((a, b) => a.data.poradi - b.data.poradi);
@@ -81,10 +81,14 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
 
     <div class="mapa-rozvrzeni">
       <div class="mapa-obal">
-        <div class="mapa-plocha" data-mapa>
-          {/* Zvětšování a posouvání se dělá na tomhle obalu, aby se podklad
-              i odznaky hýbaly zároveň. Odznaky si pak velikost dopočítají
-              zpátky, aby při přiblížení nenarostly do obřích koleček. */}
+        <div class="mapa-plocha" data-mapa style={`aspect-ratio: ${ROZMER.sirka} / ${ROZMER.vyska}`}>
+          {/* Mapa se zvětšuje `viewBox`em, ne `transform: scale()`. Se `scale()`
+              si prohlížeč SVG jednou vykreslí do bitmapy a tu pak natahuje,
+              takže z přiblížené mapy byly kostičky. Odznaky jsou HTML nad
+              mapou a polohu si po každé změně přepočítají podle výřezu —
+              proto u sebe nesou `data-mx` a `data-my` v jednotkách mapy.
+              Zapsané `left`/`top` platí pro nepřiblíženou mapu, takže bez
+              JavaScriptu body sedí tam, kde mají. */}
           <div class="mapa-vnitrek" data-mapa-vnitrek>
             <Fragment set:html={podklad} />
 
@@ -98,6 +102,8 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
                     class="mapa-bod"
                     data-bod={zamer.data.poradi}
                     data-tema={temaDoAdresy(zamer.data.tema)}
+                    data-mx={(zamer.poloha.x / 100) * ROZMER.sirka}
+                    data-my={(zamer.poloha.y / 100) * ROZMER.vyska}
                     style={`left: ${zamer.poloha.x}%; top: ${zamer.poloha.y}%; --barva: ${BARVA_TEMATU[zamer.data.tema]}`}
                     aria-label={`${zamer.data.poradi}. ${zamer.data.nazev}`}
                   >
@@ -248,16 +254,23 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     border: 1px solid var(--linka-na-noci);
   }
 
+  /* Vyplní rám, aby se výška SVG neodvozovala od vlastního obsahu —
+     výřez mapy má stejné proporce jako rám, takže se do něj vejde přesně. */
   .mapa-vnitrek {
-    /* Počátek vlevo nahoře, aby se posun i zvětšení počítaly jednoduše. */
-    transform-origin: 0 0;
-    will-change: transform;
+    position: absolute;
+    inset: 0;
   }
 
   .mapa-plocha :global(svg) {
     display: block;
     width: 100%;
-    height: auto;
+    height: 100%;
+  }
+
+  /* Bez tohohle by při přiblížení zesílily i linky ulic a řeky: `viewBox`
+     zvětšuje všechno včetně šířky tahu. Takhle si drží šířku na obrazovce. */
+  .mapa-plocha :global(svg [class*='mapa-'] path) {
+    vector-effect: non-scaling-stroke;
   }
 
   /* Když je mapa přiblížená, tažením se posouvá. */
@@ -373,9 +386,9 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     line-height: 1;
     cursor: pointer;
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
-    /* Dělení `--zoom` vrací odznaku původní velikost i po přiblížení mapy.
-       Zvětšuje se okolo středu, takže odznak zůstane přesně nad svým místem. */
-    transform: scale(calc(var(--zvetseni, 1) / var(--zoom, 1)));
+    /* Odznak leží nad mapou, ne v ní, takže se s přiblížením nezvětšuje
+       sám — zvětší se jen pod kurzorem a u zvýrazněné položky. */
+    transform: scale(var(--zvetseni, 1));
     transition: transform var(--prechod), opacity var(--prechod), box-shadow var(--prechod);
   }
 
@@ -389,6 +402,12 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
   .mapa-bod[data-skryty] {
     opacity: 0.12;
     pointer-events: none;
+  }
+
+  /* Odznak mimo výřez by rám sice odřízl, ale klávesnice by na něj pořád
+     skákala. Proto se schová úplně. */
+  .mapa-bod[data-mimo] {
+    display: none;
   }
 
   @media (max-width: 560px) {
@@ -569,35 +588,63 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     // --- Zvětšování a posouvání mapy ---------------------------------------
 
     const vnitrek = mapa.querySelector<HTMLElement>('[data-mapa-vnitrek]');
+    const svg = mapa.querySelector<SVGSVGElement>('svg');
     const ovladani = mapa.querySelector<HTMLElement>('[data-mapa-ovladani]');
 
-    if (vnitrek && ovladani) {
+    if (vnitrek && svg && ovladani) {
       ovladani.hidden = false;
 
+      // Rozměr podkladu se čte z jeho vlastního `viewBox`u. Frontmatter je
+      // pro tenhle skript nedostupný — běží v prohlížeči, ne při sestavení —
+      // a opsat sem čísla ručně by znamenalo druhý zdroj pravdy, který by se
+      // rozešel, jakmile se mapa přegeneruje s jiným výřezem.
+      const puvodniVyrez = (svg.getAttribute('viewBox') ?? '')
+        .split(/[\s,]+/)
+        .map(Number)
+        .filter((c) => Number.isFinite(c));
+      const ROZMER = { sirka: puvodniVyrez[2] || 1000, vyska: puvodniVyrez[3] || 717 };
+
+      // Nejmenší přiblížení je celý podklad, největší šestina jeho šířky.
+      // Zoom se drží jako číslo (1 = celé město), aby ho štípnutí dvěma prsty
+      // mohlo nastavovat přímo z rozestupu prstů.
       const NEJMENSI = 1;
       const NEJVETSI = 6;
       const KROK = 1.6;
 
-      let zoom = 1;
-      let posunX = 0;
-      let posunY = 0;
+      // Rám mapy má stejné proporce jako podklad (`aspect-ratio` v HTML),
+      // takže výřez si je drží taky a nikdy nikde nezůstane prázdný pruh.
+      const POMER = ROZMER.vyska / ROZMER.sirka;
 
-      /** Posun se drží v mezích, aby se mapa nedala odtáhnout mimo rám
-          a nezůstala po ní prázdná plocha. */
-      function srovnejPosun() {
-        const sirka = mapa!.clientWidth;
-        const vyska = mapa!.clientHeight;
-        posunX = Math.min(0, Math.max(sirka * (1 - zoom), posunX));
-        posunY = Math.min(0, Math.max(vyska * (1 - zoom), posunY));
+      let pohled = { x: 0, y: 0, w: ROZMER.sirka };
+      const zoomNyni = () => ROZMER.sirka / pohled.w;
+
+      /** Udrží výřez uvnitř podkladu, aby se mapa nedala odtáhnout mimo rám. */
+      function srovnej() {
+        pohled.w = Math.min(ROZMER.sirka, Math.max(ROZMER.sirka / NEJVETSI, pohled.w));
+        const h = pohled.w * POMER;
+        pohled.x = Math.min(ROZMER.sirka - pohled.w, Math.max(0, pohled.x));
+        pohled.y = Math.min(ROZMER.vyska - h, Math.max(0, pohled.y));
       }
 
       function vykresli() {
-        srovnejPosun();
-        vnitrek!.style.transform = `translate(${posunX}px, ${posunY}px) scale(${zoom})`;
-        mapa!.style.setProperty('--zoom', String(zoom));
-        mapa!.toggleAttribute('data-lze-posouvat', zoom > 1);
+        srovnej();
+        const h = pohled.w * POMER;
+        svg!.setAttribute('viewBox', `${pohled.x} ${pohled.y} ${pohled.w} ${h}`);
 
-        ovladani!.querySelector<HTMLButtonElement>('[data-zoom="dovnitr"]')!.disabled = zoom >= NEJVETSI - 0.001;
+        // Odznaky jsou HTML nad mapou, takže se přepočítávají zvlášť.
+        for (const bod of body) {
+          const x = ((Number(bod.dataset.mx) - pohled.x) / pohled.w) * 100;
+          const y = ((Number(bod.dataset.my) - pohled.y) / h) * 100;
+          bod.style.left = x + '%';
+          bod.style.top = y + '%';
+          bod.toggleAttribute('data-mimo', x < -4 || x > 104 || y < -4 || y > 104);
+        }
+
+        const zoom = zoomNyni();
+        mapa!.toggleAttribute('data-lze-posouvat', zoom > NEJMENSI + 0.001);
+
+        ovladani!.querySelector<HTMLButtonElement>('[data-zoom="dovnitr"]')!.disabled =
+          zoom >= NEJVETSI - 0.001;
         const venTlacitko = ovladani!.querySelector<HTMLButtonElement>('[data-zoom="ven"]')!;
         const resetTlacitko = ovladani!.querySelector<HTMLButtonElement>('[data-zoom="reset"]')!;
         venTlacitko.disabled = zoom <= NEJMENSI + 0.001;
@@ -610,14 +657,19 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
        */
       function nastavZoom(novy: number, kolemX?: number, kolemY?: number) {
         const cil = Math.min(NEJVETSI, Math.max(NEJMENSI, novy));
-        if (Math.abs(cil - zoom) < 0.001) return;
+        if (Math.abs(cil - zoomNyni()) < 0.001) return;
 
-        const x = kolemX ?? mapa!.clientWidth / 2;
-        const y = kolemY ?? mapa!.clientHeight / 2;
+        const r = mapa!.getBoundingClientRect();
+        const px = kolemX ?? r.width / 2;
+        const py = kolemY ?? r.height / 2;
+        const h = pohled.w * POMER;
+        const mx = pohled.x + (px / r.width) * pohled.w;
+        const my = pohled.y + (py / r.height) * h;
 
-        posunX = x - ((x - posunX) * cil) / zoom;
-        posunY = y - ((y - posunY) * cil) / zoom;
-        zoom = cil;
+        const sirka = ROZMER.sirka / cil;
+        pohled.x = mx - (px / r.width) * sirka;
+        pohled.y = my - (py / r.height) * sirka * POMER;
+        pohled.w = sirka;
         vykresli();
       }
 
@@ -625,32 +677,34 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
         const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-zoom]');
         if (!tlacitko) return;
         const co = tlacitko.dataset.zoom;
-        if (co === 'dovnitr') nastavZoom(zoom * KROK);
-        else if (co === 'ven') nastavZoom(zoom / KROK);
+        if (co === 'dovnitr') nastavZoom(zoomNyni() * KROK);
+        else if (co === 'ven') nastavZoom(zoomNyni() / KROK);
         else {
-          zoom = 1;
-          posunX = 0;
-          posunY = 0;
+          pohled = { x: 0, y: 0, w: ROZMER.sirka };
           vykresli();
         }
       });
 
-      // Kolečko přibližuje jen se Ctrl. Bez toho by se při běžném rolování
-      // stránka zasekla v mapě, což je jedna z nejotravnějších věcí na webu.
+      // Kolečko přibližuje přímo, bez držení Ctrl — na mapě to lidé čekají
+      // a stejně to funguje i u mapy volebních místností. Plynulé násobení
+      // podle `deltaY` drží krok stejný pro kolečko i pro touchpad.
       mapa.addEventListener(
         'wheel',
         (e) => {
-          if (!e.ctrlKey && !e.metaKey) return;
           e.preventDefault();
           const r = mapa!.getBoundingClientRect();
-          nastavZoom(zoom * (e.deltaY < 0 ? 1.18 : 1 / 1.18), e.clientX - r.left, e.clientY - r.top);
+          nastavZoom(
+            zoomNyni() * Math.pow(1.0018, -e.deltaY),
+            e.clientX - r.left,
+            e.clientY - r.top,
+          );
         },
         { passive: false },
       );
 
       // --- Tažení a štípání dvěma prsty ---
       const prsty = new Map<number, { x: number; y: number }>();
-      let tazeniZ: { x: number; y: number; posunX: number; posunY: number } | null = null;
+      let tazeniZ: { x: number; y: number; px: number; py: number } | null = null;
       let stipnutiZ: { vzdalenost: number; zoom: number } | null = null;
       let taholJsem = false;
 
@@ -672,13 +726,13 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
         mapa!.setPointerCapture(e.pointerId);
         taholJsem = false;
 
-        if (prsty.size === 1 && zoom > 1) {
+        if (prsty.size === 1 && zoomNyni() > NEJMENSI + 0.001) {
           const p = prsty.get(e.pointerId)!;
-          tazeniZ = { x: p.x, y: p.y, posunX, posunY };
+          tazeniZ = { x: p.x, y: p.y, px: pohled.x, py: pohled.y };
           mapa!.toggleAttribute('data-taham', true);
         } else if (prsty.size === 2) {
           tazeniZ = null;
-          stipnutiZ = { vzdalenost: rozestup(), zoom };
+          stipnutiZ = { vzdalenost: rozestup(), zoom: zoomNyni() };
         }
       });
 
@@ -699,8 +753,10 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
 
         if (tazeniZ) {
           const p = prsty.get(e.pointerId)!;
-          posunX = tazeniZ.posunX + (p.x - tazeniZ.x);
-          posunY = tazeniZ.posunY + (p.y - tazeniZ.y);
+          // Posun se počítá v jednotkách mapy: o kolik procent rámu se táhlo,
+          // o tolik procent výřezu se musí posunout.
+          pohled.x = tazeniZ.px - ((p.x - tazeniZ.x) / r.width) * pohled.w;
+          pohled.y = tazeniZ.py - ((p.y - tazeniZ.y) / r.height) * pohled.w * POMER;
           if (Math.hypot(p.x - tazeniZ.x, p.y - tazeniZ.y) > 4) taholJsem = true;
           vykresli();
         }
@@ -721,7 +777,7 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
       mapa.addEventListener('dblclick', (e) => {
         if ((e.target as HTMLElement).closest('.mapa-bod, .mapa-ovladani')) return;
         const r = mapa!.getBoundingClientRect();
-        nastavZoom(zoom * KROK, e.clientX - r.left, e.clientY - r.top);
+        nastavZoom(zoomNyni() * KROK, e.clientX - r.left, e.clientY - r.top);
       });
 
       // Po tažení se nesmí spustit klik, jinak by se otevřel náhodný záměr.

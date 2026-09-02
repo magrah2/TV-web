@@ -7,4 +7,4 @@ lon: 16.99247
 stav: navrh   # NÁVRH — poloha je skutečná, text je návrh k diskuzi. Potvrďte nebo přepište.
 ---
 
-První, co z Vyškova uvidí ten, kdo přijede vlakem. Chystá se modernizace trati, což je jediná příležitost na dlouhé roky — chceme, aby u ní město hájilo důstojný přestupní uzel s návazností na autobusy a krytým stáním pro kola.
+Kdo přijede do Vyškova vlakem, vidí nejdřív nádraží. Chystá se modernizace trati a taková příležitost se dlouhé roky nezopakuje — chceme, aby u ní město prosadilo pohodlný přestup na autobusy a kryté stání pro kola.

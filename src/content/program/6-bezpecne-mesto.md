@@ -3,7 +3,7 @@ poradi: 6
 nazev: "Bezpečné město"
 nadpis: "Bezpečné město"
 tema: Bezpečnost
-shrnuti: "Prevence místo represe — a mapa míst, kde se lidé bojí chodit."
+shrnuti: "Pocitová mapa nebezpečných míst a podpora prevence."
 ---
 
 - Budeme předcházet problémům dříve, než přerostou v kriminalitu nebo sociální vyloučení.

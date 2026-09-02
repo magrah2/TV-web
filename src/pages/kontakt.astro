@@ -3,6 +3,19 @@ import Zaklad from '../layouts/Zaklad.astro';
 import Krivka from '../components/Krivka.astro';
 
 const EMAIL = 'info@transparentnivyskov.cz';
+
+/**
+ * Profily na sociálních sítích. Adresy zatím nemám — až je doplníte, odkaz
+ * se objeví sám. Prázdná adresa se nevykreslí vůbec, aby na webu nikdy
+ * nebylo tlačítko, které nikam nevede.
+ *
+ * Ikonky sítí tu schválně nejsou: web má jediný grafický motiv, a to křivku
+ * z loga. Cizí loga by se navíc musela stáhnout odjinud, což tenhle web nedělá.
+ */
+const SITE = [
+  { nazev: 'Facebook', adresa: '' },
+  { nazev: 'Instagram', adresa: '' },
+].filter((s) => s.adresa);
 ---
 
 <Zaklad
@@ -25,6 +38,21 @@ const EMAIL = 'info@transparentnivyskov.cz';
       <p class="doplnek">
         Odpovídáme obvykle do několika dnů. Pokud spěcháte, napište to do předmětu.
       </p>
+
+      {
+        SITE.length > 0 && (
+          <div class="site">
+            <p class="site-nadpis">Najdete nás i na sítích</p>
+            <ul class="site-odkazy">
+              {SITE.map((sit) => (
+                <li>
+                  <a href={sit.adresa} rel="noopener">{sit.nazev}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
     </div>
 
     <aside class="volby">
@@ -76,6 +104,42 @@ const EMAIL = 'info@transparentnivyskov.cz';
   }
 
   .velky-email:hover {
+    color: var(--modra-text);
+  }
+
+  .site {
+    margin-top: clamp(2rem, 4vw, 3rem);
+  }
+
+  .site-nadpis {
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .site-odkazy {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-odkazy a {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--linka);
+    border-radius: var(--radius-maly);
+    background: var(--plocha);
+    font-size: var(--text-maly);
+    font-weight: 600;
+    color: var(--inkoust);
+    text-decoration: none;
+    transition: border-color var(--prechod), color var(--prechod);
+  }
+
+  .site-odkazy a:hover {
+    border-color: var(--modra);
     color: var(--modra-text);
   }
 

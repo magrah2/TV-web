@@ -1,6 +1,6 @@
 ---
-poradi: 11
-nazev: Průmyslová zóna
+poradi: 10
+nazev: Rozšiřování průmyslové zóny
 tema: Podnikání
 lat: 49.28726
 lon: 16.98267

@@ -18,6 +18,14 @@ const merkator = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI
 const yJih = merkator(vyrez.jih);
 const MERITKO = vyrez.sirka / (vyrez.vychod - vyrez.zapad);
 
+/**
+ * Rozměr podkladu v jednotkách SVG — tedy jeho `viewBox`.
+ *
+ * Mapa se na webu zvětšuje `viewBox`em, takže tohle je zároveň nejmenší
+ * možné přiblížení. Zapisuje to generátor, aby existoval jeden zdroj pravdy.
+ */
+export const ROZMER = { sirka: vyrez.sirka, vyska: vyrez.vyska };
+
 /** Vrátí polohu v procentech šířky a výšky podkladu. */
 export function naMape(lat: number, lon: number): { x: number; y: number } {
   const x = ((lon - vyrez.zapad) * MERITKO) / vyrez.sirka;

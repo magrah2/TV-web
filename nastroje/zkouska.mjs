@@ -189,6 +189,25 @@ try {
   const skrytych = await stranka.locator('.mapa-bod[data-skryty]').count();
   overit('filtr mapy neco skryl', true, skrytych > 0 && skrytych < bodu);
 
+  // Mapa se musi zvetsovat `viewBox`em. Se `transform: scale()` si prohlizec
+  // SVG jednou vykresli do bitmapy a tu pak natahuje — z priblizene mapy jsou
+  // kosticky. Stejna chyba uz tu byla dvakrat, u teto mapy i u "kde volit".
+  const vyrezPred = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
+  await stranka.click('[data-zoom="dovnitr"]');
+  await stranka.waitForTimeout(400);
+  overit('priblizeni mapy zameru meni viewBox', true,
+    vyrezPred !== (await stranka.getAttribute('.mapa-plocha svg', 'viewBox')));
+  overit('mapa zameru se nezvetsuje pres transform', true,
+    !((await stranka.getAttribute('[data-mapa-vnitrek]', 'style')) ?? '').includes('scale'));
+
+  // Odznaky lezi nad mapou jako HTML, takze se pri priblizeni musi presunout
+  // samy — jinak by ukazovaly na uplne jine misto, nez ke kteremu patri.
+  const odznakPred = await stranka.getAttribute('.mapa-bod[data-bod="1"]', 'style');
+  await stranka.click('[data-zoom="dovnitr"]');
+  await stranka.waitForTimeout(400);
+  overit('odznaky se pri priblizeni presunou', true,
+    odznakPred !== (await stranka.getAttribute('.mapa-bod[data-bod="1"]', 'style')));
+
   // --- Kde volit -----------------------------------------------------------
   // Vyhledavac rika lidem, kam maji jit volit. Kdyby ukazoval spatne, poslali
   // bychom je do nespravne mistnosti — proto se kontroluje proti udajum
@@ -303,15 +322,22 @@ try {
   overit('nazvy casti se neprekryvaji', false, kolize);
   overit('nazvy casti nevycuhuji z mapy', true, priblizene.every((p) => p.vRamu));
 
-  // Pri oddaleni se do stredu mesta vsechny nazvy nevejdou, po priblizeni ano.
+  // Pri pohledu na celou obec se do stredu mesta vsechny nazvy nevejdou —
+  // nektere se schovaji. To je zamer, ne chyba, takze se to hlida.
+  //
+  // Pocitat, kolik nazvu je videt po priblizeni, by nefungovalo: priblizeni
+  // sice ve stredu udela misto, ale zaroven vytlaci okrajove casti z ramu,
+  // takze jich celkem byva vic pri oddaleni. Hlida se proto konkretni nazev.
   await stranka.click('[data-zoom="reset"]');
   await stranka.waitForTimeout(400);
-  const naCelek = (await popisky()).length;
-  for (let i = 0; i < 3; i++) {
-    await stranka.click('[data-zoom="dovnitr"]');
-    await stranka.waitForTimeout(200);
-  }
-  overit('priblizeni odkryje dalsi nazvy', true, (await popisky()).length >= naCelek);
+  const celkem = await stranka.locator('.popisek-casti').count();
+  overit('na celou obec se nektere nazvy schovaji', true, (await popisky()).length < celkem);
+
+  // Schovany nazev se ale musi dat odkryt, jinak by ta cast zustala bezejmenna.
+  // Brnenska 5 lezi ve Vyskove-Meste, jehoz nazev je pri oddaleni prekryty.
+  await najdiAdresu('Brněnská 5');
+  overit('priblizeni odkryje schovany nazev', true,
+    (await popisky()).some((p) => p.nazev === 'Vyškov-Město'));
 
   await stranka.fill('[data-vstup]', '');
   await stranka.fill('[data-vstup]', 'Neexistujici ulice 999');

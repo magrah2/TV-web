@@ -3,7 +3,7 @@ poradi: 1
 nazev: "Transparentní správa"
 nadpis: "Poctivá radnice, která rozhoduje s občany, ne za ně"
 tema: Hospodaření
-shrnuti: "Smlouvy, zakázky a hospodaření města na jednom místě, kde si je kdokoliv zkontroluje."
+shrnuti: "Smlouvy, zakázky i hospodaření města na jednom místě, které každý najde."
 ---
 
 - Budeme zveřejňovat smlouvy, zakázky i hospodaření města, městských firem i příspěvkových organizací přehledně a srozumitelně.

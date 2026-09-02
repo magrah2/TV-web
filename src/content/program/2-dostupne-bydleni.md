@@ -3,7 +3,7 @@ poradi: 2
 nazev: "Dostupné bydlení"
 nadpis: "Dostupné bydlení"
 tema: Bydlení
-shrnuti: "Bydlení pro lidi, kteří tu chtějí žít — a pravidla, která platí pro všechny stejně."
+shrnuti: "Družstevní bydlení, obecní byty a pravidla, která platí pro všechny stejně."
 ---
 
 - Připravíme pilotní projekt družstevního bydlení.
