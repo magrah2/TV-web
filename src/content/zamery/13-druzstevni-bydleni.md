@@ -1,5 +1,4 @@
 ---
-poradi: 13
 nazev: Družstevní bydlení v Dědicích
 tema: Bydlení
 lat: 49.29421

@@ -73,10 +73,18 @@ const programDetail = defineCollection({
   }),
 });
 
+/**
+ * Body na mapě záměrů. Jeden soubor = jedno místo.
+ *
+ * Číslo na odznaku se **nikde nevypisuje** — dopočítá si ho mapa z pořadí
+ * souborů. Dřív tu bylo pole `poradi` a při každém přidání nebo odebrání
+ * bodu se musely přepsat všechny ostatní, jinak v řadě zůstala mezera.
+ * Pořadí teď určuje název souboru, takže se nový bod přidá jedním souborem
+ * a nic dalšího se nemusí hlídat.
+ */
 const zamery = defineCollection({
   loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/zamery' }),
   schema: z.object({
-    poradi: z.number().int(),
     nazev: z.string(),
     tema: z.enum(TEMATA),
     /**

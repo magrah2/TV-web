@@ -154,11 +154,14 @@ To je nejčastější chyba při stěhování webu.
 
 ## Mapa záměrů
 
-Body na mapě jsou v `src/content/zamery/`, jeden soubor na místo:
+Body na mapě jsou v `src/content/zamery/`, jeden soubor na místo. Nový bod
+přidáte tak, že zkopírujete `_SABLONA.md`, pojmenujete kopii
+`<číslo>-<nazev>.md` a vyplníte ji — nic dalšího se nikde nevypisuje.
+Číslo v názvu určuje jen pořadí; mezery v číslování nevadí a při přidání
+nebo odebrání bodu se nic nepřečíslovává.
 
 ```
 ---
-poradi: 4
 nazev: Řeka Haná ve Smetanových sadech
 tema: Zeleň a voda
 lat: 49.28297     # zeměpisné souřadnice místa

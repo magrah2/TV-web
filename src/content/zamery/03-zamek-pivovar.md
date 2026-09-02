@@ -1,5 +1,4 @@
 ---
-poradi: 3
 nazev: Zámek a pivovar
 tema: Kultura
 lat: 49.27653

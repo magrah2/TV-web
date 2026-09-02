@@ -1,5 +1,4 @@
 ---
-poradi: 2
 nazev: Ulice v centru
 tema: Podnikání
 lat: 49.27869

@@ -15,7 +15,11 @@ import type { Tema } from '../lib/temata';
 import { naMape, jeVeVyrezu, rozestrciBody, ROZMER } from '../lib/mapa';
 import podklad from '../../public/mapa-vyskov.svg?raw';
 
-const vsechny = (await getCollection('zamery')).sort((a, b) => a.data.poradi - b.data.poradi);
+// Pořadí i čísla na odznacích vycházejí z názvů souborů. V datech žádné
+// číslo není — jinak by se při každém přidání bodu muselo přečíslovat vše.
+const vsechny = (await getCollection('zamery'))
+  .sort((a, b) => a.id.localeCompare(b.id, 'cs'))
+  .map((zamer, i) => ({ ...zamer, cislo: i + 1 }));
 
 // Bod mimo výřez by se vykreslil někde za okrajem mapy, kde ho nikdo neuvidí.
 // Radši o tom hlasitě řekneme při sestavení, než aby zmizel potichu.
@@ -100,14 +104,14 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
                   <button
                     type="button"
                     class="mapa-bod"
-                    data-bod={zamer.data.poradi}
+                    data-bod={zamer.cislo}
                     data-tema={temaDoAdresy(zamer.data.tema)}
                     data-mx={(zamer.poloha.x / 100) * ROZMER.sirka}
                     data-my={(zamer.poloha.y / 100) * ROZMER.vyska}
                     style={`left: ${zamer.poloha.x}%; top: ${zamer.poloha.y}%; --barva: ${BARVA_TEMATU[zamer.data.tema]}`}
-                    aria-label={`${zamer.data.poradi}. ${zamer.data.nazev}`}
+                    aria-label={`${zamer.cislo}. ${zamer.data.nazev}`}
                   >
-                    <span aria-hidden="true">{zamer.data.poradi}</span>
+                    <span aria-hidden="true">{zamer.cislo}</span>
                   </button>
                 ))
               }
@@ -133,13 +137,13 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
           sObsahem.map((zamer) => (
             <li
               class="zamer"
-              data-polozka={zamer.data.poradi}
+              data-polozka={zamer.cislo}
               data-tema={temaDoAdresy(zamer.data.tema)}
             >
               <details>
                 <summary>
                   <span class="zamer-cislo" style={`--barva: ${BARVA_TEMATU[zamer.data.tema]}`}>
-                    {zamer.data.poradi}
+                    {zamer.cislo}
                   </span>
                   <span class="zamer-hlava">
                     <span class="zamer-nazev">{zamer.data.nazev}</span>

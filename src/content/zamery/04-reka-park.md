@@ -1,5 +1,4 @@
 ---
-poradi: 4
 nazev: Řeka Haná ve Smetanových sadech
 tema: Zeleň a voda
 lat: 49.28297

@@ -1,5 +1,4 @@
 ---
-poradi: 6
 nazev: Nová Billa a její parkoviště
 tema: Zeleň a voda
 lat: 49.28553

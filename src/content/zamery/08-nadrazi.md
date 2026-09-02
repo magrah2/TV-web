@@ -1,5 +1,4 @@
 ---
-poradi: 8
 nazev: Okolí nádraží
 tema: Doprava
 lat: 49.27894

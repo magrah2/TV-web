@@ -1,5 +1,4 @@
 ---
-poradi: 7
 nazev: Parkování na Dukelské
 tema: Doprava
 lat: 49.28084

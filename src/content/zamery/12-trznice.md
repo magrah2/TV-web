@@ -1,5 +1,4 @@
 ---
-poradi: 12
 nazev: Veřejný prostor u kamenné tržnice
 tema: Zeleň a voda
 lat: 49.27935

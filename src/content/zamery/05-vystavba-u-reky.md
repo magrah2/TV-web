@@ -1,5 +1,4 @@
 ---
-poradi: 5
 nazev: Zástavba přímo u řeky
 tema: Bydlení
 lat: 49.27893

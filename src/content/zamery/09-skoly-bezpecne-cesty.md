@@ -1,5 +1,4 @@
 ---
-poradi: 9
 nazev: Bezpečné cesty do škol
 tema: Bezpečnost
 lat: 49.27692

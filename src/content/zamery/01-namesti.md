@@ -1,5 +1,4 @@
 ---
-poradi: 1
 nazev: Masarykovo náměstí
 tema: Zeleň a voda
 lat: 49.27789

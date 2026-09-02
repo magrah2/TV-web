@@ -1,5 +1,4 @@
 ---
-poradi: 11
 nazev: Pocitová mapa bezpečnosti
 tema: Bezpečnost
 lat: 49.27327
