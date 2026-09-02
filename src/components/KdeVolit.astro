@@ -459,9 +459,18 @@ const celek = {
     background: #081a29;
     border: 1px solid var(--linka-na-noci);
     border-radius: var(--radius);
-    /* Kolečko nad mapou přibližuje, takže se pod prstem nesmí posouvat stránka. */
-    touch-action: none;
+    /* Dvěma prsty se přibližuje mapa, jedním se roluje stránka.
+       `pan-y` je tu nutné: bez něj si prohlížeč vezme štípnutí sám a přiblíží
+       celou stránku, takže mapa se dvěma prsty vůbec zvětšit nedá. Úplné
+       `none` se zapíná teprve u přiblížené mapy, kde má jeden prst posouvat
+       mapu, ne stránku — kdyby platilo pořád, nešlo by se přes mapu na mobilu
+       vůbec prorolovat. */
+    touch-action: pan-y;
     cursor: grab;
+  }
+
+  .mapa-plocha[data-priblizeno] {
+    touch-action: none;
   }
 
   .mapa-plocha[data-taham] {
@@ -875,6 +884,10 @@ const celek = {
     }
 
     rozmistiPopisky();
+
+    // Podle tohohle příznaku CSS přepíná `touch-action`: u přiblížené mapy
+    // posouvá jeden prst mapu, u oddálené roluje stránku.
+    mapa.toggleAttribute('data-priblizeno', pohled.w < nejvetsiSirka() - 0.01);
 
     if (ovladani) {
       const naDoraz = pohled.w >= nejvetsiSirka() - 0.01;

@@ -12,8 +12,19 @@ const VOLBY = new Date('2026-10-09T14:00:00+02:00');
 const dnuDoVoleb = Math.max(0, Math.ceil((VOLBY.getTime() - Date.now()) / 86_400_000));
 
 const program = (await getCollection('program')).sort((a, b) => a.data.poradi - b.data.poradi);
+
+// Podrobný rozpis nemá každá oblast, takže tlačítko „Chci vědět víc" se
+// v panelu ukáže jen tam, kde je kam kliknout.
+const detailOblasti = new Map(
+  (await getCollection('programDetail')).map((d) => [d.data.oblast, d.id]),
+);
+
 const programSObsahem = await Promise.all(
-  program.map(async (oblast) => ({ ...oblast, Obsah: (await render(oblast)).Content })),
+  program.map(async (oblast) => ({
+    ...oblast,
+    Obsah: (await render(oblast)).Content,
+    detail: detailOblasti.get(oblast.id) ?? null,
+  })),
 );
 
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
@@ -130,6 +141,20 @@ const prvni = kandidati.slice(0, 6);
               <div class="dlazdice-obsah">
                 <oblast.Obsah />
               </div>
+              {
+                oblast.detail && (
+                  <p class="program-panel-vic">
+                    <a
+                      class="tlacitko tlacitko-hlavni"
+                      href={odkaz(`/program/${oblast.detail}/`)}
+                    >
+                      Chci vědět víc
+                      <span class="jen-pro-ctecky">o oblasti {oblast.data.nazev}</span>
+                      <span aria-hidden="true">→</span>
+                    </a>
+                  </p>
+                )
+              }
             </div>
           ))
         }
@@ -508,6 +533,10 @@ const prvni = kandidati.slice(0, 6);
 
   .dlazdice-obsah :global(li)::marker {
     color: var(--zelena);
+  }
+
+  .program-panel-vic {
+    margin: 1.4rem 0 0;
   }
 
   .program-odkaz {

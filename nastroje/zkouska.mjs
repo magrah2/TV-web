@@ -245,6 +245,25 @@ try {
   await stranka.waitForTimeout(400);
   overit('vybrany bod zustane zvyrazneny i po odjeti mysi', 1,
     await stranka.locator('.mapa-bod.je-zvyrazneny').count());
+
+  // Stipnuti dvema prsty musi priblizit mapu, ne celou stranku. Rozhoduje
+  // o tom `touch-action`: bez `pan-y` si gesto vezme prohlizec sam.
+  const dotyk = (sel) => stranka.$eval(sel, (e) => getComputedStyle(e).touchAction);
+  const oddalMapu = async () => {
+    const t = stranka.locator('[data-zoom="reset"]');
+    if (await t.isEnabled()) {
+      await t.click();
+      await stranka.waitForTimeout(300);
+    }
+  };
+
+  await oddalMapu();
+  overit('oddalena mapa zameru pusti stipnuti do skriptu', 'pan-y',
+    await dotyk('.mapa-plocha'));
+  await stranka.click('[data-zoom="dovnitr"]');
+  await stranka.waitForTimeout(300);
+  overit('priblizena mapa zameru posouva mapu, ne stranku', 'none',
+    await dotyk('.mapa-plocha'));
   overit('ostatni body pri vyberu ustoupi', true,
     (await stranka.getAttribute('.mapa-plocha', 'data-zvyraznuji')) !== null);
 
@@ -337,6 +356,15 @@ try {
   overit('priblizeni meni viewBox', true, pred !== po);
   overit('mapa se nezvetsuje pres transform', '',
     (await stranka.getAttribute('.mapa-plocha svg', 'style')) ?? '');
+
+  // Totez u mapy volebnich mistnosti.
+  await oddalMapu();
+  overit('oddalena mapa kde volit pusti stipnuti do skriptu', 'pan-y',
+    await stranka.$eval('.mapa-plocha', (e) => getComputedStyle(e).touchAction));
+  await stranka.click('[data-zoom="dovnitr"]');
+  await stranka.waitForTimeout(300);
+  overit('priblizena mapa kde volit posouva mapu, ne stranku', 'none',
+    await stranka.$eval('.mapa-plocha', (e) => getComputedStyle(e).touchAction));
 
   // Nazvy mistnich casti se rozestupuji podle skutecneho prekryvu. Kdyby se
   // to rozbilo, mapa se necha prelepit nazvy pres sebe a stane se necitelnou.

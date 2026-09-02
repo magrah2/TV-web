@@ -66,9 +66,10 @@ const sObsahem = await Promise.all(
               {
                 oblast.detail && (
                   <p class="oblast-vic">
-                    <a href={odkaz(`/program/${oblast.detail}/`)}>
-                      Chci vědět víc <span aria-hidden="true">→</span>
-                      <span class="jen-pro-ctecky"> o oblasti {oblast.data.nazev}</span>
+                    <a class="tlacitko tlacitko-hlavni" href={odkaz(`/program/${oblast.detail}/`)}>
+                      Chci vědět víc
+                      <span class="jen-pro-ctecky">o oblasti {oblast.data.nazev}</span>
+                      <span aria-hidden="true">→</span>
                     </a>
                   </p>
                 )
@@ -138,25 +139,10 @@ const sObsahem = await Promise.all(
     color: var(--inkoust-tlum);
   }
 
+  /* Odkaz na podrobnosti nosí stejné tlačítko jako hlavní odkazy na webu.
+     Podtržený text se v odrážkách ztrácel a nikdo si ho nevšiml. */
   .oblast-vic {
-    margin: 1.1rem 0 0;
-  }
-
-  .oblast-vic a {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: var(--text-maly);
-    font-weight: 600;
-    color: var(--modra-text);
-    text-decoration: none;
-    border-bottom: 2px solid color-mix(in srgb, var(--modra) 35%, transparent);
-    padding-bottom: 0.1rem;
-    transition: border-color var(--prechod);
-  }
-
-  .oblast-vic a:hover {
-    border-bottom-color: var(--modra);
+    margin: 1.4rem 0 0;
   }
 
   .oblast-obsah {
