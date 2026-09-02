@@ -1,6 +1,5 @@
 ---
 import Zaklad from '../layouts/Zaklad.astro';
-import Krivka from '../components/Krivka.astro';
 
 const EMAIL = 'info@transparentnivyskov.cz';
 
@@ -83,8 +82,10 @@ const SITE = [
       }
     </div>
 
+    {/* Bez značky: samotná zelená stopa z loga tu působila jako utržený
+        kousek a celé logo by se pár centimetrů pod hlavičkou opakovalo.
+        Okénko má říct datum a hodiny, na to značku nepotřebuje. */}
     <aside class="volby">
-      <Krivka varianta="znacka" class="volby-znak" />
       <h2>Volby do zastupitelstva</h2>
       <p class="volby-datum">9.–10. října 2026</p>
       <p class="volby-hodiny">
@@ -216,11 +217,6 @@ const SITE = [
     border: 1px solid var(--linka);
     border-radius: var(--radius);
     box-shadow: var(--stin);
-  }
-
-  .volby :global(.volby-znak) {
-    width: 2rem;
-    margin-bottom: 0.9rem;
   }
 
   .volby h2 {
