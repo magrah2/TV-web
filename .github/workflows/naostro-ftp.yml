@@ -141,7 +141,11 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
       - name: Spočítat nanečisto, co by se smazalo
-        if: inputs.zkusebni_soubor == false
+        # Přeskakuje se při „velkém úklidu": tenhle krok existuje jen proto,
+        # aby nakrmil pojistku níž, a tu velký úklid stejně přebíjí. Projít
+        # přes FTP celý starý web soubor po souboru trvá i desítky minut,
+        # takže to není zdržení, které by mělo smysl podstupovat zbytečně.
+        if: inputs.zkusebni_soubor == false && inputs.velky_uklid == false
         id: zkouska
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
@@ -179,9 +183,13 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
-          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
-          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
-          # by tise chybelo.
+          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
+          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
+          # a nastaveni serveru by tise chybelo.
+          #
+          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
+          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
+          # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
           set net:max-retries 3
@@ -205,6 +213,10 @@ jobs:
       - name: Zastavit se, když je mazání podezřele velké
         if: inputs.zkusebni_soubor == false && inputs.nanecisto == false && inputs.velky_uklid == false
         run: |
+          if [ -z "${{ steps.zkouska.outputs.smaze }}" ]; then
+            echo "Pocet mazanych souboru se nepodarilo zjistit, nepokracuji."
+            exit 1
+          fi
           if [ "${{ steps.zkouska.outputs.smaze }}" -ge "$STROP_MAZANI" ]; then
             echo "Nahravani by smazalo ${{ steps.zkouska.outputs.smaze }} souboru."
             echo "To je vic nez strop $STROP_MAZANI, takze se nic nenahralo."
@@ -257,9 +269,13 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
-          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
-          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
-          # by tise chybelo.
+          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
+          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
+          # a nastaveni serveru by tise chybelo.
+          #
+          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
+          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
+          # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
           set net:max-retries 3
@@ -329,9 +345,13 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
-          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
-          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
-          # by tise chybelo.
+          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
+          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
+          # a nastaveni serveru by tise chybelo.
+          #
+          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
+          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
+          # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
           set net:max-retries 2
