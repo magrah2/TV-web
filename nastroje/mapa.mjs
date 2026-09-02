@@ -29,7 +29,10 @@ const SIRKA = 1000;
 const MAPY = [
   {
     nazev: 'mesto',
-    vyrez: { jih: 49.2636, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 },
+    // Jizni okraj saha az pod rybniky Kacenec (mistne Kacak). Bez toho
+    // by z lokality, ve ktere chceme klimapark, byla na mape videt jen
+    // polovina jednoho rybnika - a zamer, jehoz misto neni videt, je k nicemu.
+    vyrez: { jih: 49.258, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 },
     svg: 'public/mapa-vyskov.svg',
     json: 'src/lib/mapa-vyrez.json',
   },
@@ -69,12 +72,21 @@ const PORADI = [
 
 async function stahniData(mapa) {
   const mezipamet = `nastroje/.mapa-data-${mapa.nazev}.json`;
+  const v = mapa.vyrez;
+  // Klic vyrezu se uklada spolu s daty. Bez toho by se po posunuti okraje
+  // mapy pouzila stara data a novy pruh by v mape tise chybel - to je chyba,
+  // ktera se poznat neda, protoze mapa vypada v poradku, jen jsou v ni dira.
+  const klic = `${v.jih},${v.zapad},${v.sever},${v.vychod}`;
+
   if (fs.existsSync(mezipamet)) {
-    console.log('   pouzivam ulozena data z ' + mezipamet);
-    return JSON.parse(fs.readFileSync(mezipamet, 'utf8'));
+    const ulozene = JSON.parse(fs.readFileSync(mezipamet, 'utf8'));
+    if (ulozene.klicVyrezu === klic) {
+      console.log('   pouzivam ulozena data z ' + mezipamet);
+      return ulozene;
+    }
+    console.log('   vyrez se zmenil, stahuji data znovu');
   }
 
-  const v = mapa.vyrez;
   const bbox = `${v.jih},${v.zapad},${v.sever},${v.vychod}`;
   const dotaz = `[out:json][timeout:180];
 (
@@ -100,6 +112,7 @@ out geom;`;
   });
   if (!odpoved.ok) throw new Error('Overpass odpovedel ' + odpoved.status);
   const data = await odpoved.json();
+  data.klicVyrezu = klic;
   fs.writeFileSync(mezipamet, JSON.stringify(data));
   console.log('   ulozeno do ' + mezipamet + ' (' + data.elements.length + ' prvku)');
   return data;
