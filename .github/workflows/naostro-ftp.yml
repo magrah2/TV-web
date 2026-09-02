@@ -72,6 +72,10 @@ env:
 jobs:
   naostro:
     runs-on: ubuntu-latest
+    # Bez tohohle by zaseknuté spojení na FTP viselo až šest hodin, což je
+    # výchozí strop GitHubu. Nahrání patnácti stránek trvá jednotky minut;
+    # když to běží dvacet, něco se zaseklo a nemá smysl čekat dál.
+    timeout-minutes: 20
     steps:
       - name: Zkontrolovat, že jsou vyplněné údaje
         env:
@@ -141,6 +145,11 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
       - name: Spočítat nanečisto, co by se smazalo
+        # Projít starý web přes FTP je to nejpomalejší na celém nasazení.
+        # Když se do deseti minut nedopočítá, je jich tolik, že nemá smysl
+        # čekat — v takovém případě se pouští „velký úklid", který tenhle
+        # krok přeskočí.
+        timeout-minutes: 10
         # Přeskakuje se při „velkém úklidu": tenhle krok existuje jen proto,
         # aby nakrmil pojistku níž, a tu velký úklid stejně přebíjí. Projít
         # přes FTP celý starý web soubor po souboru trvá i desítky minut,
