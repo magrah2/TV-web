@@ -14,11 +14,14 @@
 #   FTP_HESLO     heslo
 #   FTP_ADRESAR   složka na serveru, do které web patří (viz níž)
 #
-# FTP_ADRESAR je potřeba trefit přesně. U Wedosu je to zpravidla
-# `/public_html/`, ale jistotu dá jen pohled FTP klientem: správná složka
-# je ta, ve které leží současný web (poznáte ji podle `index.php` nebo
-# `wp-content`). Když se to netrefí, web se nahraje vedle a na doméně se
-# nic nezmění.
+# FTP_ADRESAR je potřeba trefit přesně: je to složka, kterou hosting
+# servíruje jako web. U Wedosu bývá `/public_html/`, ale jistotu dá jen
+# administrace Wedosu nebo pohled FTP klientem. Když se to netrefí, web se
+# nahraje vedle a na doméně se nic nezmění.
+#
+# Než se pustí tenhle běh, vyplatí se pustit „Zkouška FTP připojení" —
+# nahraje jen jeden neškodný soubor a vypíše obsah složky, takže se
+# přihlašovací údaje i adresář ověří, aniž by se na web sáhlo.
 #
 # POZOR, tohle je ta nebezpečná část: nahrávání je zrcadlení. Co je ve
 # složce na serveru navíc oproti `dist/`, to se SMAŽE — jinak by tam po

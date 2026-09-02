@@ -161,10 +161,19 @@ Actions → New repository secret:
 | `FTP_HESLO` | heslo |
 | `FTP_ADRESAR` | složka s webem, u Wedosu zpravidla `/public_html/` |
 
-`FTP_ADRESAR` musí sedět. Správná složka je ta, ve které leží současný web —
-poznáte ji podle `index.php` nebo `wp-content`. Ověřte si to FTP klientem,
-protože nahrávání **maže na serveru soubory, které ve webu nejsou** (jinak
-by tam po každé změně zůstávaly staré stránky).
+`FTP_ADRESAR` musí sedět — je to složka, kterou hosting servíruje jako web.
+Nehádejte ji: pusťte nejdřív úlohu **Zkouška FTP připojení** (Actions →
+Zkouška FTP připojení → Run workflow). Nahraje jen jeden neškodný textový
+soubor, nic nemaže a vypíše, co ve složce leží. Tím se ověří přihlašovací
+údaje i adresář, aniž by se na web sáhlo. Až zkoušku dokončíte, spusťte ji
+znovu se zaškrtnutým „Uklidit po sobě" a zkušební soubor zmizí.
+
+Na tom záleží, protože ostré nahrávání **maže na serveru soubory, které ve
+webu nejsou** (jinak by tam po každé změně zůstávaly staré stránky).
+
+⚠️ **Web se na doméně neobjeví, dokud na hosting nemíří DNS.** Nahrání na
+FTP a přepnutí domény jsou dvě různé věci — než se DNS přepne, bude se na
+`transparentnivyskov.cz` dál zobrazovat starý web.
 
 Proti chybě v adresáři je pojistka: běh si nejdřív nanečisto spočítá, kolik
 souborů by smazal, a když jich je sto a víc, zastaví se a vypíše je. Při
