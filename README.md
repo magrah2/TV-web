@@ -166,8 +166,23 @@ většinou `/public_html/`. Záleží na tom, protože ostré nahrávání **ma�
 serveru soubory, které ve webu nejsou** (jinak by tam po každé změně
 zůstávaly staré stránky).
 
-`FTP_ADRESAR` není tajný údaj, a proto ho uložte do **Variables** (stejná
-stránka, vedlejší záložka), ne do Secrets. Hodnoty ze Secrets GitHub
+Ve **Variables** (stejná stránka, vedlejší záložka) se nastavují ještě dvě
+věci, které tajné nejsou:
+
+| Variable | Kdy ji nastavit |
+|---|---|
+| `FTP_ADRESAR` | vždy — složka s webem |
+| `FTP_CERTIFIKAT` | jen když nahrávání hlásí problém s certifikátem |
+
+Na sdíleném hostingu bývá certifikát FTP serveru vystavený na jméno
+poskytovatele, ne na adresu, přes kterou se připojujete. Spojení je pak
+pořád šifrované, jen se neshoduje jméno. V takovém případě nastavte
+`FTP_CERTIFIKAT` na **`jine-jmeno`** — certifikát se dál ověřuje, jen se
+nekontroluje shoda jména. Hodnota `neoverovat` vypne kontrolu úplně a je
+až na případ, kdy nepomůže nic jiného; heslo je i tak zašifrované, ale
+nikdo už neručí za to, s kým se spojení navázalo.
+
+`FTP_ADRESAR` patří do Variables, ne do Secrets. Hodnoty ze Secrets GitHub
 v záznamu běhu maskuje hvězdičkami, takže by v diagnostickém výpisu nebylo
 vidět, kam se vlastně nahrálo. Jako secret to funguje taky, jen se hůř
 hledají chyby.
