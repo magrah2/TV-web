@@ -212,8 +212,14 @@ Proti chybě v adresáři je pojistka: běh si nejdřív nanečisto spočítá, 
 souborů by smazal, a když jich je sto a víc, zastaví se a vypíše je. Při
 prvním nahrání přes starý WordPress to nastane — je to v pořádku, jen se
 musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
-úklid"**. Ve formuláři je i přepínač **„Jen nanečisto"**, který nic nenahraje
-a jen vypíše, co by se stalo.
+úklid"**.
+
+Ve shrnutí běhu se rozlišuje **smazat** a **přepsat**. Smaže se jen to, co
+na serveru je a ve webu už není; přepsání je nová verze téhož souboru, která
+hned zase vznikne pod stejným jménem. To číslo bývá vysoké a nic zlého
+neznamená. Počítá se to porovnáním seznamu souborů na serveru se seznamem
+souborů ve webu, ne čtením hlášek — dokud se počítaly hlášky, hlásila
+pojistka smazání celého webu i tehdy, když se nemazalo nic.
 
 ### Nastavení serveru je součástí webu
 

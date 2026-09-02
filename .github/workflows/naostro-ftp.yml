@@ -214,18 +214,58 @@ jobs:
           ADR="${ADRESAR%/}"
           cp spojeni.lftp prikazy.lftp
           {
-            echo "mirror --reverse --delete --dry-run --verbose --exclude-glob .well-known/ dist/ \"$ADR\""
+            echo "mirror --reverse --delete --dry-run --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
+            echo "mirror --reverse --delete --dry-run --verbose --exclude-glob .well-known/ --exclude-glob _astro/ dist/ \"$ADR\""
+            echo "find \"$ADR\" > seznam-serveru.txt"
             echo "bye"
           } >> prikazy.lftp
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp > nanecisto.txt 2>&1 || true
 
-          VZOR='^(rm|rmdir) |Removing old'
-          smaze=$(grep -c -E "$VZOR" nanecisto.txt || true)
+          # Kolik souboru by se smazalo, se pocita porovnanim seznamu, ne
+          # ctenim hlasek lftp. Smazat se ma to, co na serveru je a ve webu uz
+          # neni - a presne to je rozdil tech dvou seznamu.
+          #
+          # Driv se pocitaly radky vypisu, mimo jine "Removing old file". Ta
+          # hlaska ale znamena neco jineho: soubor se nahrazuje novou verzi,
+          # takze hned zase vznikne pod tymz jmenem. Po cerstvem sestaveni
+          # vypadaji novejsi vsechny soubory, takze se objevila u kazdeho z nich
+          # a pojistka hlasila mazani celeho webu, i kdyz se nemazalo nic.
+          # Navic tim cele mereni viselo na tom, jak lftp zrovna formuluje
+          # vypis. Porovnani seznamu na formulacich nezavisi.
+          sed -e "s|^${ADR}/||" -e 's|^\./||' seznam-serveru.txt             | grep -v '/$' | grep -v '^$' | grep -v '^\.well-known/'             | LC_ALL=C sort -u > na-serveru.txt
+          (cd dist && find . -type f | sed 's|^\./||') | LC_ALL=C sort -u > ve-webu.txt
+
+          # Kdyby se vypis ze serveru nepovedl, vysel by rozdil nula a pojistka
+          # by mlcky pustila dal cokoliv. Prazdny seznam je proto chyba.
+          if [ ! -s na-serveru.txt ]; then
+            echo "Seznam souboru na serveru je prazdny, coz nedava smysl."
+            echo "Nepokracuji - pojistka proti smazani webu by nefungovala."
+            echo "Vypis lftp:"
+            tail -30 nanecisto.txt
+            exit 1
+          fi
+
+          comm -23 na-serveru.txt ve-webu.txt > ke-smazani.txt
+          smaze=$(grep -c '' ke-smazani.txt || true)
+          prepise=$(grep -c "Removing old" nanecisto.txt || true)
+
           echo "smaze=$smaze" >> $GITHUB_OUTPUT
-          echo "Nanecisto by se smazalo souboru: $smaze"
-          echo "### Co by se smazalo: $smaze souboru" >> $GITHUB_STEP_SUMMARY
-          grep -E "$VZOR" nanecisto.txt | head -40 >> $GITHUB_STEP_SUMMARY || true
+          echo "Na serveru: $(grep -c '' na-serveru.txt), ve webu: $(grep -c '' ve-webu.txt)."
+          echo "Nanecisto: smazalo by se $smaze souboru, prepsalo $prepise."
+
+          echo "### Nanecisto" >> $GITHUB_STEP_SUMMARY
+          echo "- Na serveru je souboru: $(grep -c '' na-serveru.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "- Ve webu je souboru: $(grep -c '' ve-webu.txt)" >> $GITHUB_STEP_SUMMARY
+          echo "- Smazalo by se: **$smaze** (jsou na serveru, ve webu uz ne)" >> $GITHUB_STEP_SUMMARY
+          echo "- Prepsalo by se: **$prepise** (nova verze tehoz souboru)" >> $GITHUB_STEP_SUMMARY
+          if [ "$smaze" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Co by se smazalo:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            head -40 ke-smazani.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Zastavit se, když je mazání podezřele velké
         if: inputs.zkusebni_soubor == false && inputs.nanecisto == false && inputs.velky_uklid == false
