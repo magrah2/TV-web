@@ -42,4 +42,8 @@ nastroje/.okrsky/
 # puvodni fotky kandidatu v plne velikosti (desitky MB) - do gitu jde jen
 # zmensena verze v src/assets/portrety/, kterou z nich vyrobi
 # nastroje/zmensit-fotky.mjs
-/fotky-original/
+#
+# Ignoruje se OBSAH slozky, ne slozka sama. Kdyby se ignorovala cela, po
+# stazeni repozitare by neexistovala a nikdo by nepoznal, kam fotky patri.
+/fotky-original/*
+!/fotky-original/.gitkeep

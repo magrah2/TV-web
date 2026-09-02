@@ -1,0 +1,16 @@
+Sem patří fotky kandidátů v PŮVODNÍ velikosti, tak jak přišly z fotoaparátu
+nebo z telefonu. Zmenšovat je ručně nemusíte.
+
+1. Fotku pojmenujte stejně jako soubor kandidáta v src/content/kandidati/,
+   jen s příponou obrázku:
+       20-vojtech-liska.md  →  20-vojtech-liska.jpg
+2. Uložte ji sem.
+3. Spusťte `npm run zmensit-fotky`.
+
+Skript z ní vyrobí zmenšenou verzi v src/assets/portrety/ a tu už web
+používá. Pouštět se dá opakovaně, jen přepíše výsledky.
+
+Obsah téhle složky se do gitu NEUKLÁDÁ — originály mají klidně desítky MB
+a repozitář by kvůli nim zbytečně narostl. Sama složka v gitu je schválně,
+aby bylo vidět, kam se fotky dávají. Do gitu jde jen ta zmenšená verze
+v src/assets/portrety/, bez které by se web na GitHubu nesestavil.

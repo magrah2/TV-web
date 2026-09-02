@@ -5,16 +5,19 @@ import Krivka from '../components/Krivka.astro';
 const EMAIL = 'info@transparentnivyskov.cz';
 
 /**
- * Profily na sociálních sítích. Adresy zatím nemám — až je doplníte, odkaz
- * se objeví sám. Prázdná adresa se nevykreslí vůbec, aby na webu nikdy
- * nebylo tlačítko, které nikam nevede.
+ * Profily na sociálních sítích. Prázdná adresa se nevykreslí, aby na webu
+ * nikdy nebylo tlačítko, které nikam nevede.
+ *
+ * Instagramová adresa je schválně bez `?igsi=…`. Ten přívěsek přidává
+ * aplikace, když se odkaz sdílí, a označuje, odkud sdílení přišlo —
+ * na webu nemá co dělat a bez něj odkaz vede na totéž.
  *
  * Ikonky sítí tu schválně nejsou: web má jediný grafický motiv, a to křivku
  * z loga. Cizí loga by se navíc musela stáhnout odjinud, což tenhle web nedělá.
  */
 const SITE = [
-  { nazev: 'Facebook', adresa: '' },
-  { nazev: 'Instagram', adresa: '' },
+  { nazev: 'Facebook', adresa: 'https://www.facebook.com/profile.php?id=61589465665637' },
+  { nazev: 'Instagram', adresa: 'https://www.instagram.com/transparentni_vyskov' },
 ].filter((s) => s.adresa);
 ---
 

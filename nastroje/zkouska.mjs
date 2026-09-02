@@ -230,6 +230,24 @@ try {
   overit('odznaky se pri priblizeni presunou', true,
     odznakPred !== (await stranka.getAttribute('.mapa-bod[data-bod="1"]', 'style')));
 
+  // Vybrany bod musi zustat zvyrazneny i po odjeti mysi. Klik do mapy
+  // odroluje na polozku v seznamu, mapa se pohne pod kurzorem a `mouseleave`
+  // drive zvyrazneni hned zhaslo — clovek pak nevedel, co si vybral.
+  // Predchozi test nechal zapnuty filtr, ktery bod 1 skryva a odebira mu
+  // `pointer-events` — bez zruseni filtru by klik propadl do mapy pod nim.
+  await stranka.click('.mapa-filtry .filtr[data-tema=""]');
+  await stranka.waitForTimeout(300);
+  await stranka.click('[data-zoom="reset"]');
+  await stranka.waitForTimeout(300);
+  await stranka.click('.mapa-bod[data-bod="1"]');
+  await stranka.waitForTimeout(600);
+  await stranka.mouse.move(5, 5);
+  await stranka.waitForTimeout(400);
+  overit('vybrany bod zustane zvyrazneny i po odjeti mysi', 1,
+    await stranka.locator('.mapa-bod.je-zvyrazneny').count());
+  overit('ostatni body pri vyberu ustoupi', true,
+    (await stranka.getAttribute('.mapa-plocha', 'data-zvyraznuji')) !== null);
+
   // --- Kde volit -----------------------------------------------------------
   // Vyhledavac rika lidem, kam maji jit volit. Kdyby ukazoval spatne, poslali
   // bychom je do nespravne mistnosti — proto se kontroluje proti udajum

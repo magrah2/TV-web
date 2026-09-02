@@ -389,14 +389,36 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     /* Odznak leží nad mapou, ne v ní, takže se s přiblížením nezvětšuje
        sám — zvětší se jen pod kurzorem a u zvýrazněné položky. */
     transform: scale(var(--zvetseni, 1));
-    transition: transform var(--prechod), opacity var(--prechod), box-shadow var(--prechod);
+    transition:
+      transform var(--prechod),
+      opacity var(--prechod),
+      border-color var(--prechod),
+      box-shadow var(--prechod);
   }
 
-  .mapa-bod:hover,
-  .mapa-bod.je-zvyrazneny {
+  .mapa-bod:hover {
     --zvetseni: 1.28;
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.6);
     z-index: 2;
+  }
+
+  /* Vybraný bod musí být poznat na první pohled. Samotné zvětšení nestačí —
+     v hromadě stejně velkých koleček se ztratí, tak k němu přibyl světlý
+     prstenec a ostatní body ustoupí. */
+  .mapa-bod.je-zvyrazneny {
+    --zvetseni: 1.5;
+    border-color: #fff;
+    box-shadow:
+      0 0 0 4px rgb(255 255 255 / 0.4),
+      0 6px 20px rgb(0 0 0 / 0.7);
+    z-index: 3;
+  }
+
+  /* `:not([data-skryty])` tu musí být: odfiltrovaný bod má ustupovat víc
+     (0.12) a bez té výjimky by ho tohle pravidlo kvůli vyšší specifičnosti
+     přebilo a zase ho zviditelnilo. */
+  .mapa-plocha[data-zvyraznuji] .mapa-bod:not(.je-zvyrazneny):not([data-skryty]) {
+    opacity: 0.4;
   }
 
   .mapa-bod[data-skryty] {
@@ -533,13 +555,29 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     const body = [...mapa.querySelectorAll<HTMLButtonElement>('.mapa-bod')];
     const polozky = [...seznam.querySelectorAll<HTMLElement>('.zamer')];
 
-    const bodPodle = (poradi: string) => body.find((b) => b.dataset.bod === poradi);
     const polozkaPodle = (poradi: string) => polozky.find((p) => p.dataset.polozka === poradi);
+
+    /**
+     * Vybraný záměr. Drží se zvlášť od najetí myší, protože po kliknutí do
+     * mapy se odroluje na položku v seznamu — mapa se přitom pohne pod
+     * kurzorem, kurzor bod opustí a `mouseleave` by výběr hned zhasl.
+     * Najetí se tedy jen dočasně přiloží a při odjetí se vrátí to vybrané.
+     */
+    let vybrany: string | null = null;
 
     /** Zvýrazní dvojici bod + položka. Volá se z obou stran. */
     function zvyraznit(poradi: string | null) {
       for (const b of body) b.classList.toggle('je-zvyrazneny', b.dataset.bod === poradi);
       for (const p of polozky) p.classList.toggle('je-zvyrazneny', p.dataset.polozka === poradi);
+      // Podle tohohle příznaku CSS utlumí ostatní body. Kdyby se ustupovalo
+      // pořád, mapa by vypadala vybledle i bez vybraného bodu.
+      mapa!.toggleAttribute('data-zvyraznuji', poradi !== null);
+    }
+
+    /** Vybere záměr natrvalo — dokud si člověk nevybere jiný. */
+    function vybrat(poradi: string | null) {
+      vybrany = poradi;
+      zvyraznit(poradi);
     }
 
     // --- Klik na bod v mapě rozbalí položku v seznamu ----------------------
@@ -554,12 +592,12 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
           const detail = jina.querySelector('details');
           if (detail) detail.open = jina === polozka;
         }
-        zvyraznit(poradi);
+        vybrat(poradi);
         polozka.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       });
 
       bod.addEventListener('mouseenter', () => zvyraznit(bod.dataset.bod!));
-      bod.addEventListener('mouseleave', () => zvyraznit(null));
+      bod.addEventListener('mouseleave', () => zvyraznit(vybrany));
     }
 
     // --- Rozbalení v seznamu zvýrazní bod v mapě ---------------------------
@@ -572,17 +610,11 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
           const jiny = jina.querySelector('details');
           if (jiny && jina !== polozka) jiny.open = false;
         }
-        zvyraznit(polozka.dataset.polozka!);
+        vybrat(polozka.dataset.polozka!);
       });
 
-      polozka.addEventListener('mouseenter', () => {
-        bodPodle(polozka.dataset.polozka!)?.classList.add('je-zvyrazneny');
-      });
-      polozka.addEventListener('mouseleave', () => {
-        if (!polozka.querySelector('details')?.open) {
-          bodPodle(polozka.dataset.polozka!)?.classList.remove('je-zvyrazneny');
-        }
-      });
+      polozka.addEventListener('mouseenter', () => zvyraznit(polozka.dataset.polozka!));
+      polozka.addEventListener('mouseleave', () => zvyraznit(vybrany));
     }
 
     // --- Zvětšování a posouvání mapy ---------------------------------------
@@ -823,7 +855,7 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
             if (detail) detail.open = false;
           }
         }
-        zvyraznit(null);
+        vybrat(null);
       });
     }
   }

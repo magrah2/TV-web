@@ -1,4 +1,10 @@
-Sem patří portréty kandidátů v původní velikosti (nezmenšené).
-Web si zmenšeniny a ořezy udělá sám.
-Název souboru se pak zapíše do pole `foto:` u příslušného člověka
-ve složce src/content/kandidati/.
+Tady leží zmenšené portréty, které web skutečně používá — vyrábí je
+`npm run zmensit-fotky` z původních fotek ve složce `fotky-original/`.
+
+Soubor se jmenuje stejně jako soubor kandidáta v src/content/kandidati/,
+jen s příponou .jpg: 20-vojtech-liska.md → 20-vojtech-liska.jpg.
+Nikde se to nevypisuje, přiřazení dělá src/lib/portrety.ts podle názvu.
+Když fotka chybí, ukáže se zástupná silueta.
+
+Tyhle zmenšené fotky se do gitu ukládat MUSÍ. Web se sestavuje na GitHubu
+z toho, co je v repozitáři, takže bez nich by nasazení spadlo.
