@@ -1,8 +1,8 @@
 ---
 nazev: Klimapark u Kačáku
 tema: Zeleň a voda
-lat: 49.26720
-lon: 16.99050
+lat: 49.26660
+lon: 16.99390
 stav: navrh   # NÁVRH — poloha je skutečná, text je návrh k diskuzi. Potvrďte nebo přepište.
 ---
 
