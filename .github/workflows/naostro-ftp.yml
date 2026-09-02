@@ -330,6 +330,63 @@ jobs:
           bye
           LFTP
 
+      - name: Zkontrolovat nasazený web
+        # Po nahrani se web opravdu navstivi. Do ted jsme se spolehali na to,
+        # ze nahrani probehlo bez chyby - jenze „soubory jsou na serveru"
+        # a „web funguje" nejsou tataz vec: server je muze servirovat jinak,
+        # nez cekame. Otaznik v adrese obchazi mezipamet, aby se kontrolovalo
+        # to, co je tam ted.
+        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
+        run: |
+          WEB="https://transparentnivyskov.cz"
+          CHYBY=0
+          echo "## Kontrola nasazeneho webu" >> $GITHUB_STEP_SUMMARY
+
+          # 1) Uvodni stranka musi byt ta nova.
+          TELO=$(curl -s -m 30 "$WEB/?x=$GITHUB_RUN_ID")
+          if echo "$TELO" | grep -q "Jdetoijinak"; then
+            echo "- Uvodni stranka: nova verze webu" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Uvodni stranka neni ta nova**" >> $GITHUB_STEP_SUMMARY
+            CHYBY=$((CHYBY+1))
+          fi
+
+          # 2) Pruh „Nahled" a noindex na ostrem webu byt nesmi.
+          if echo "$TELO" | grep -q "noindex"; then
+            echo "- **Ostry web ma noindex**" >> $GITHUB_STEP_SUMMARY
+            CHYBY=$((CHYBY+1))
+          else
+            echo "- Bez noindex, jak ma byt" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # 3) Neexistujici adresa: spravny kod a nase vlastni stranka.
+          KOD=$(curl -s -m 30 -o ctyristactyri.html -w "%{http_code}" "$WEB/neexistuje-$GITHUB_RUN_ID")
+          if [ "$KOD" = "404" ]; then
+            echo "- Neexistujici adresa vraci 404" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Neexistujici adresa vraci $KOD misto 404**" >> $GITHUB_STEP_SUMMARY
+            CHYBY=$((CHYBY+1))
+          fi
+          if grep -q "Tuhle stranku\|Tuhle stránku" ctyristactyri.html; then
+            echo "- Ukazuje se nase stranka 404" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Ukazuje se serverova stranka 404, ne nase.**" >> $GITHUB_STEP_SUMMARY
+            echo "  Znamena to, ze server necte ErrorDocument z .htaccess." >> $GITHUB_STEP_SUMMARY
+            echo "  Nastavuje se to v administraci hostingu." >> $GITHUB_STEP_SUMMARY
+            CHYBY=$((CHYBY+1))
+          fi
+
+          # 4) .htaccess ma na serveru byt, ale nesmi jit stahnout.
+          KOD=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$WEB/.htaccess")
+          echo "- Soubor .htaccess: HTTP $KOD (403 znamena, ze tam je a je chraneny)" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "$CHYBY" -gt 0 ]; then
+            echo "Nasel jsem $CHYBY veci, ktere nesedi. Web je nahrany, ale projdete si je." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Vse v poradku." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Nahrát zkušební soubor a vypsat obsah složky
         # Žádný `mirror`, žádné `--delete` — jen jeden `put` a výpis. Web se
         # tím nezmění, jen v jeho složce přibude textový soubor, který jde
