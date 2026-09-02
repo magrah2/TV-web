@@ -201,8 +201,14 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          set net:max-retries 3
-          set net:timeout 20
+          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
+          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          set ftp:passive-mode true
+          set ftp:prefer-epsv false
+          set mirror:parallel-transfer-count 1
+          set net:max-retries 5
+          set net:timeout 40
+          set net:reconnect-interval-base 5
           mirror --reverse --delete --dry-run --verbose \
             --exclude-glob .well-known/ \
             dist/ "$ADRESAR"
@@ -275,6 +281,9 @@ jobs:
             echo ">> Certifikat: overuji certifikat i jmeno"
           fi
 
+          # Bez odriznuti koncoveho lomitka by vznikla cesta se dvema.
+          ADR="${ADRESAR%/}"
+
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
@@ -287,12 +296,23 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          set net:max-retries 3
-          set net:timeout 20
+          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
+          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          set ftp:passive-mode true
+          set ftp:prefer-epsv false
+          set mirror:parallel-transfer-count 1
+          set net:max-retries 5
+          set net:timeout 40
+          set net:reconnect-interval-base 5
           set cmd:fail-exit true
-          mirror --reverse --delete --verbose --parallel=3 \
+          echo "--- 1/2: obrazky a styly (preskoci se, co uz na serveru je) ---"
+          mirror --reverse --delete --ignore-time --verbose \
+            dist/_astro/ "$ADR/_astro/"
+          echo "--- 2/2: stranky a zbytek ---"
+          mirror --reverse --delete --verbose \
             --exclude-glob .well-known/ \
-            dist/ "$ADRESAR"
+            --exclude-glob _astro/ \
+            dist/ "$ADR"
           bye
           LFTP
 
@@ -363,8 +383,14 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          set net:max-retries 2
-          set net:timeout 20
+          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
+          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          set ftp:passive-mode true
+          set ftp:prefer-epsv false
+          set mirror:parallel-transfer-count 1
+          set net:max-retries 5
+          set net:timeout 40
+          set net:reconnect-interval-base 5
           set cmd:fail-exit true
           echo "--- kde jsem po prihlaseni ---"
           pwd
