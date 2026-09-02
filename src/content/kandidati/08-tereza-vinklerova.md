@@ -2,7 +2,7 @@
 poradi: 8
 jmeno: Tereza Vinklerová
 vek: 29
-povolani: osobní asistentka v Paprsku
+povolani: osobní asistentka v sociálních službách
 prislusnost: Strana zelených
 citace:   # jedna věta, která se na medailonku vytáhne velkým písmem
 ---
