@@ -314,6 +314,10 @@ jobs:
             echo ">> Certifikat: overuji certifikat i jmeno"
           fi
 
+          # `set -o pipefail` je tu nutny: bez nej ma roura navratovy kod
+          # posledniho clanku, tedy `tee`. Kdyby lftp selhalo, krok by presto
+          # skoncil uspechem a nikdo by se o chybe nedozvedel.
+          set -o pipefail
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
