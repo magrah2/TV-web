@@ -88,11 +88,11 @@ jobs:
 
       - name: Stáhnout zdrojové soubory
         if: inputs.zkusebni_soubor == false
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Připravit Node.js
         if: inputs.zkusebni_soubor == false
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
