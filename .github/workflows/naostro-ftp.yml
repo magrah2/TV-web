@@ -75,7 +75,7 @@ jobs:
     # Bez tohohle by zaseknuté spojení na FTP viselo až šest hodin, což je
     # výchozí strop GitHubu. Nahrání patnácti stránek trvá jednotky minut;
     # když to běží dvacet, něco se zaseklo a nemá smysl čekat dál.
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Zkontrolovat, že jsou vyplněné údaje
         env:
@@ -284,7 +284,8 @@ jobs:
           # Bez odriznuti koncoveho lomitka by vznikla cesta se dvema.
           ADR="${ADRESAR%/}"
 
-          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
+          # Prikazy pro lftp jdou do souboru, aby se daly poustet opakovane.
+          cat > prikazy.lftp <<LFTP
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
@@ -315,6 +316,29 @@ jobs:
             dist/ "$ADR"
           bye
           LFTP
+
+          # Server obcas spojeni odmitne a nahrani spadne na
+          # „max-retries exceeded". Neni to chyba nastaveni — tentyz beh
+          # jindy projde. Zrcadleni se da opakovat bez rizika: co uz je
+          # nahrane, se podruhe preskoci.
+          USPECH=""
+          for POKUS in 1 2 3; do
+            echo ">> Pokus $POKUS ze 3"
+            if lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp; then
+              USPECH=1
+              break
+            fi
+            if [ "$POKUS" -lt 3 ]; then
+              echo ">> Nepovedlo se. Nechavam server chvili vydechnout a zkousim znovu."
+              sleep 45
+            fi
+          done
+
+          if [ -z "$USPECH" ]; then
+            echo "Nahrani se nepovedlo ani na treti pokus."
+            echo "Zkuste to za chvili znovu - server nas nejspis docasne odmita."
+            exit 1
+          fi
 
       - name: Nahrát zkušební soubor a vypsat obsah složky
         # Žádný `mirror`, žádné `--delete` — jen jeden `put` a výpis. Web se
