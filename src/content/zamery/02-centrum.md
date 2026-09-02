@@ -1,5 +1,5 @@
 ---
-nazev: Ulice v centru
+nazev: Oživení centra
 tema: Podnikání
 lat: 49.27869
 lon: 16.99934
