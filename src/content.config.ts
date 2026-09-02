@@ -45,6 +45,34 @@ const program = defineCollection({
   }),
 });
 
+/**
+ * Podrobný rozpis programu.
+ *
+ * Na starém webu se u pěti oblastí schovával za tlačítkem „Chci vědět víc"
+ * a bylo v něm to nejkonkrétnější, co program má — čísla dotačních programů,
+ * jmenované lokality, počty bytů. Do odrážek na `/program/` se to nevejde,
+ * proto má každá takhle rozepsaná oblast vlastní stránku.
+ *
+ * Detail nemá každá oblast a mít nemusí: odkaz „Chci vědět víc" se u oblasti
+ * objeví, jen když k ní soubor existuje. Kdyby se vypisoval vždy, vedla by
+ * půlka odkazů na prázdno.
+ *
+ * `oblast` musí ukazovat na skutečnou oblast v kolekci `program`. Kontroluje
+ * to `src/pages/program/[oblast].astro` a překlep shodí sestavení — tuhle
+ * chybu má vidět tým, ne návštěvník.
+ */
+const programDetail = defineCollection({
+  loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/program-detail' }),
+  schema: z.object({
+    /** Identifikátor oblasti — název jejího souboru v `src/content/program`. */
+    oblast: z.string(),
+    /** Nadpis stránky. Bývá delší než název dlaždice. */
+    nadpis: z.string(),
+    /** Věta pod nadpisem. Nemá ji každá oblast. */
+    perex: z.string().nullish(),
+  }),
+});
+
 const zamery = defineCollection({
   loader: glob({ pattern: ['**/*.md', '!_*.md'], base: './src/content/zamery' }),
   schema: z.object({
@@ -67,4 +95,4 @@ const zamery = defineCollection({
   }),
 });
 
-export const collections = { kandidati, program, zamery };
+export const collections = { kandidati, program, programDetail, zamery };

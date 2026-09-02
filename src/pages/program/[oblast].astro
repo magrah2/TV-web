@@ -1,0 +1,239 @@
+---
+/**
+ * Podrobný rozpis jedné programové oblasti.
+ *
+ * Na `/program/` je oblast shrnutá do odrážek. Tady je to, co bylo na starém
+ * webu za tlačítkem „Chci vědět víc" — konkrétní čísla, jmenované lokality
+ * a dotační programy. Do odrážek se to nevejde a na jednu stránku dohromady
+ * taky ne: samotné bydlení je delší než celý zbytek programu.
+ *
+ * Adresa je vlastní pro každou oblast, takže se dá poslat samostatně —
+ * stejný důvod, proč má vlastní adresu i každý kandidát.
+ */
+
+import { getCollection, render } from 'astro:content';
+import Zaklad from '../../layouts/Zaklad.astro';
+import { BARVA_TEMATU } from '../../lib/temata';
+import type { Tema } from '../../lib/temata';
+import { odkaz } from '../../lib/odkaz';
+
+export async function getStaticPaths() {
+  const detaily = await getCollection('programDetail');
+  const oblasti = await getCollection('program');
+
+  return detaily.map((detail) => {
+    const oblast = oblasti.find((o) => o.id === detail.data.oblast);
+    // Bez oblasti by stránka neměla ani číslo, ani barvu, ani kam se vrátit.
+    // Sestavení proto skončí chybou — chyba se má ukázat nám, ne návštěvníkovi.
+    if (!oblast) {
+      throw new Error(
+        `Podrobný program „${detail.id}" ukazuje na oblast „${detail.data.oblast}", ` +
+          'která v `src/content/program` neexistuje.',
+      );
+    }
+    return { params: { oblast: detail.id }, props: { detail, oblast } };
+  });
+}
+
+const { detail, oblast } = Astro.props;
+const { Content } = await render(detail);
+
+// Sousedi v programu — ať se dá projít celý program bez vracení na rozcestí.
+const vsechny = (await getCollection('program')).sort((a, b) => a.data.poradi - b.data.poradi);
+const detaily = await getCollection('programDetail');
+const kOblasti = new Map(detaily.map((d) => [d.data.oblast, d.id]));
+const poradi = vsechny.findIndex((o) => o.id === oblast.id);
+
+const soused = (posun: number) => {
+  for (let i = poradi + posun; i >= 0 && i < vsechny.length; i += posun) {
+    const id = kOblasti.get(vsechny[i].id);
+    if (id) return { nazev: vsechny[i].data.nazev, id };
+  }
+  return null;
+};
+
+const predchozi = soused(-1);
+const dalsi = soused(1);
+---
+
+<Zaklad
+  titulek={detail.data.nadpis}
+  popis={detail.data.perex ?? oblast.data.shrnuti}
+>
+  <div class="pruh detail">
+    <p class="nadtitulek">
+      <a href={odkaz('/program/')}>Náš program</a>
+    </p>
+
+    <div class="detail-hlava">
+      <span
+        class="detail-cislo"
+        style={`--barva: ${BARVA_TEMATU[oblast.data.tema as Tema]}`}
+        aria-hidden="true"
+      >
+        {String(oblast.data.poradi).padStart(2, '0')}
+      </span>
+      <div>
+        <h1 class="nadpis">{detail.data.nadpis}</h1>
+        {detail.data.perex && <p class="perex detail-perex">{detail.data.perex}</p>}
+      </div>
+    </div>
+
+    <div class="detail-text">
+      <Content />
+    </div>
+
+    <nav class="detail-dal" aria-label="Další oblasti programu">
+      {
+        predchozi && (
+          <a class="detail-soused" href={odkaz(`/program/${predchozi.id}/`)}>
+            <span class="detail-smer">Předchozí oblast</span>
+            <span class="detail-nazev">{predchozi.nazev}</span>
+          </a>
+        )
+      }
+      {
+        dalsi && (
+          <a class="detail-soused detail-soused-vpravo" href={odkaz(`/program/${dalsi.id}/`)}>
+            <span class="detail-smer">Další oblast</span>
+            <span class="detail-nazev">{dalsi.nazev}</span>
+          </a>
+        )
+      }
+    </nav>
+
+    <p class="detail-zpet">
+      <a class="tlacitko tlacitko-hlavni" href={odkaz('/program/')}>Zpět na celý program</a>
+    </p>
+  </div>
+</Zaklad>
+
+<style>
+  .detail {
+    padding-block: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .nadtitulek a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .detail-hlava {
+    display: flex;
+    align-items: start;
+    gap: clamp(0.9rem, 2vw, 1.5rem);
+    margin-top: 0.75rem;
+  }
+
+  /* Číslo v barvě oblasti — stejný odstín nese oblast na `/program/`
+     i její bod na mapě záměrů, takže se to spojí i vizuálně. */
+  .detail-cislo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--barva) 14%, transparent);
+    color: var(--barva);
+    font-size: var(--text-maly);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .detail-perex {
+    margin-top: 0.75rem;
+  }
+
+  .detail-text {
+    max-width: var(--sirka-textu);
+    margin-top: clamp(2rem, 4vw, 3rem);
+    /* Odsazení pod kolečko s číslem, aby text začínal ve stejné svislici
+       jako nadpis nad ním. */
+    margin-left: calc(2.75rem + clamp(0.9rem, 2vw, 1.5rem));
+  }
+
+  @media (max-width: 560px) {
+    .detail-text {
+      margin-left: 0;
+    }
+  }
+
+  .detail-text :global(h2) {
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    font-size: var(--text-nadpis-2);
+  }
+
+  .detail-text :global(h3) {
+    margin-top: 1.75rem;
+    font-size: var(--text-nadpis-3);
+  }
+
+  .detail-text :global(p),
+  .detail-text :global(ul) {
+    margin-top: 0.9rem;
+  }
+
+  .detail-text :global(li + li) {
+    margin-top: 0.45rem;
+  }
+
+  .detail-dal {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: clamp(2.5rem, 5vw, 4rem);
+    padding-top: clamp(1.5rem, 3vw, 2rem);
+    border-top: 1px solid var(--linka);
+  }
+
+  @media (min-width: 700px) {
+    .detail-dal {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .detail-soused {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--linka);
+    border-radius: var(--radius-maly);
+    background: var(--plocha);
+    text-decoration: none;
+    transition: border-color var(--prechod);
+  }
+
+  .detail-soused:hover {
+    border-color: var(--modra);
+  }
+
+  /* Když předchozí oblast chybí, „další" nesmí zůstat vlevo — jinak
+     by to vypadalo, že vede zpátky. */
+  .detail-soused-vpravo {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  @media (max-width: 699px) {
+    .detail-soused-vpravo {
+      grid-column: 1;
+      text-align: left;
+    }
+  }
+
+  .detail-smer {
+    font-size: var(--text-drobny);
+    color: var(--inkoust-tlum);
+  }
+
+  .detail-nazev {
+    font-weight: 600;
+    color: var(--inkoust);
+  }
+
+  .detail-zpet {
+    margin-top: clamp(2rem, 4vw, 3rem);
+  }
+</style>

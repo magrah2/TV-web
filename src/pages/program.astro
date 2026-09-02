@@ -2,11 +2,33 @@
 import { getCollection, render } from 'astro:content';
 import Zaklad from '../layouts/Zaklad.astro';
 import { BARVA_TEMATU } from '../lib/temata';
+import { odkaz } from '../lib/odkaz';
 import type { Tema } from '../lib/temata';
 
 const oblasti = (await getCollection('program')).sort((a, b) => a.data.poradi - b.data.poradi);
+
+// Podrobný rozpis nemá každá oblast — odkaz „Chci vědět víc" se proto ukáže
+// jen tam, kde k němu opravdu něco je.
+const detaily = await getCollection('programDetail');
+const detailOblasti = new Map(detaily.map((d) => [d.data.oblast, d.id]));
+
+// Překlep v `oblast` by odkaz potichu nevykreslil a nikdo by si toho nevšiml.
+// Radši to shodíme tady, při sestavení.
+const nezname = detaily.filter((d) => !oblasti.some((o) => o.id === d.data.oblast));
+if (nezname.length) {
+  throw new Error(
+    'Podrobný program ukazuje na oblasti, které neexistují: ' +
+      nezname.map((d) => `${d.id}.md → „${d.data.oblast}"`).join(', ') +
+      '. Do `oblast:` patří název souboru oblasti ze `src/content/program` bez přípony.',
+  );
+}
+
 const sObsahem = await Promise.all(
-  oblasti.map(async (oblast) => ({ ...oblast, Obsah: (await render(oblast)).Content })),
+  oblasti.map(async (oblast) => ({
+    ...oblast,
+    Obsah: (await render(oblast)).Content,
+    detail: detailOblasti.get(oblast.id) ?? null,
+  })),
 );
 ---
 
@@ -41,6 +63,16 @@ const sObsahem = await Promise.all(
             </div>
             <div class="oblast-obsah">
               <oblast.Obsah />
+              {
+                oblast.detail && (
+                  <p class="oblast-vic">
+                    <a href={odkaz(`/program/${oblast.detail}/`)}>
+                      Chci vědět víc <span aria-hidden="true">→</span>
+                      <span class="jen-pro-ctecky"> o oblasti {oblast.data.nazev}</span>
+                    </a>
+                  </p>
+                )
+              }
             </div>
           </li>
         ))
@@ -104,6 +136,27 @@ const sObsahem = await Promise.all(
     margin: 0.45rem 0 0;
     font-size: var(--text-maly);
     color: var(--inkoust-tlum);
+  }
+
+  .oblast-vic {
+    margin: 1.1rem 0 0;
+  }
+
+  .oblast-vic a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--text-maly);
+    font-weight: 600;
+    color: var(--modra-text);
+    text-decoration: none;
+    border-bottom: 2px solid color-mix(in srgb, var(--modra) 35%, transparent);
+    padding-bottom: 0.1rem;
+    transition: border-color var(--prechod);
+  }
+
+  .oblast-vic a:hover {
+    border-bottom-color: var(--modra);
   }
 
   .oblast-obsah {

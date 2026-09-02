@@ -117,6 +117,28 @@ try {
   await stranka.waitForTimeout(300);
   overit('Escape po prichodu s kotvou', null, await otevreny());
 
+  // --- Podrobny program ---------------------------------------------------
+  // Nejkonkretnejsi cast programu lezi na samostatnych strankach. Odkaz na ni
+  // se ma objevit jen u oblasti, ktera ji ma — jinak by vedl na prazdno.
+  await stranka.goto(`${ADRESA}program/`, { waitUntil: 'networkidle' });
+  await stranka.waitForTimeout(300);
+  const oblasti = await stranka.locator('.oblast').count();
+  const sPodrobnosti = await stranka.locator('.oblast-vic a').count();
+  overit('program ma odkazy na podrobnosti', true, sPodrobnosti > 0 && sPodrobnosti < oblasti);
+
+  await stranka.locator('.oblast-vic a').first().click();
+  await stranka.waitForTimeout(500);
+  overit('podrobnost programu se otevre', true,
+    (await stranka.locator('.detail-text').count()) === 1);
+  overit('podrobnost ma vic textu nez odrazky', true,
+    (await stranka.textContent('.detail-text')).length > 1500);
+
+  // Sousedni oblast se da otevrit bez vraceni na rozcesti.
+  await stranka.locator('.detail-soused').first().click();
+  await stranka.waitForTimeout(500);
+  overit('odkaz na sousedni oblast vede na podrobnost', true,
+    (await stranka.locator('.detail-text').count()) === 1);
+
   // --- Volebni listek -----------------------------------------------------
   // Tohle pocita, komu pripadne hlas. Kdyby to pocitalo spatne, ucili bychom
   // lidi volit spatne - proto se kazde pravidlo hlida zvlast.
