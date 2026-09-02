@@ -3,7 +3,7 @@ nazev: Okolí nádraží
 tema: Doprava
 lat: 49.27894
 lon: 16.99247
-stav: navrh   # NÁVRH — poloha je skutečná, text je návrh k diskuzi. Potvrďte nebo přepište.
+stav: overeno
 ---
 
 Chystaná modernizace trati má zkrátit cestu do Brna na patnáct minut. Z vyškovského nádraží se tím stane úplně jiné místo než dnes — projde jím mnohem víc lidí a pro řadu z nich to bude začátek i konec každého pracovního dne.

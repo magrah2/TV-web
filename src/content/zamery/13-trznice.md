@@ -3,7 +3,7 @@ nazev: Veřejný prostor u kamenné tržnice
 tema: Zeleň a voda
 lat: 49.27935
 lon: 16.99911
-stav: navrh   # NÁVRH — poloha je skutečná, text je návrh k diskuzi. Potvrďte nebo přepište.
+stav: overeno
 ---
 
 Prostor u tržnice leží pár kroků od náměstí, ale zatím se s ním nikdo nepokusil nic udělat.

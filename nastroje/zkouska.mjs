@@ -201,9 +201,20 @@ try {
   // --- Mapa zameru ---------------------------------------------------------
   await stranka.goto(`${ADRESA}mapa/`, { waitUntil: 'networkidle' });
   await stranka.waitForTimeout(300);
-  await stranka.click('.mapa-bod[data-bod="2"]');
+  // Klika se na bod, ktery stoji sam. Odznaky se uz nerozestrkavaji, takze
+  // v centru se prekryvaji a na zakryty odznak se kliknout neda - k tem
+  // vede seznam vedle mapy.
+  await stranka.click('.mapa-bod[data-bod="14"]');
   await stranka.waitForTimeout(400);
   overit('klik do mapy rozbali prave jeden zamer', 1, await stranka.locator('.zamer details[open]').count());
+
+  // Kazdy bod se musi dat otevrit ze seznamu, i ten na mape zakryty.
+  const vsechnyPolozky = await stranka.locator('.zamer summary').count();
+  await stranka.locator('.zamer[data-polozka="1"] summary').click();
+  await stranka.waitForTimeout(400);
+  overit('zakryty bod se otevre ze seznamu', 1,
+    await stranka.locator('.zamer[data-polozka="1"] details[open]').count());
+  overit('v seznamu jsou vsechny body', await stranka.locator('.mapa-bod').count(), vsechnyPolozky);
 
   const bodu = await stranka.locator('.mapa-bod').count();
   await stranka.click('.mapa-filtry .filtr[data-tema="bydleni"]');

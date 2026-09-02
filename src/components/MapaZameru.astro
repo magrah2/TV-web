@@ -12,7 +12,7 @@
 import { getCollection, render } from 'astro:content';
 import { BARVA_TEMATU, temaDoAdresy } from '../lib/temata';
 import type { Tema } from '../lib/temata';
-import { naMape, jeVeVyrezu, rozestrciBody, ROZMER } from '../lib/mapa';
+import { naMape, jeVeVyrezu, ROZMER } from '../lib/mapa';
 import podklad from '../../public/mapa-vyskov.svg?raw';
 
 // Pořadí i čísla na odznacích vycházejí z názvů souborů. V datech žádné
@@ -32,9 +32,13 @@ if (mimoMapu.length) {
   );
 }
 
-// Polovina záměrů leží v centru pár set metrů od sebe, kde by se odznaky
-// slepily. Rozestrkání je drží čitelné, aniž by ukazovaly jinam.
-const polohy = rozestrciBody(vsechny.map((z) => naMape(z.data.lat, z.data.lon)));
+// Odznaky sedí přesně na svém místě a v centru se překrývají. Dřív se
+// rozestrkávaly, aby se neslepily, ale sedm bodů v okolí náměstí leží do
+// 400 metrů od sebe — na tolik odznaků tam místo prostě není a rozestrkání
+// odsouvalo Masarykovo náměstí o dvě stě metrů, tedy mimo náměstí. Radši ať
+// se překrývají: kdo chce mít mezi nimi místo, přiblíží si mapu, a vybraný
+// bod se stejně vytáhne dopředu.
+const polohy = vsechny.map((z) => naMape(z.data.lat, z.data.lon));
 const zamery = vsechny.map((zamer, i) => ({ ...zamer, poloha: polohy[i] }));
 
 const sObsahem = await Promise.all(

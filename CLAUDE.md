@@ -125,10 +125,14 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   platí jen pro jeden výřez; po oddálení mapy by se všechny rozjely.
   Přepočet dělá `src/lib/mapa.ts` podle `mapa-vyrez.json`, který zapisuje
   generátor — jeden zdroj pravdy.
-- **Odznaky na mapě se rozestrkávají.** Půlka záměrů leží v centru pár set
-  metrů od sebe, což jsou na mapě města jednotky pixelů. `rozestrciBody()`
-  je odsune, ale jen do omezené vzdálenosti — mapa je schematická, ne
-  katastrální.
+- **Odznaky na mapě se nerozestrkávají a v centru se překrývají.** Je to
+  záměr. Sedm záměrů leží v okolí náměstí do 400 metrů od sebe a odznak má
+  na mapě města průměr skoro tři sta metrů — na tolik odznaků tam místo
+  není. Dřív je rozestrkávala funkce `rozestrciBody()`, ale ta narazila na
+  svůj strop a odsunula Masarykovo náměstí o dvě stě metrů, tedy mimo
+  náměstí. Přesná poloha je důležitější než mezera mezi odznaky: kdo chce
+  mít mezi nimi místo, přiblíží si mapu, a vybraný bod se stejně vytáhne
+  dopředu (`z-index` u `.je-zvyrazneny`).
 - **Mapa se zvětšuje `viewBox`em, ne `transform: scale()`.** Se `scale()` si
   prohlížeč SVG jednou vykreslí do bitmapy a tu pak natahuje — při přiblížení
   z toho byly kostičky. Značky nad mapou jsou HTML a polohu si přepočítávají
