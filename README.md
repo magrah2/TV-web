@@ -228,14 +228,28 @@ vlastní stránku 404 a doba, po kterou si smí prohlížeč nechat jednotlivé
 soubory. Astro ten soubor při sestavení zkopíruje do `dist/`, takže se nahraje
 spolu se zbytkem webu a **přepíše ten, který tam nechal starý WordPress**.
 
-Patří do něj jen to, co je na tomhle hostingu ověřené, že funguje. Dřív tam
-stálo i vypnutí mezipaměti LiteSpeed (`CacheDisable`) a vlastní stránka 404
-se neukazovala; po jeho odebrání se to zkouší znovu. Nastavení mezipaměti
-je teď převzaté z jiného webu na stejném hostingu, kde funguje.
+Jsou v něm dvě věci. **Vlastní stránka 404** — bez ní ukáže server svoji
+vlastní. A **jak dlouho si smí prohlížeč nechat soubory**: HTML se musí
+pokaždé ověřit, protože se jmenuje pořád stejně a jeho obsah se mění, kdežto
+soubory z `_astro/` mají v názvu otisk obsahu (`eva-formankova.ClZ1O7_s_1KKFNm.webp`),
+takže stejné jméno znamená stejný obsah a smí ležet v mezipaměti rok. Bez
+toho si prohlížeč dobu domýšlí a stane se, že telefon ukazuje starou verzi
+webu ještě dlouho po úpravě.
 
-Odtud dvě zásady: **do souboru se nepřidává direktiva „pro jistotu"** —
-když jí server nerozumí, může přestat číst i to, co následuje. A to
-podstatné se proto píše nahoru.
+Vzor v souboru míří na ten otisk před příponou, ne na složku `_astro/`,
+protože `FilesMatch` vidí jen jméno souboru, cestu k němu ne. Soubory
+z `public/` jako `mapa-vyskov.svg` ho tedy nesplňují — a je to tak správně,
+ty se jmenují pořád stejně a obsah se jim měnit může.
+
+Platí tu jedna zásada: **do souboru se nepřidává direktiva „pro jistotu"**.
+Když jí server nerozumí, může přestat číst i to, co následuje. Proto se
+to podstatné píše nahoru.
+
+**Pozor: na tomhle hostingu se zatím `.htaccess` neuplatňuje.** Před webem
+stojí nginx a za ním LiteSpeed (`Server: nginx`, `x-turbo-charged-by:
+LiteSpeed`), kdežto `.htaccess` je věc Apache. Ověřeno třemi direktivami ze
+tří různých modulů — neúčinkuje ani jedna. Než se to vyřeší s hostingem,
+ukazuje se serverová stránka 404 a mezipaměť si řídí server sám.
 
 Nahrávat ho ručně nemá smysl — nasazení maže na serveru všechno, co ve webu
 není, takže by ho příště smazalo. Když je potřeba na serveru něco nastavit,

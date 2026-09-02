@@ -1,34 +1,15 @@
-# Nastavení pro server, na kterém běží ostrý web.
-#
-# Soubor leží v `public/`, takže ho Astro při sestavení zkopíruje do `dist/`
-# a nasazení ho nahraje spolu se zbytkem webu. Draftu na GitHub Pages se
-# netýká — tam se neuplatní a nevadí.
+# Nastavení serveru pro ostrý web. Leží v `public/`, takže ho Astro zkopíruje
+# do `dist/` a nasazení ho nahraje s webem. Souvislosti jsou v README.
 
-# --- Vlastní stránka pro neexistující adresy -------------------------------
-# GitHub Pages použije `404.html` sám od sebe, server na hostingu to
-# potřebuje říct — jinak ukáže svoji vlastní stránku.
-#
-# Stojí schválně jako první direktiva v souboru. Když server o kus níž
-# zakopne a přestane soubor číst, tahle už platí.
+# Stojí schválně první: kdyby server o kus níž zakopl a přestal soubor číst,
+# tahle direktiva už platí.
 ErrorDocument 404 /404.html
 
-# --- Jak dlouho si smí prohlížeč nechat soubory ----------------------------
-#
-# Bez tohohle si to prohlížeč domýšlí a klidně si stránku nechá na dny.
-# Pak se stane, že telefon, který web navštívil před úpravou, ukazuje starou
-# verzi ještě dlouho poté, co je na serveru nová.
-#
-# HTML se proto musí pokaždé ověřit — je malé a díky ETagu je to jeden
-# rychlý dotaz. Naproti tomu všechno, co Astro vyrábí do `_astro/`, má
-# v názvu otisk obsahu (`eva-formankova.ClZ1O7_s_1KKFNm.webp`): jiný obsah
-# znamená jiné jméno, takže se stejné jméno nikdy nezmění a může se
-# schovávat na rok.
-#
-# Ten otisk je i důvod, proč se tu vypisují přípony a ne složka `_astro/`:
-# `FilesMatch` porovnává jen jméno souboru, cestu k němu nevidí. Vzor proto
-# vyžaduje před příponou úsek s otiskem, což soubory z `public/`
-# (`mapa-vyskov.svg`, `logo.svg`) nesplňují — a je to tak správně, ty se
-# jmenují pořád stejně a jejich obsah se měnit může.
+# HTML se musí pokaždé ověřit, protože se jmenuje pořád stejně. Soubory
+# z `_astro/` mají v názvu otisk obsahu, takže stejné jméno znamená stejný
+# obsah a smí ležet rok. Vzor míří na ten otisk před příponou, protože
+# `FilesMatch` vidí jméno souboru, ne cestu — soubory z `public/` se ho tedy
+# netýkají, a správně.
 <IfModule mod_headers.c>
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache"
@@ -38,10 +19,5 @@ ErrorDocument 404 /404.html
   </FilesMatch>
 </IfModule>
 
-# --- DOČASNÁ SONDA — po vyřešení 404 smazat --------------------------------
-# Ověřuje, že server tenhle soubor opravdu čte. Zvenčí to jinak poznat nejde:
-# na `/.htaccess` vrací 403 i tehdy, když tam žádný takový soubor není,
-# protože ho chrání plošným pravidlem — „403" tedy neznamená „je tam".
-# Přesměrování je oproti tomu vidět jednoznačně. Kontroluje ho krok
-# „Zkontrolovat nasazený web" v nasazení.
+# DOČASNÉ, po vyřešení 404 smazat: ověřuje, že server tenhle soubor vůbec čte.
 Redirect 302 /zkouska-htaccess /
