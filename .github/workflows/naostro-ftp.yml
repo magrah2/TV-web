@@ -14,14 +14,13 @@
 #   FTP_HESLO     heslo
 #   FTP_ADRESAR   složka na serveru, do které web patří (viz níž)
 #
-# FTP_ADRESAR je potřeba trefit přesně: je to složka, kterou hosting
-# servíruje jako web. U Wedosu bývá `/public_html/`, ale jistotu dá jen
-# administrace Wedosu nebo pohled FTP klientem. Když se to netrefí, web se
-# nahraje vedle a na doméně se nic nezmění.
+# FTP_ADRESAR je složka, kterou hosting servíruje jako web — bývá to
+# `/public_html/`. Když se netrefí, web se nahraje vedle a na doméně se nic
+# nezmění.
 #
-# Než se pustí tenhle běh, vyplatí se pustit „Zkouška FTP připojení" —
-# nahraje jen jeden neškodný soubor a vypíše obsah složky, takže se
-# přihlašovací údaje i adresář ověří, aniž by se na web sáhlo.
+# Na první ověření je ve formuláři přepínač „Jen zkušební soubor": nahraje
+# jediný neškodný textový soubor a vypíše obsah složky, takže se přístupy
+# i adresář dají zkontrolovat, aniž by se na web sáhlo.
 #
 # POZOR, tohle je ta nebezpečná část: nahrávání je zrcadlení. Co je ve
 # složce na serveru navíc oproti `dist/`, to se SMAŽE — jinak by tam po
@@ -39,6 +38,10 @@ name: Naostro na FTP
 on:
   workflow_dispatch:
     inputs:
+      zkusebni_soubor:
+        description: 'Jen zkušební soubor — ověřit přístupy a vypsat obsah složky, web nechat být'
+        type: boolean
+        default: false
       nanecisto:
         description: 'Jen nanečisto — vypsat, co by se stalo, a nic nenahrávat'
         type: boolean
@@ -84,18 +87,22 @@ jobs:
           fi
 
       - name: Stáhnout zdrojové soubory
+        if: inputs.zkusebni_soubor == false
         uses: actions/checkout@v4
 
       - name: Připravit Node.js
+        if: inputs.zkusebni_soubor == false
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - name: Nainstalovat závislosti
+        if: inputs.zkusebni_soubor == false
         run: npm ci
 
       - name: Sestavit web naostro
+        if: inputs.zkusebni_soubor == false
         # NAOSTRO=1 přepne odkazy z podsložky /TV-web/ do kořene domény
         # a shodí pruh „Náhled" i `noindex`. Bez toho by na doméně skončil
         # web, který se tváří jako draft a má rozbité odkazy.
@@ -104,6 +111,7 @@ jobs:
         run: npm run build
 
       - name: Ověřit, že sestavení není draft
+        if: inputs.zkusebni_soubor == false
         # Levná pojistka. Kdyby se NAOSTRO někdy přestalo propisovat, chyba
         # se pozná tady, ne až na doméně.
         run: |
@@ -128,6 +136,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
       - name: Spočítat nanečisto, co by se smazalo
+        if: inputs.zkusebni_soubor == false
         id: zkouska
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
@@ -158,7 +167,7 @@ jobs:
           grep -E "$VZOR" nanecisto.txt | head -40 >> $GITHUB_STEP_SUMMARY || true
 
       - name: Zastavit se, když je mazání podezřele velké
-        if: inputs.nanecisto == false && inputs.velky_uklid == false
+        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false && inputs.velky_uklid == false
         run: |
           if [ "${{ steps.zkouska.outputs.smaze }}" -ge "$STROP_MAZANI" ]; then
             echo "Nahravani by smazalo ${{ steps.zkouska.outputs.smaze }} souboru."
@@ -173,7 +182,7 @@ jobs:
           echo "Smaze se ${{ steps.zkouska.outputs.smaze }} souboru, to je v mezich."
 
       - name: Nahrát na FTP
-        if: inputs.nanecisto == false
+        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
@@ -195,8 +204,60 @@ jobs:
           bye
           LFTP
 
+      - name: Nahrát zkušební soubor a vypsat obsah složky
+        # Žádný `mirror`, žádné `--delete` — jen jeden `put` a výpis. Web se
+        # tím nezmění, jen v jeho složce přibude textový soubor, který jde
+        # kdykoliv smazat.
+        if: inputs.zkusebni_soubor == true
+        env:
+          SERVER: ${{ secrets.FTP_SERVER }}
+          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
+          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
+          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+        run: |
+          {
+            echo "Zkusebni soubor z nasazeni webu Transparentni Vyskov."
+            echo "Overuje jen to, ze funguje pripojeni na FTP."
+            echo "Da se kdykoliv smazat."
+            echo ""
+            echo "Beh: ${{ github.run_id }}"
+            echo "Vytvoreno: $(date -u '+%Y-%m-%d %H:%M UTC')"
+          } > zkouska-nasazeni.txt
+
+          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 2
+          set net:timeout 20
+          set cmd:fail-exit true
+          put -O "$ADRESAR" zkouska-nasazeni.txt
+          cls -l "$ADRESAR"
+          bye
+          LFTP
+
+      - name: Vypsat, co ve složce leží
+        if: inputs.zkusebni_soubor == true
+        env:
+          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+        run: |
+          echo "## Zkusebni soubor nahran" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Beh dobehl bez chyby, takze prihlasovaci udaje funguji" >> $GITHUB_STEP_SUMMARY
+          echo "a server soubor prijal. Web zustal nedotceny." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Soubor se jmenuje \`zkouska-nasazeni.txt\` a lezi primo" >> $GITHUB_STEP_SUMMARY
+          echo "v korenu webu, takze se da otevrit v prohlizeci. Az ho" >> $GITHUB_STEP_SUMMARY
+          echo "nebudete potrebovat, smazte ho FTP klientem." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Co lezi v $ADRESAR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          head -60 vypis.txt >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Shrnutí
-        if: always()
+        if: always() && inputs.zkusebni_soubor == false
         run: |
           if [ "${{ inputs.nanecisto }}" = "true" ]; then
             echo "Byla to zkouska nanecisto, na webu se nic nezmenilo." >> $GITHUB_STEP_SUMMARY
