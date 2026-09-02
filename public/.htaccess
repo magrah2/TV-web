@@ -1,0 +1,28 @@
+# Nastavení pro server, na kterém web běží.
+#
+# Soubor leží v `public/`, takže ho Astro při sestavení zkopíruje do `dist/`
+# a nasazení ho nahraje spolu se zbytkem webu. Netýká se draftu na GitHub
+# Pages — tam se neuplatní a nevadí.
+
+# --- Mezipaměť LiteSpeed ---------------------------------------------------
+#
+# Hosting před webem drží mezipaměť LiteSpeed. U WordPressu to dávalo smysl:
+# každá stránka se skládala z databáze a bylo co ušetřit. Tenhle web jsou
+# ale hotové soubory na disku, takže se šetřit nemá co — zato mezipaměť
+# působí potíže: po nahrání nové verze ještě chvíli vydává tu starou a
+# vypadá to, že se nasazení nepovedlo.
+#
+# Poznali jsme to na zkušebním souboru: hned po nahrání se tvářil jako
+# nenalezený (`x-litespeed-cache: hit` na odpověď 404 z doby, kdy soubor
+# ještě neexistoval), zatímco tatáž adresa s otazníkem na konci, který
+# mezipaměť obchází, ho vrátila v pořádku.
+#
+# `<IfModule>` je tu proto, že na serveru bez LiteSpeedu se celý blok
+# přeskočí a nic se nerozbije.
+<IfModule LiteSpeed>
+  CacheDisable public /
+</IfModule>
+
+# --- Vlastní stránka pro neexistující adresy -------------------------------
+# Web má svoji stránku 404; bez tohohle by server ukázal svoji vlastní.
+ErrorDocument 404 /404.html
