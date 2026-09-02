@@ -247,8 +247,18 @@ jobs:
           echo "a server soubor prijal. Web zustal nedotceny." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Soubor se jmenuje \`zkouska-nasazeni.txt\` a lezi primo" >> $GITHUB_STEP_SUMMARY
-          echo "v korenu webu, takze se da otevrit v prohlizeci. Az ho" >> $GITHUB_STEP_SUMMARY
-          echo "nebudete potrebovat, smazte ho FTP klientem." >> $GITHUB_STEP_SUMMARY
+          echo "v korenu webu. Az ho nebudete potrebovat, smazte ho" >> $GITHUB_STEP_SUMMARY
+          echo "FTP klientem." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Zkuste si ho otevrit na** \`https://transparentnivyskov.cz/zkouska-nasazeni.txt\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tim se zjisti to jedine, co je krome pristupu potreba vedet:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Otevre se** = domena uz na tenhle hosting miri. Po ostrem" >> $GITHUB_STEP_SUMMARY
+          echo "  nahrani bude novy web na doméne hned a s DNS neni co resit." >> $GITHUB_STEP_SUMMARY
+          echo "- **Neotevre se** (404 nebo stary web) = domena miri jinam." >> $GITHUB_STEP_SUMMARY
+          echo "  Nahrani projde, ale na doméne se nic nezmeni, dokud se" >> $GITHUB_STEP_SUMMARY
+          echo "  neprepnou DNS. Pak pozor na MX zaznamy, aby nepresla posta." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Co lezi v $ADRESAR" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
