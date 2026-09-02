@@ -45,27 +45,35 @@ se nesmí objevit natvrdo zapsaná barva. Vzhled jednotlivých částí patří 
 Zelená má na světlém pozadí kontrast jen 2,9 : 1 — **na text se nikdy
 nesmí použít**, od toho je `--zelena-text`.
 
-## Grafický motiv je jeden
+## Grafika drží pohromadě
 
-Zelená stopa z loga (`src/components/Krivka.astro`) je jediný dekorativní
-prvek webu. Cesta je doslova vytažená ze značky. Žádné další ozdoby,
-ikonky ani tvary nepřibývají — jinak se web rozpadne.
+Zelená stopa z loga (`src/components/Krivka.astro`) je hlavní grafický prvek
+webu a cesta je doslova vytažená ze značky.
 
-**Povolené výjimky jsou dvě a obě mají důvod:**
+Původně tu stálo, že žádná další grafika přibývat nesmí. To bylo moje
+vlastní pravidlo, ne zadání od týmu, a bylo přísnější, než je zdrávo —
+ikony na dlaždicích programu web nerozbily, naopak. Platí tedy měkčí verze:
 
-1. **Znaky Facebooku a Instagramu** u odkazů na `/kontakt/`. Nejsou to
-   ozdoby — jsou to značky, podle kterých člověk odkaz pozná dřív, než si ho
-   přečte, a bez nich vypadala obě tlačítka stejně.
-2. **Ikony programových oblastí** (`src/components/IkonaTematu.astro`) na
-   dlaždicích a na `/program/`.
+**Grafika smí přibývat, ale musí být součástí jedné soustavy, ne sbírkou
+klipartů.** Co už v soustavě je:
 
-Obojí je nakreslené jako inline SVG, ne stažené odjinud: web nesmí posílat
-požadavky na cizí servery. Ikony oblastí drží jednu soustavu — mřížka
-24 × 24, tah 1,75, zakulacené konce, `currentColor` obarvený barvou oblasti
-z `BARVA_TEMATU` — jinak by z toho byla sbírka klipartů. Nová oblast musí
-dostat ikonu, jinak sestavení spadne; tichá mezera na dlaždici by se nepoznala.
+- **Ikony programových oblastí** (`src/components/IkonaTematu.astro`) —
+  mřížka 24 × 24, obrys tahem 1,75 a k němu jedna tlumená plocha ve stejné
+  barvě, zakulacené konce, `currentColor` obarvený barvou oblasti
+  z `BARVA_TEMATU`.
+- **Znaky Facebooku a Instagramu** na `/kontakt/` — tam nejde o ozdobu, ale
+  o značku, podle které člověk odkaz pozná dřív, než si ho přečte.
 
-**Nic dalšího už ne.** Každá další ikona ředí to, že web má jeden motiv.
+Dvě věci platí bez výjimky:
+
+1. **Kreslí se inline v repozitáři, nikdy se nic nestahuje odjinud.** Web
+   nesmí posílat požadavky na cizí servery.
+2. **Barvy jen z palety značky.** Nic mimo `tokeny.css` a `BARVA_TEMATU`.
+
+A ještě jedna zkušenost: ikonu nemá smysl posuzovat z kódu. Z první sady
+neobstály tři — mince se malá četla jako cizí symbol, vstupenka vypadala
+jako mašle a dům měl střechu levitující nad stěnami. Vyplavalo to, teprve
+když jsem si je vykreslil vedle sebe ve velkém i v cílové velikosti.
 
 ## Zásady, které platí všude
 
