@@ -1,0 +1,198 @@
+# Nahraje hotový web na FTP (Wedos) — tedy NAOSTRO, na vlastní doménu.
+#
+# Spouští se JEN RUČNĚ tlačítkem: karta Actions → „Naostro na FTP" →
+# „Run workflow" → „Run workflow". Schválně tu není `on: push`. Draft na
+# GitHub Pages se nasazuje sám při každé změně v `main`, tým si ho projde,
+# a teprve když ho odsouhlasí, pustí se tenhle běh.
+#
+# Než to půjde poprvé spustit, musí být v repozitáři na GitHubu vyplněné
+# přihlašovací údaje — Settings → Secrets and variables → Actions →
+# New repository secret. Potřeba jsou čtyři:
+#
+#   FTP_SERVER    adresa FTP serveru od Wedosu, třeba ftp.transparentnivyskov.cz
+#   FTP_UZIVATEL  přihlašovací jméno
+#   FTP_HESLO     heslo
+#   FTP_ADRESAR   složka na serveru, do které web patří (viz níž)
+#
+# FTP_ADRESAR je potřeba trefit přesně. U Wedosu je to zpravidla
+# `/public_html/`, ale jistotu dá jen pohled FTP klientem: správná složka
+# je ta, ve které leží současný web (poznáte ji podle `index.php` nebo
+# `wp-content`). Když se to netrefí, web se nahraje vedle a na doméně se
+# nic nezmění.
+#
+# POZOR, tohle je ta nebezpečná část: nahrávání je zrcadlení. Co je ve
+# složce na serveru navíc oproti `dist/`, to se SMAŽE — jinak by tam po
+# každé změně zůstávaly staré stránky. Kdyby byl FTP_ADRESAR špatně a mířil
+# třeba do kořene FTP, zrcadlení by smazalo i věci, které s webem nesouvisí.
+#
+# Proti tomu je pojistka: běh si napřed nanečisto spočítá, kolik souborů by
+# smazal, a když je to moc, zastaví se a vypíše je. Běžná aktualizace webu
+# smaže pár souborů; když jich má být sto a víc, je něco špatně — nebo jde
+# o první nahrání přes starý web, což je v pořádku, jen to musí někdo
+# potvrdit zaškrtnutím „velký úklid".
+
+name: Naostro na FTP
+
+on:
+  workflow_dispatch:
+    inputs:
+      nanecisto:
+        description: 'Jen nanečisto — vypsat, co by se stalo, a nic nenahrávat'
+        type: boolean
+        default: false
+      velky_uklid:
+        description: 'Povolit i velký úklid (potřeba při prvním nahrání přes starý web)'
+        type: boolean
+        default: false
+
+# Dvě nahrávání naráz by si na serveru lezla do zelí. Rozdělaný běh se
+# nepřerušuje — přerušit nahrávání v půlce by nechalo web rozbitý.
+concurrency:
+  group: ftp-naostro
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Nad tolik smazaných souborů se běh zastaví a počká na potvrzení.
+  STROP_MAZANI: 100
+
+jobs:
+  naostro:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zkontrolovat, že jsou vyplněné údaje
+        env:
+          SERVER: ${{ secrets.FTP_SERVER }}
+          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
+          HESLO: ${{ secrets.FTP_HESLO }}
+          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+        run: |
+          chybi=""
+          [ -z "$SERVER" ] && chybi="$chybi FTP_SERVER"
+          [ -z "$UZIVATEL" ] && chybi="$chybi FTP_UZIVATEL"
+          [ -z "$HESLO" ] && chybi="$chybi FTP_HESLO"
+          [ -z "$ADRESAR" ] && chybi="$chybi FTP_ADRESAR"
+          if [ -n "$chybi" ]; then
+            echo "Chybi tyto udaje:$chybi"
+            echo "Doplnte je v Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Stáhnout zdrojové soubory
+        uses: actions/checkout@v4
+
+      - name: Připravit Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Nainstalovat závislosti
+        run: npm ci
+
+      - name: Sestavit web naostro
+        # NAOSTRO=1 přepne odkazy z podsložky /TV-web/ do kořene domény
+        # a shodí pruh „Náhled" i `noindex`. Bez toho by na doméně skončil
+        # web, který se tváří jako draft a má rozbité odkazy.
+        env:
+          NAOSTRO: '1'
+        run: npm run build
+
+      - name: Ověřit, že sestavení není draft
+        # Levná pojistka. Kdyby se NAOSTRO někdy přestalo propisovat, chyba
+        # se pozná tady, ne až na doméně.
+        run: |
+          if grep -q "noindex" dist/index.html; then
+            echo "Sestaveni ma noindex, tedy je to draft. Naostro se nenahraje."
+            exit 1
+          fi
+          if grep -q '"/TV-web/' dist/index.html; then
+            echo "Sestaveni ma odkazy do podslozky /TV-web/, tedy je to draft."
+            exit 1
+          fi
+          echo "V poradku: sestaveni je ostre."
+
+      - name: Nainstalovat lftp
+        # Schválně obyčejné lftp, ne hotová akce z Marketplace: přihlašovací
+        # údaje k ostrému webu tak nikdy neopustí běh u GitHubu a nikdo
+        # třetí je nevidí.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Spočítat nanečisto, co by se smazalo
+        id: zkouska
+        env:
+          SERVER: ${{ secrets.FTP_SERVER }}
+          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
+          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
+          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+        run: |
+          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 3
+          set net:timeout 20
+          mirror --reverse --delete --dry-run --verbose \
+            --exclude-glob .well-known/ \
+            dist/ "$ADRESAR"
+          bye
+          LFTP
+
+          # lftp podle verze vypisuje bud prikaz (`rm ...`), nebo vetu
+          # („Removing old file ..."). Hlidame obojí, at se pojistka
+          # nerozbije o jinou verzi lftp na runneru.
+          VZOR='^(rm|rmdir) |Removing old'
+          smaze=$(grep -c -E "$VZOR" nanecisto.txt || true)
+          echo "smaze=$smaze" >> $GITHUB_OUTPUT
+          echo "Nanecisto by se smazalo souboru: $smaze"
+          echo "### Co by se smazalo: $smaze souboru" >> $GITHUB_STEP_SUMMARY
+          grep -E "$VZOR" nanecisto.txt | head -40 >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Zastavit se, když je mazání podezřele velké
+        if: inputs.nanecisto == false && inputs.velky_uklid == false
+        run: |
+          if [ "${{ steps.zkouska.outputs.smaze }}" -ge "$STROP_MAZANI" ]; then
+            echo "Nahravani by smazalo ${{ steps.zkouska.outputs.smaze }} souboru."
+            echo "To je vic nez strop $STROP_MAZANI, takze se nic nenahralo."
+            echo ""
+            echo "Bud je FTP_ADRESAR spatne a miri jinam nez na web,"
+            echo "nebo jde o prvni nahrani pres stary web - a to je v poradku."
+            echo "Seznam je vys ve shrnuti. Kdyz sedi, spustte znovu"
+            echo "a zaskrtnete 'Povolit i velky uklid'."
+            exit 1
+          fi
+          echo "Smaze se ${{ steps.zkouska.outputs.smaze }} souboru, to je v mezich."
+
+      - name: Nahrát na FTP
+        if: inputs.nanecisto == false
+        env:
+          SERVER: ${{ secrets.FTP_SERVER }}
+          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
+          # lftp si heslo přečte z prostředí (`--env-password`), takže se
+          # neobjeví v příkazu ani v seznamu procesů.
+          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
+          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+        run: |
+          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 3
+          set net:timeout 20
+          set cmd:fail-exit true
+          mirror --reverse --delete --verbose --parallel=3 \
+            --exclude-glob .well-known/ \
+            dist/ "$ADRESAR"
+          bye
+          LFTP
+
+      - name: Shrnutí
+        if: always()
+        run: |
+          if [ "${{ inputs.nanecisto }}" = "true" ]; then
+            echo "Byla to zkouska nanecisto, na webu se nic nezmenilo." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Web je na ostre adrese." >> $GITHUB_STEP_SUMMARY
+          fi

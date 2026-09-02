@@ -10,4 +10,4 @@ Zveřejníme pocitovou mapu bezpečnosti, do které bude moct přispět kdokoliv
 
 Podle ní pak vytipujeme a postupně upravíme nejproblematičtější lokality. Neslouží ale jen k opravám: místo, o kterém se ví, se dá ohlídat dřív, než zpustne. K tomu patří i pěší hlídky a kontaktní centrum, kde se potkají sociální, zdravotní a preventivní služby.
 
-Bod je zástupný — konkrétní místa určí až samotná mapa, sestavená s obyvateli.
+Která místa to nakonec budou, neurčíme od stolu — vyjde to z mapy, kterou sestaví lidé, co těmi místy denně chodí.

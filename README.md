@@ -140,11 +140,38 @@ Průběh je vidět na [kartě Actions](https://github.com/magrah2/TV-web/actions
 Poznat se to dá podle názvu úlohy: má běžet **`Nasadit web`**. Když tam místo
 toho svítí *pages build and deployment*, je špatně nastavený zdroj — viz výš.
 
-**Naostro** se zatím nepouští. Až se bude přepínat doména, změní se dvě věci:
+### Naostro na vlastní doménu (FTP na Wedos)
 
-1. Do sestavení přibude proměnná `NAOSTRO=1` — tím zmizí pruh i `noindex`
-   a odkazy se přepnou z podsložky `/TV-web/` do kořene domény.
-2. U domény se přesměrují DNS záznamy na GitHub Pages.
+**Naostro se nikdy nepouští samo.** Draft se aktualizuje při každé změně,
+tým si ho projde, a když ho odsouhlasí, pustí se ostré nahrání ručně:
+
+> **Actions → Naostro na FTP → Run workflow → Run workflow**
+
+Sestaví se přitom nová verze s `NAOSTRO=1`, takže zmizí pruh „Náhled"
+i `noindex` a odkazy se přepnou z podsložky `/TV-web/` do kořene domény.
+Draft na GitHub Pages běží dál a nic se s ním nestane.
+
+**Nejdřív jednou vyplnit přístupy** — Settings → Secrets and variables →
+Actions → New repository secret:
+
+| Secret | Co do něj patří |
+|---|---|
+| `FTP_SERVER` | adresa FTP serveru od Wedosu |
+| `FTP_UZIVATEL` | přihlašovací jméno |
+| `FTP_HESLO` | heslo |
+| `FTP_ADRESAR` | složka s webem, u Wedosu zpravidla `/public_html/` |
+
+`FTP_ADRESAR` musí sedět. Správná složka je ta, ve které leží současný web —
+poznáte ji podle `index.php` nebo `wp-content`. Ověřte si to FTP klientem,
+protože nahrávání **maže na serveru soubory, které ve webu nejsou** (jinak
+by tam po každé změně zůstávaly staré stránky).
+
+Proti chybě v adresáři je pojistka: běh si nejdřív nanečisto spočítá, kolik
+souborů by smazal, a když jich je sto a víc, zastaví se a vypíše je. Při
+prvním nahrání přes starý WordPress to nastane — je to v pořádku, jen se
+musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
+úklid"**. Ve formuláři je i přepínač **„Jen nanečisto"**, který nic nenahraje
+a jen vypíše, co by se stalo.
 
 ⚠️ **Pozor při přepínání domény:** záznamy `MX` musí zůstat u původního
 poskytovatele, jinak přestane chodit pošta na `info@transparentnivyskov.cz`.
