@@ -1,11 +1,11 @@
 ---
 nazev: Veřejný prostor u kamenné tržnice
-tema: Zeleň a voda
+tema: Kultura
 lat: 49.27935
 lon: 16.99911
 stav: overeno
 ---
 
-Prostranství u kamenné tržnice leží pár kroků od náměstí.
+Prostranství u kamenné tržnice leží pár kroků od náměstí — a je to přesně ten typ místa, kam chceme dostat kulturu i mimo náměstí.
 
-Chceme na jeho podobu vypsat architektonickou soutěž, nechat vzniknout několik variant a dát lidem možnost se k nim vyjádřit. Vítězný návrh pak zrealizujeme — nechceme další projekt do šuplíku. A patří k tomu i to, co takové místo dělá snesitelným v létě: stromy, které město snesou, trvalkové záhony a mobiliář, který spolu ladí.
+Na jeho podobu vypíšeme architektonickou soutěž, necháme vzniknout několik variant a dáme lidem možnost se k nim vyjádřit. Vítězný návrh pak zrealizujeme — nechceme další projekt do šuplíku. Do té doby se dá zkusit, co takový prostor unese: pop-up scéna, trh, promítání.

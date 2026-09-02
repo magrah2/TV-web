@@ -8,4 +8,4 @@ stav: overeno
 
 Nová prodejna a k ní rozlehlá vybetonovaná plocha — pár osamocených stromků u vjezdu na tom nic nemění. V létě se tam nedá vydržet a voda z celého parkoviště odteče do kanalizace.
 
-Přesně tady mají platit požadavky na stromy, propustné povrchy a zadržování dešťové vody. Nejde o to stavbu zakázat, ale říct dopředu jasná pravidla — a trvat na nich.
+Přesně tady mají platit požadavky na stromy a na vodu. Pravidlo je jednoduché: každé nové parkovací místo i chodník se staví jako vodě propustné a u nových staveb se počítá s podzemní retenční nádrží. Nejde o to stavbu zakázat, ale říct dopředu jasná pravidla — a trvat na nich.

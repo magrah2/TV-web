@@ -8,4 +8,6 @@ stav: overeno
 
 Zveřejníme pocitovou mapu bezpečnosti, do které bude moct přispět kdokoliv. Teprve pak se dá cíleně řešit osvětlení, průchodnost a zanedbaná místa.
 
+Podle ní pak vytipujeme a postupně upravíme nejproblematičtější lokality. Neslouží ale jen k opravám: místo, o kterém se ví, se dá ohlídat dřív, než zpustne. K tomu patří i pěší hlídky a kontaktní centrum, kde se potkají sociální, zdravotní a preventivní služby.
+
 Bod je zástupný — konkrétní místa určí až samotná mapa, sestavená s obyvateli.
