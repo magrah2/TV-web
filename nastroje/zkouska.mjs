@@ -244,13 +244,14 @@ try {
   // Vybrany bod musi zustat zvyrazneny i po odjeti mysi. Klik do mapy
   // odroluje na polozku v seznamu, mapa se pohne pod kurzorem a `mouseleave`
   // drive zvyrazneni hned zhaslo — clovek pak nevedel, co si vybral.
-  // Predchozi test nechal zapnuty filtr, ktery bod 1 skryva a odebira mu
-  // `pointer-events` — bez zruseni filtru by klik propadl do mapy pod nim.
+  // Predchozi test nechal zapnuty filtr, ktery ostatni body skryva a odebira
+  // jim `pointer-events` — bez zruseni filtru by klik propadl do mapy pod nim.
+  // Klika se opet na bod 14, protoze v centru se odznaky prekryvaji.
   await stranka.click('.mapa-filtry .filtr[data-tema=""]');
   await stranka.waitForTimeout(300);
   await stranka.click('[data-zoom="reset"]');
   await stranka.waitForTimeout(300);
-  await stranka.click('.mapa-bod[data-bod="1"]');
+  await stranka.click('.mapa-bod[data-bod="14"]');
   await stranka.waitForTimeout(600);
   await stranka.mouse.move(5, 5);
   await stranka.waitForTimeout(400);
