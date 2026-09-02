@@ -1,28 +1,47 @@
-# Nastavení pro server, na kterém web běží.
+# Nastavení pro server, na kterém běží ostrý web.
 #
 # Soubor leží v `public/`, takže ho Astro při sestavení zkopíruje do `dist/`
-# a nasazení ho nahraje spolu se zbytkem webu. Netýká se draftu na GitHub
-# Pages — tam se neuplatní a nevadí.
-
-# --- Mezipaměť LiteSpeed ---------------------------------------------------
-#
-# Hosting před webem drží mezipaměť LiteSpeed. U WordPressu to dávalo smysl:
-# každá stránka se skládala z databáze a bylo co ušetřit. Tenhle web jsou
-# ale hotové soubory na disku, takže se šetřit nemá co — zato mezipaměť
-# působí potíže: po nahrání nové verze ještě chvíli vydává tu starou a
-# vypadá to, že se nasazení nepovedlo.
-#
-# Poznali jsme to na zkušebním souboru: hned po nahrání se tvářil jako
-# nenalezený (`x-litespeed-cache: hit` na odpověď 404 z doby, kdy soubor
-# ještě neexistoval), zatímco tatáž adresa s otazníkem na konci, který
-# mezipaměť obchází, ho vrátila v pořádku.
-#
-# `<IfModule>` je tu proto, že na serveru bez LiteSpeedu se celý blok
-# přeskočí a nic se nerozbije.
-<IfModule LiteSpeed>
-  CacheDisable public /
-</IfModule>
+# a nasazení ho nahraje spolu se zbytkem webu. Draftu na GitHub Pages se
+# netýká — tam se neuplatní a nevadí.
 
 # --- Vlastní stránka pro neexistující adresy -------------------------------
-# Web má svoji stránku 404; bez tohohle by server ukázal svoji vlastní.
+# GitHub Pages použije `404.html` sám od sebe, server na hostingu to
+# potřebuje říct — jinak ukáže svoji vlastní stránku.
+#
+# Stojí schválně jako první direktiva v souboru. Když server o kus níž
+# zakopne a přestane soubor číst, tahle už platí.
 ErrorDocument 404 /404.html
+
+# --- Jak dlouho si smí prohlížeč nechat soubory ----------------------------
+#
+# Bez tohohle si to prohlížeč domýšlí a klidně si stránku nechá na dny.
+# Pak se stane, že telefon, který web navštívil před úpravou, ukazuje starou
+# verzi ještě dlouho poté, co je na serveru nová.
+#
+# HTML se proto musí pokaždé ověřit — je malé a díky ETagu je to jeden
+# rychlý dotaz. Naproti tomu všechno, co Astro vyrábí do `_astro/`, má
+# v názvu otisk obsahu (`eva-formankova.ClZ1O7_s_1KKFNm.webp`): jiný obsah
+# znamená jiné jméno, takže se stejné jméno nikdy nezmění a může se
+# schovávat na rok.
+#
+# Ten otisk je i důvod, proč se tu vypisují přípony a ne složka `_astro/`:
+# `FilesMatch` porovnává jen jméno souboru, cestu k němu nevidí. Vzor proto
+# vyžaduje před příponou úsek s otiskem, což soubory z `public/`
+# (`mapa-vyskov.svg`, `logo.svg`) nesplňují — a je to tak správně, ty se
+# jmenují pořád stejně a jejich obsah se měnit může.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.[A-Za-z0-9_-]{8,}\.(css|js|webp|avif|png|jpe?g|svg|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# --- DOČASNÁ SONDA — po vyřešení 404 smazat --------------------------------
+# Ověřuje, že server tenhle soubor opravdu čte. Zvenčí to jinak poznat nejde:
+# na `/.htaccess` vrací 403 i tehdy, když tam žádný takový soubor není,
+# protože ho chrání plošným pravidlem — „403" tedy neznamená „je tam".
+# Přesměrování je oproti tomu vidět jednoznačně. Kontroluje ho krok
+# „Zkontrolovat nasazený web" v nasazení.
+Redirect 302 /zkouska-htaccess /

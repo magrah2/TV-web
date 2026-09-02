@@ -217,10 +217,19 @@ a jen vypíše, co by se stalo.
 
 ### Nastavení serveru je součástí webu
 
-V `public/.htaccess` leží nastavení pro server, na kterém web běží: vypnutá
-mezipaměť LiteSpeed a odkaz na vlastní stránku 404. Astro ten soubor při
-sestavení zkopíruje do `dist/`, takže se nahraje spolu se zbytkem webu a
-**přepíše ten, který tam nechal starý WordPress**.
+V `public/.htaccess` leží nastavení pro server, na kterém web běží: odkaz na
+vlastní stránku 404 a doba, po kterou si smí prohlížeč nechat jednotlivé
+soubory. Astro ten soubor při sestavení zkopíruje do `dist/`, takže se nahraje
+spolu se zbytkem webu a **přepíše ten, který tam nechal starý WordPress**.
+
+Patří do něj jen to, co je na tomhle hostingu ověřené, že funguje. Dřív tam
+stálo i vypnutí mezipaměti LiteSpeed (`CacheDisable`) a vlastní stránka 404
+se neukazovala; po jeho odebrání se to zkouší znovu. Nastavení mezipaměti
+je teď převzaté z jiného webu na stejném hostingu, kde funguje.
+
+Odtud dvě zásady: **do souboru se nepřidává direktiva „pro jistotu"** —
+když jí server nerozumí, může přestat číst i to, co následuje. A to
+podstatné se proto píše nahoru.
 
 Nahrávat ho ručně nemá smysl — nasazení maže na serveru všechno, co ve webu
 není, takže by ho příště smazalo. Když je potřeba na serveru něco nastavit,

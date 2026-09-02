@@ -349,14 +349,23 @@ jobs:
           if grep -q "Tuhle stranku\|Tuhle stránku" ctyristactyri.html; then
             echo "- Ukazuje se nase stranka 404" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Ukazuje se serverova stranka 404, ne nase.**" >> $GITHUB_STEP_SUMMARY
-            echo "  Server tedy nebere ErrorDocument z .htaccess a musi se to" >> $GITHUB_STEP_SUMMARY
-            echo "  nastavit v administraci hostingu." >> $GITHUB_STEP_SUMMARY
+            echo "- **Ukazuje se serverova stranka 404, ne nase**" >> $GITHUB_STEP_SUMMARY
             CHYBY=$((CHYBY+1))
           fi
 
-          KOD=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$WEB/.htaccess")
-          echo "- Soubor .htaccess: HTTP $KOD (403 znamena, ze tam je a je chraneny)" >> $GITHUB_STEP_SUMMARY
+          # Sonda z .htaccess. Jestli ho server cte, se jinak zvenci zjistit
+          # neda: na /.htaccess vraci 403 i tehdy, kdyz tam zadny neni, protoze
+          # ho chrani plosnym pravidlem - "403" tedy neznamena "je tam".
+          # Presmerovani je oproti tomu videt jednoznacne.
+          KOD=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$WEB/zkouska-htaccess")
+          if [ "$KOD" = "301" ] || [ "$KOD" = "302" ]; then
+            echo "- Server .htaccess **cte** (sonda presmerovala, HTTP $KOD)." >> $GITHUB_STEP_SUMMARY
+            echo "  Kdyz presto neplati ErrorDocument, vadi mu neco v tom souboru." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Server .htaccess **necte** (sonda vratila HTTP $KOD misto 302)." >> $GITHUB_STEP_SUMMARY
+            echo "  Pak neucinkuje ani ErrorDocument a nema smysl ho ladit." >> $GITHUB_STEP_SUMMARY
+            CHYBY=$((CHYBY+1))
+          fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ "$CHYBY" -gt 0 ]; then
