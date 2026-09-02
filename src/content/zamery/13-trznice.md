@@ -6,6 +6,6 @@ lon: 16.99911
 stav: overeno
 ---
 
-Prostor u tržnice leží pár kroků od náměstí, ale zatím se s ním nikdo nepokusil nic udělat.
+Prostranství u kamenné tržnice leží pár kroků od náměstí.
 
-Chceme na jeho podobu vypsat architektonickou soutěž a nechat vzniknout několik variant, ke kterým se budou moci lidé vyjádřit. Vítězný návrh pak zrealizujeme — nechceme jen další projekt do šuplíku.
+Chceme na jeho podobu vypsat architektonickou soutěž, nechat vzniknout několik variant a dát lidem možnost se k nim vyjádřit. Vítězný návrh pak zrealizujeme — nechceme další projekt do šuplíku. A patří k tomu i to, co takové místo dělá snesitelným v létě: stromy, které město snesou, trvalkové záhony a mobiliář, který spolu ladí.
