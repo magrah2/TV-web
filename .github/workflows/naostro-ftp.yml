@@ -201,12 +201,17 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
-          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
+          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
+          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
+          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
+          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
+          # spojeni.
+          set net:connection-limit 1
+          set mirror:parallel-transfer-count 1
           set ftp:passive-mode true
           set ftp:prefer-epsv false
-          set mirror:parallel-transfer-count 1
-          set net:max-retries 5
+          set net:max-retries 3
           set net:timeout 40
           set net:reconnect-interval-base 5
           mirror --reverse --delete --dry-run --verbose \
@@ -284,8 +289,7 @@ jobs:
           # Bez odriznuti koncoveho lomitka by vznikla cesta se dvema.
           ADR="${ADRESAR%/}"
 
-          # Prikazy pro lftp jdou do souboru, aby se daly poustet opakovane.
-          cat > prikazy.lftp <<LFTP
+          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
@@ -297,15 +301,24 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
-          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
+          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
+          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
+          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
+          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
+          # spojeni.
+          set net:connection-limit 1
+          set mirror:parallel-transfer-count 1
           set ftp:passive-mode true
           set ftp:prefer-epsv false
-          set mirror:parallel-transfer-count 1
-          set net:max-retries 5
+          set net:max-retries 3
           set net:timeout 40
           set net:reconnect-interval-base 5
           set cmd:fail-exit true
+          # Vypisuje odpovedi serveru. Kdyz nahrani spadne, je v zaznamu videt
+          # vlastnimi slovy serveru, proc - treba „421 Too many connections".
+          # Heslo je v secrets, takze ho GitHub v zaznamu zamaskuje.
+          debug 3
           echo "--- 1/2: obrazky a styly (preskoci se, co uz na serveru je) ---"
           mirror --reverse --delete --ignore-time --verbose \
             dist/_astro/ "$ADR/_astro/"
@@ -316,29 +329,6 @@ jobs:
             dist/ "$ADR"
           bye
           LFTP
-
-          # Server obcas spojeni odmitne a nahrani spadne na
-          # „max-retries exceeded". Neni to chyba nastaveni — tentyz beh
-          # jindy projde. Zrcadleni se da opakovat bez rizika: co uz je
-          # nahrane, se podruhe preskoci.
-          USPECH=""
-          for POKUS in 1 2 3; do
-            echo ">> Pokus $POKUS ze 3"
-            if lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp; then
-              USPECH=1
-              break
-            fi
-            if [ "$POKUS" -lt 3 ]; then
-              echo ">> Nepovedlo se. Nechavam server chvili vydechnout a zkousim znovu."
-              sleep 45
-            fi
-          done
-
-          if [ -z "$USPECH" ]; then
-            echo "Nahrani se nepovedlo ani na treti pokus."
-            echo "Zkuste to za chvili znovu - server nas nejspis docasne odmita."
-            exit 1
-          fi
 
       - name: Nahrát zkušební soubor a vypsat obsah složky
         # Žádný `mirror`, žádné `--delete` — jen jeden `put` a výpis. Web se
@@ -407,12 +397,17 @@ jobs:
           # nelze - shell by je vzal jako prikaz ke spusteni.
           set ftp:list-options -a
           $SSL
-          # Sdilene hostingy omezuji pocet soucasnych spojeni a byvaji
-          # pomale. Proto jen jedno spojeni, delsi cekani a vic pokusu.
+          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
+          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
+          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
+          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
+          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
+          # spojeni.
+          set net:connection-limit 1
+          set mirror:parallel-transfer-count 1
           set ftp:passive-mode true
           set ftp:prefer-epsv false
-          set mirror:parallel-transfer-count 1
-          set net:max-retries 5
+          set net:max-retries 3
           set net:timeout 40
           set net:reconnect-interval-base 5
           set cmd:fail-exit true
