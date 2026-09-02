@@ -1,15 +1,18 @@
-# Nastavení serveru pro ostrý web. Leží v `public/`, takže ho Astro zkopíruje
-# do `dist/` a nasazení ho nahraje s webem. Souvislosti jsou v README.
+# Nastaveni serveru pro ostry web. Lezi v `public/`, Astro ho zkopiruje do
+# `dist/` a nasazeni nahraje s webem. Souvislosti jsou v README.
+#
+# Cely soubor je bez diakritiky zamerne: cte ho server, ne clovek, a na tomhle
+# hostingu bezi LiteSpeed. Ceske znaky v nem nemame overene a kdyz parser
+# narazi na neco, cemu nerozumi, umi preskocit cely soubor.
 
-# Stojí schválně první: kdyby server o kus níž zakopl a přestal soubor číst,
-# tahle direktiva už platí.
+# Stoji schvalne prvni: kdyby server o kus niz zakopl a prestal cist, tahle
+# direktiva uz plati.
 ErrorDocument 404 /404.html
 
-# HTML se musí pokaždé ověřit, protože se jmenuje pořád stejně. Soubory
-# z `_astro/` mají v názvu otisk obsahu, takže stejné jméno znamená stejný
-# obsah a smí ležet rok. Vzor míří na ten otisk před příponou, protože
-# `FilesMatch` vidí jméno souboru, ne cestu — soubory z `public/` se ho tedy
-# netýkají, a správně.
+# HTML se musi pokazde overit, protoze se jmenuje porad stejne. Soubory
+# z `_astro/` maji v nazvu otisk obsahu, takze stejne jmeno znamena stejny
+# obsah a smi lezet rok. Vzor miri na ten otisk pred priponou, protoze
+# `FilesMatch` vidi jmeno souboru, ne cestu.
 <IfModule mod_headers.c>
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache"
@@ -19,5 +22,5 @@ ErrorDocument 404 /404.html
   </FilesMatch>
 </IfModule>
 
-# DOČASNÉ, po vyřešení 404 smazat: ověřuje, že server tenhle soubor vůbec čte.
+# DOCASNE, po vyreseni 404 smazat: overuje, ze server tenhle soubor vubec cte.
 Redirect 302 /zkouska-htaccess /
