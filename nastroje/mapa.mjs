@@ -29,10 +29,11 @@ const SIRKA = 1000;
 const MAPY = [
   {
     nazev: 'mesto',
-    // Jizni okraj saha az pod rybniky Kacenec (mistne Kacak). Bez toho
-    // by z lokality, ve ktere chceme klimapark, byla na mape videt jen
-    // polovina jednoho rybnika - a zamer, jehoz misto neni videt, je k nicemu.
-    vyrez: { jih: 49.258, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 },
+    // Jizni okraj rezne rybniky Kacenec (mistne Kacak) v polovine. Je to
+    // schvalne: kdyby vyrez sahal az pod ne, mapa by byla o sedminu vyssi
+    // a mesto v ni mensi. Z Kacence je videt kus a bod klimaparku se nad
+    // nej vejde, coz staci.
+    vyrez: { jih: 49.2636, sever: 49.3024, zapad: 16.9485, vychod: 17.0315 },
     svg: 'public/mapa-vyskov.svg',
     json: 'src/lib/mapa-vyrez.json',
   },
