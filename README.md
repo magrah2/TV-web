@@ -147,6 +147,11 @@ tým si ho projde, a když ho odsouhlasí, pustí se ostré nahrání ručně:
 
 > **Actions → Naostro na FTP → Run workflow → Run workflow**
 
+Jde to i z VS Code, aniž byste chodil na web: v postranním panelu je ikona
+**GitHub Actions** (rozšíření `github.vscode-github-actions`, VS Code ho
+nabídne k doinstalování sám). V seznamu úloh najděte **Naostro na FTP**
+a spusťte ji ikonou ▶ — VS Code se zeptá na tytéž přepínače jako web.
+
 Sestaví se přitom nová verze s `NAOSTRO=1`, takže zmizí pruh „Náhled"
 i `noindex` a odkazy se přepnou z podsložky `/TV-web/` do kořene domény.
 Draft na GitHub Pages běží dál a nic se s ním nestane.

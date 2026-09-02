@@ -1,4 +1,12 @@
 {
-  "recommendations": ["astro-build.astro-vscode"],
+  // Rozšíření, která VS Code nabídne k doinstalování, když se projekt otevře.
+  "recommendations": [
+    // Zvýrazňování a napovídání v souborech .astro.
+    "astro-build.astro-vscode",
+    // Rozšíření GitHubu: v postranním panelu ukáže úlohy z .github/workflows
+    // a umí je spustit, včetně vyplnění přepínačů. Tudy se pouští nasazení
+    // naostro, aniž by se muselo chodit na web GitHubu.
+    "github.vscode-github-actions"
+  ],
   "unwantedRecommendations": []
 }
