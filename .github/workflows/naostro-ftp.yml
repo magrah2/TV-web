@@ -112,7 +112,11 @@ jobs:
             echo "Sestaveni ma odkazy do podslozky /TV-web/, tedy je to draft."
             exit 1
           fi
-          echo "V poradku: sestaveni je ostre."
+          if grep -rq "toto zatim neni zivy web\|toto zatím není živý web" dist/; then
+            echo "Sestaveni ma pruh 'Nahled', tedy je to draft."
+            exit 1
+          fi
+          echo "V poradku: sestaveni je ostre - bez pruhu, bez noindex, odkazy v koreni."
 
       - name: Nainstalovat lftp
         # Schválně obyčejné lftp, ne hotová akce z Marketplace: přihlašovací
