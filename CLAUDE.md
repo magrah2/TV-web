@@ -198,8 +198,9 @@ metrů, skončí chybou a nic nezapíše.
 ## Kde to stojí
 
 Otevřené body jsou v README v sekci „Co ještě chybí". Zkráceně: chybí fotky
-a texty medailonků. Body na mapě mají `stav: navrh` — polohy jsou skutečné,
-texty čekají na potvrzení týmem. Na `/soukromi/` je nedodělek `DOPLNIT`.
+a texty medailonků. Body na mapě už tým potvrdil, takže mají `stav: overeno`
+a značka „návrh" se nikde nevykresluje — nový bod ze šablony ale začíná
+jako `navrh` a značku dostane.
 
 ---
 

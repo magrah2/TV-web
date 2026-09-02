@@ -28,16 +28,19 @@ const STOPA =
   varianta === 'oddelovac' ? (
     <svg
       class:list={['krivka-oddelovac', trida]}
-      viewBox="0 0 1200 24"
+      viewBox="0 0 1200 20"
       preserveAspectRatio="none"
       aria-hidden="true"
       focusable="false"
     >
+      {/* Není to čára, ale výplň od křivky dolů — křivka je tím sama hranou
+          pozadí sekce pod ní. Jako tah to nefungovalo: pod ní běžela rovná
+          hrana pozadí, dvě téměř rovnoběžné čáry se rozbíhaly a vypadalo to
+          rozbitě. Souměrná podle středu, řídicí body vpravo jsou zrcadlem
+          těch vlevo (300 a 400 ↔ 800 a 900). */}
       <path
-        d="M0,20 C300,20 380,4 600,4 C820,4 900,20 1200,20"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
+        d="M0,20 L0,14 C300,14 400,4 600,4 C800,4 900,14 1200,14 L1200,20 Z"
+        fill="currentColor"
       />
     </svg>
   ) : (
@@ -60,11 +63,15 @@ const STOPA =
     flex: none;
   }
 
+  /* Výplň se musí dotknout obou okrajů okna, takže se tady nic nemaskuje
+     ani nezaobluje — jinak by mezi křivkou a sekcí pod ní prosvítala mezera.
+     Barvu si nastaví ten, kdo oddělovač použije: má to být pozadí sekce,
+     která pod ním začíná. */
   .krivka-oddelovac {
     display: block;
     width: 100%;
-    height: 24px;
-    color: var(--linka-vyrazna);
+    height: 20px;
+    color: var(--plocha);
   }
 
   /* Podklad: velká měkká stopa, která se nesmí prát s textem.

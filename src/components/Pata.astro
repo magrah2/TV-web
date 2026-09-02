@@ -6,9 +6,14 @@ const EMAIL = 'info@transparentnivyskov.cz';
 const rok = new Date().getFullYear();
 ---
 
-<footer class="pata">
+{/* Křivka musí být NAD patičkou, ne v ní. Uvnitř by ji přebilo bílé pozadí
+    patičky, které se maluje i za průhlednou částí nad křivkou, takže by
+    z oddělovače zbyla rovná hrana. */}
+<div class="pata-oddelovac">
   <Krivka varianta="oddelovac" />
+</div>
 
+<footer class="pata">
   <div class="pruh pata-vnitrek">
     <div class="pata-hlavni">
       <p class="pata-hashtag">#Jdetoijinak</p>
@@ -47,15 +52,22 @@ const rok = new Date().getFullYear();
 </footer>
 
 <style>
-  .pata {
+  /* Odsazení nese oddělovač, protože začíná dřív než patička sama. */
+  .pata-oddelovac {
     margin-top: var(--mezera-sekce);
-    background: var(--plocha);
-    border-top: 1px solid var(--linka);
   }
 
-  .pata :global(.krivka-oddelovac) {
-    margin-top: -13px;
-    color: var(--linka);
+  /* Křivka je hrana bílého pozadí patičky, ne linka nad ní — má proto barvu
+     patičky a dosedá k ní bez mezery. Patička už nemá `border-top`: ta rovná
+     čára byla přesně to, co se s křivkou rozbíhalo a vypadalo rozbitě. */
+  .pata-oddelovac :global(.krivka-oddelovac) {
+    display: block;
+    margin-bottom: -1px;
+    color: var(--plocha);
+  }
+
+  .pata {
+    background: var(--plocha);
   }
 
   .pata-vnitrek {

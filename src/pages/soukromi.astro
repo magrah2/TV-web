@@ -5,9 +5,6 @@ import Zaklad from '../layouts/Zaklad.astro';
  * Na starém webu vedl odkaz na zásady ochrany osobních údajů na `#`, tedy
  * nikam. Tahle stránka to napravuje. Je krátká schválně — web sám o sobě
  * žádná data nesbírá, takže není o čem psát odstavce.
- *
- * POZOR: než se web pustí naostro, musí tu být doplněný správce údajů
- * (kdo za sdružení odpovídá) — hledejte „DOPLNIT".
  */
 
 const EMAIL = 'info@transparentnivyskov.cz';
@@ -58,9 +55,10 @@ const EMAIL = 'info@transparentnivyskov.cz';
     </p>
 
     <h2>Správce údajů</h2>
-    <p class="doplnit">
-      DOPLNIT před spuštěním naostro: kdo za sdružení odpovídá za zpracování osobních
-      údajů — jméno a kontaktní adresa.
+    <p>
+      Správcem osobních údajů je <strong>Transparentní Vyškov — sdružení nezávislých
+      kandidátů</strong>. Za jejich zpracování odpovídá <strong>Eva Formánková</strong>,
+      zastihnete ji na <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.
     </p>
 
     <h2>Vaše práva</h2>
@@ -91,14 +89,4 @@ const EMAIL = 'info@transparentnivyskov.cz';
     font-size: var(--text-maly);
   }
 
-  /* Nedodělek je vidět, aby se na něj nezapomnělo. Až se doplní,
-     obal `.doplnit` se smaže i s tímhle stylem. */
-  .doplnit {
-    padding: 0.85rem 1.1rem;
-    background: color-mix(in srgb, var(--navrh) 10%, transparent);
-    border-left: 3px solid var(--navrh);
-    border-radius: 0 var(--radius-maly) var(--radius-maly) 0;
-    color: var(--navrh);
-    font-weight: 500;
-  }
 </style>

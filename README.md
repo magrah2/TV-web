@@ -219,5 +219,7 @@ seznam je jediné místo, kde se udržují ručně.
 - [ ] Texty medailonků (kopírují se z Facebooku)
 - [ ] Témata u většiny kandidátů — u některých je předvyplněný **návrh**
       odvozený z povolání, označený komentářem v souboru. Potvrdit nebo přepsat.
-- [ ] Potvrdit nebo přepsat texty u bodů na mapě (všechny mají `stav: navrh`)
-- [ ] Správce osobních údajů na stránce `/soukromi/` — hledejte `DOPLNIT`
+- [x] ~~Potvrdit nebo přepsat texty u bodů na mapě~~ — hotovo, body mají
+      `stav: overeno`. Bod „Okolí nádraží" ale v programu oporu nemá, je to
+      návrh, který zatím nikdo nezamítl ani nepotvrdil.
+- [x] ~~Správce osobních údajů na stránce `/soukromi/`~~ — hotovo
