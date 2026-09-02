@@ -1,8 +1,8 @@
 ---
-nazev: Zástavba přímo u řeky
+nazev: Stop zástavbě u řeky
 tema: Bydlení
-lat: 49.27893
-lon: 17.00166
+lat: 49.28201
+lon: 16.99411
 stav: overeno
 ---
 

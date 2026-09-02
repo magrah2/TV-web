@@ -1,8 +1,8 @@
 ---
 nazev: Parkování na Dukelské
 tema: Doprava
-lat: 49.28084
-lon: 17.00006
+lat: 49.28106
+lon: 16.99932
 stav: overeno
 ---
 
