@@ -12,12 +12,22 @@ const EMAIL = 'info@transparentnivyskov.cz';
  * aplikace, když se odkaz sdílí, a označuje, odkud sdílení přišlo —
  * na webu nemá co dělat a bez něj odkaz vede na totéž.
  *
- * Ikonky sítí tu schválně nejsou: web má jediný grafický motiv, a to křivku
- * z loga. Cizí loga by se navíc musela stáhnout odjinud, což tenhle web nedělá.
+ * Znaky sítí jsou jedinou výjimkou z pravidla „jeden grafický motiv" —
+ * nejsou to ozdoby, ale to, podle čeho člověk odkaz pozná dřív, než si ho
+ * přečte. Jsou nakreslené přímo tady jako SVG, ne stažené odjinud: web
+ * nesmí posílat požadavky na cizí servery.
  */
 const SITE = [
-  { nazev: 'Facebook', adresa: 'https://www.facebook.com/profile.php?id=61589465665637' },
-  { nazev: 'Instagram', adresa: 'https://www.instagram.com/transparentni_vyskov' },
+  {
+    nazev: 'Facebook',
+    znak: 'facebook',
+    adresa: 'https://www.facebook.com/profile.php?id=61589465665637',
+  },
+  {
+    nazev: 'Instagram',
+    znak: 'instagram',
+    adresa: 'https://www.instagram.com/transparentni_vyskov',
+  },
 ].filter((s) => s.adresa);
 ---
 
@@ -49,7 +59,22 @@ const SITE = [
             <ul class="site-odkazy">
               {SITE.map((sit) => (
                 <li>
-                  <a href={sit.adresa} rel="noopener">{sit.nazev}</a>
+                  <a href={sit.adresa} rel="noopener">
+                    {sit.znak === 'facebook' ? (
+                      <svg class="site-znak" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="3" y="3" width="18" height="18" rx="5" />
+                        <path d="M15.2 7.6h-1.6a2.2 2.2 0 0 0-2.2 2.2V21" />
+                        <path d="M9.6 12.8h5" />
+                      </svg>
+                    ) : (
+                      <svg class="site-znak" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="3" y="3" width="18" height="18" rx="5" />
+                        <circle cx="12" cy="12" r="4" />
+                        <circle class="site-znak-tecka" cx="17.1" cy="6.9" r="1.2" />
+                      </svg>
+                    )}
+                    {sit.nazev}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -129,7 +154,9 @@ const SITE = [
   }
 
   .site-odkazy a {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     padding: 0.45rem 0.9rem;
     border: 1px solid var(--linka);
     border-radius: var(--radius-maly);
@@ -144,6 +171,24 @@ const SITE = [
   .site-odkazy a:hover {
     border-color: var(--modra);
     color: var(--modra-text);
+  }
+
+  /* Znak kreslený tahem, aby držel váhu textu vedle sebe. Barvu bere
+     z textu, takže se při přejetí přebarví spolu s ním. */
+  .site-znak {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .site-znak-tecka {
+    fill: currentColor;
+    stroke: none;
   }
 
   .kopirovat {

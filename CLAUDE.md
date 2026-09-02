@@ -51,6 +51,13 @@ Zelená stopa z loga (`src/components/Krivka.astro`) je jediný dekorativní
 prvek webu. Cesta je doslova vytažená ze značky. Žádné další ozdoby,
 ikonky ani tvary nepřibývají — jinak se web rozpadne.
 
+**Jediná výjimka: znaky Facebooku a Instagramu** u odkazů na `/kontakt/`.
+Nejsou to ozdoby — jsou to značky, podle kterých člověk odkaz pozná dřív,
+než si ho přečte, a bez nich vypadala obě tlačítka stejně. Jsou nakreslené
+přímo v `kontakt.astro` jako inline SVG tahem v `currentColor`, ne stažené
+odjinud: web nesmí posílat požadavky na cizí servery. Další ikonky tímhle
+povolené nejsou.
+
 ## Zásady, které platí všude
 
 1. **Žádné modály na uvítanou, žádná vyskakovací okna.** Detaily se
