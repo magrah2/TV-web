@@ -1,8 +1,0 @@
-# DOCASNE - zkouska, jestli server .htaccess vubec cte.
-#
-# Tahle direktiva neexistuje. Kdyz server soubor cte, odpovi na adresu
-# /zkouska-htaccess/ chybou 500. Kdyz odpovi 200 a ukaze stranku, soubor
-# necte vubec a zadne ladeni direktiv nema smysl.
-#
-# Je schvalne v podslozce: pripadna chyba 500 se tyka jen ji, ne webu.
-ZkouskaJestliServerCteHtaccess on

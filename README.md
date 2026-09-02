@@ -245,10 +245,12 @@ Platí tu jedna zásada: **do souboru se nepřidává direktiva „pro jistotu"*
 Když jí server nerozumí, může přestat číst i to, co následuje. Proto se
 to podstatné píše nahoru.
 
-**Pozor: na téhle doméně se zatím `.htaccess` neuplatňuje.** Ověřeno třemi
-direktivami ze tří různých modulů (`ErrorDocument`, `Redirect`, `Header`) —
-neúčinkuje ani jedna, přestože soubor leží v kořeni webu, má práva 644
-a nic ho nepřebíjí o patro výš.
+**Pozor: na téhle doméně server `.htaccess` nečte.** Není to nastavením
+souboru — ověřeno tak, že do zkušební podsložky přišla nesmyslná direktiva.
+Kdyby se soubor četl, server by na tu adresu odpověděl chybou 500; odpověděl
+200 a ukázal stránku. Neúčinkují tím pádem ani direktivy v kořeni
+(`ErrorDocument`, `Redirect`, `Header` — zkoušené všechny tři), přestože
+soubor leží na správném místě, má práva 644 a nic ho nepřebíjí o patro výš.
 
 Příčina je v tom, že doména běží na jiném webserveru než `kvadratura.cz`
 u téhož poskytovatele, kde tentýž soubor funguje. Poznat se to dá podle

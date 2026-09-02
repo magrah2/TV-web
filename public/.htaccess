@@ -21,6 +21,3 @@ ErrorDocument 404 /404.html
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>
-
-# DOCASNE, po vyreseni 404 smazat: overuje, ze server tenhle soubor vubec cte.
-Redirect 302 /zkouska-htaccess /
