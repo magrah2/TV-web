@@ -245,11 +245,27 @@ Platí tu jedna zásada: **do souboru se nepřidává direktiva „pro jistotu"*
 Když jí server nerozumí, může přestat číst i to, co následuje. Proto se
 to podstatné píše nahoru.
 
-**Pozor: na tomhle hostingu se zatím `.htaccess` neuplatňuje.** Před webem
-stojí nginx a za ním LiteSpeed (`Server: nginx`, `x-turbo-charged-by:
-LiteSpeed`), kdežto `.htaccess` je věc Apache. Ověřeno třemi direktivami ze
-tří různých modulů — neúčinkuje ani jedna. Než se to vyřeší s hostingem,
-ukazuje se serverová stránka 404 a mezipaměť si řídí server sám.
+**Pozor: na téhle doméně se zatím `.htaccess` neuplatňuje.** Ověřeno třemi
+direktivami ze tří různých modulů (`ErrorDocument`, `Redirect`, `Header`) —
+neúčinkuje ani jedna, přestože soubor leží v kořeni webu, má práva 644
+a nic ho nepřebíjí o patro výš.
+
+Příčina je v tom, že doména běží na jiném webserveru než `kvadratura.cz`
+u téhož poskytovatele, kde tentýž soubor funguje. Poznat se to dá podle
+`ETag` v odpovědi: dvoudílný tvar `"717e-65a87caf79aca"` posílá Apache,
+třídílný `"a301-6a98a780-e354f7;;;"` LiteSpeed. Souhlasí s tím i hlavička
+`x-turbo-charged-by: LiteSpeed` a psaní názvů hlaviček malými písmeny.
+Nejspíš je to pozůstatek toho, že doména byla zřízená pro WordPress.
+
+Řeší se to u poskytovatele — převedením domény na stejné nastavení jako
+`kvadratura.cz`. Soubor v repozitáři je napsaný správně a začne fungovat
+bez zásahu. Do té doby se ukazuje serverová stránka 404 a mezipaměť si
+řídí server sám (posílá `ETag` i `Last-Modified`, takže se prohlížeč
+aspoň vždycky doptá).
+
+Jestli se to změnilo, pozná nasazení samo: v `.htaccess` je dočasná sonda
+(přesměrování z `/zkouska-htaccess`) a krok „Zkontrolovat nasazený web"
+ji hlásí ve shrnutí běhu. Až bude fungovat, sonda se z souboru smaže.
 
 Nahrávat ho ručně nemá smysl — nasazení maže na serveru všechno, co ve webu
 není, takže by ho příště smazalo. Když je potřeba na serveru něco nastavit,
