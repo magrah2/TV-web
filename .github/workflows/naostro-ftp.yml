@@ -1,42 +1,47 @@
-# Nahraje hotový web na FTP (Wedos) — tedy NAOSTRO, na vlastní doménu.
+# Nahraje hotový web na FTP — tedy NAOSTRO, na vlastní doménu.
 #
 # Spouští se JEN RUČNĚ tlačítkem: karta Actions → „Naostro na FTP" →
-# „Run workflow" → „Run workflow". Schválně tu není `on: push`. Draft na
-# GitHub Pages se nasazuje sám při každé změně v `main`, tým si ho projde,
-# a teprve když ho odsouhlasí, pustí se tenhle běh.
+# „Run workflow". Schválně tu není `on: push`. Draft na GitHub Pages se
+# nasazuje sám při každé změně v `main`, tým si ho projde, a teprve když ho
+# odsouhlasí, pustí se tenhle běh. Jde to i z VS Code přes rozšíření
+# GitHub Actions.
 #
-# Než to půjde poprvé spustit, musí být v repozitáři na GitHubu vyplněné
-# přihlašovací údaje — Settings → Secrets and variables → Actions →
-# New repository secret. Potřeba jsou čtyři:
+# Přihlašovací údaje se vyplňují v Settings → Secrets and variables →
+# Actions. Do Secrets patří troje:
 #
 #   FTP_SERVER    adresa FTP serveru, třeba ftp.transparentnivyskov.cz
 #   FTP_UZIVATEL  přihlašovací jméno
 #   FTP_HESLO     heslo
 #
-# A k tomu složka na serveru, do které web patří. Ta tajná není, takže patří
-# spíš do Variables (tamtéž, záložka „Variables") pod názvem FTP_ADRESAR —
-# hodnoty ze secrets GitHub v záznamu běhu maskuje hvězdičkami, takže by
-# v diagnostickém výpisu nebylo vidět, kam se vlastně nahrálo. Když je
-# uložená jako secret, funguje to taky, jen se hůř hledají chyby.
+# Do Variables (vedlejší záložka) pak složka a případné úlevy u certifikátu:
 #
-# FTP_ADRESAR je složka, kterou hosting servíruje jako web — bývá to
-# `/public_html/`. Když se netrefí, web se nahraje vedle a na doméně se nic
-# nezmění.
+#   FTP_ADRESAR             složka, kterou hosting servíruje jako web,
+#                           obvykle /public_html/
+#   FTP_KONTROLOVAT_JMENO   nastavte na „ne", když certifikát serveru zní na
+#                           jiné jméno, než přes které se připojujeme
+#   FTP_OVERIT_CERTIFIKAT   nastavte na „ne", až kdyby nepomohlo to předchozí
 #
-# Na první ověření je ve formuláři přepínač „Jen zkušební soubor": nahraje
-# jediný neškodný textový soubor a vypíše obsah složky, takže se přístupy
-# i adresář dají zkontrolovat, aniž by se na web sáhlo.
+# Adresář schválně není secret: hodnoty ze secrets GitHub v záznamu maskuje
+# hvězdičkami a v diagnostickém výpisu by pak nebylo vidět, kam se nahrálo.
 #
-# POZOR, tohle je ta nebezpečná část: nahrávání je zrcadlení. Co je ve
-# složce na serveru navíc oproti `dist/`, to se SMAŽE — jinak by tam po
+# POZOR, tohle je ta nebezpečná část: nahrávání je zrcadlení. Co je ve složce
+# na serveru navíc oproti sestavenému webu, to se SMAŽE — jinak by tam po
 # každé změně zůstávaly staré stránky. Kdyby byl FTP_ADRESAR špatně a mířil
 # třeba do kořene FTP, zrcadlení by smazalo i věci, které s webem nesouvisí.
+# Proti tomu je pojistka, která napřed nanečisto spočítá, kolik souborů by
+# zmizelo, a nad sto se zastaví.
 #
-# Proti tomu je pojistka: běh si napřed nanečisto spočítá, kolik souborů by
-# smazal, a když je to moc, zastaví se a vypíše je. Běžná aktualizace webu
-# smaže pár souborů; když jich má být sto a víc, je něco špatně — nebo jde
-# o první nahrání přes starý web, což je v pořádku, jen to musí někdo
-# potvrdit zaškrtnutím „velký úklid".
+# ────────────────────────────────────────────────────────────────────────
+# PRAVIDLO PRO ÚPRAVY: příkazy pro lftp se skládají do souboru přes `echo`
+# a spouštějí přesměrováním. Dřív se psaly rovnou do shellového heredocu
+# a dvakrát to kvůli tomu spadlo: heredoc nesmí být v uvozovkách, aby se
+# v něm daly použít proměnné — jenže pak shell vyhodnotí i zpětné apostrofy
+# a spustí, co je mezi nimi. Stačil komentář se slovem v apostrofech
+# a nasazení skončilo na „mirror: command not found".
+#
+# Do souboru s příkazy proto nepatří žádné komentáře. Vysvětlivky patří
+# sem do YAML, kde je shell nikdy neuvidí.
+# ────────────────────────────────────────────────────────────────────────
 
 name: Naostro na FTP
 
@@ -68,14 +73,14 @@ permissions:
 env:
   # Nad tolik smazaných souborů se běh zastaví a počká na potvrzení.
   STROP_MAZANI: 100
+  WEB: https://transparentnivyskov.cz
 
 jobs:
   naostro:
     runs-on: ubuntu-latest
-    # Bez tohohle by zaseknuté spojení na FTP viselo až šest hodin, což je
-    # výchozí strop GitHubu. Nahrání patnácti stránek trvá jednotky minut;
-    # když to běží dvacet, něco se zaseklo a nemá smysl čekat dál.
-    timeout-minutes: 35
+    # Bez tohohle by zaseknuté spojení viselo šest hodin, což je výchozí
+    # strop GitHubu. Nahrání trvá jednotky minut.
+    timeout-minutes: 30
     steps:
       - name: Zkontrolovat, že jsou vyplněné údaje
         env:
@@ -110,19 +115,18 @@ jobs:
         if: inputs.zkusebni_soubor == false
         run: npm ci
 
+      # NAOSTRO=1 přepne odkazy z podsložky /TV-web/ do kořene domény
+      # a shodí pruh „Náhled" i noindex.
       - name: Sestavit web naostro
         if: inputs.zkusebni_soubor == false
-        # NAOSTRO=1 přepne odkazy z podsložky /TV-web/ do kořene domény
-        # a shodí pruh „Náhled" i `noindex`. Bez toho by na doméně skončil
-        # web, který se tváří jako draft a má rozbité odkazy.
         env:
           NAOSTRO: '1'
         run: npm run build
 
+      # Levná pojistka. Kdyby se NAOSTRO někdy přestalo propisovat, chyba se
+      # pozná tady, ne až na doméně.
       - name: Ověřit, že sestavení není draft
         if: inputs.zkusebni_soubor == false
-        # Levná pojistka. Kdyby se NAOSTRO někdy přestalo propisovat, chyba
-        # se pozná tady, ne až na doméně.
         run: |
           if grep -q "noindex" dist/index.html; then
             echo "Sestaveni ma noindex, tedy je to draft. Naostro se nenahraje."
@@ -136,93 +140,86 @@ jobs:
             echo "Sestaveni ma pruh 'Nahled', tedy je to draft."
             exit 1
           fi
-          echo "V poradku: sestaveni je ostre - bez pruhu, bez noindex, odkazy v koreni."
+          echo "V poradku: sestaveni je ostre."
 
+      # Schválně obyčejné lftp, ne hotová akce z Marketplace: přihlašovací
+      # údaje k ostrému webu tak neopustí běh u GitHubu.
       - name: Nainstalovat lftp
-        # Schválně obyčejné lftp, ne hotová akce z Marketplace: přihlašovací
-        # údaje k ostrému webu tak nikdy neopustí běh u GitHubu a nikdo
-        # třetí je nevidí.
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
 
+      # Nastavení, které je stejné pro všechna připojení, se sestaví jednou
+      # sem do souboru a jednotlivé kroky si ho pak jen předřadí svým
+      # příkazům. Dřív se opisovalo třikrát a rozcházelo se.
+      #
+      # K jednotlivým volbám:
+      #   ssl-force        heslo nesmí jít po drátě otevřeně
+      #   list-options -a  bez toho server neuvádí soubory začínající tečkou
+      #                    a nepřenesl by se .htaccess
+      #   connection-limit lftp má protáhnout všechno jedním spojením. Zrcadlení
+      #                    si jinak otevírá druhé vedle toho, přes které
+      #                    vypisuje složky, a sdílené hostingy mívají počet
+      #                    souběžných přihlášení omezený — často na jedno.
+      #                    Přesně tím se lišilo nahrání jednoho souboru, které
+      #                    procházelo vždycky, od zrcadlení, které padalo.
+      #   debug 3          vypisuje odpovědi serveru, aby v záznamu bylo vidět,
+      #                    proč to případně selhalo, jeho vlastními slovy
+      - name: Připravit nastavení připojení
+        env:
+          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
+          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
+        run: |
+          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
+            CERT="set ssl:verify-certificate false"
+            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
+          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
+            CERT="set ssl:verify-certificate true"$'\n'"set ssl:check-hostname false"
+            echo ">> Certifikat: overuji, na jmeno se neptam"
+          else
+            CERT="set ssl:verify-certificate true"$'\n'"set ssl:check-hostname true"
+            echo ">> Certifikat: overuji certifikat i jmeno"
+          fi
+
+          {
+            echo "set ftp:ssl-force true"
+            echo "set ftp:ssl-protect-data true"
+            echo "set ftp:list-options -a"
+            echo "set ftp:passive-mode true"
+            echo "set ftp:prefer-epsv false"
+            echo "$CERT"
+            echo "set net:connection-limit 1"
+            echo "set mirror:parallel-transfer-count 1"
+            echo "set net:max-retries 3"
+            echo "set net:timeout 40"
+            echo "set net:reconnect-interval-base 5"
+            echo "set cmd:fail-exit true"
+            echo "debug 3"
+          } > spojeni.lftp
+
+          echo "Nastaveni pripojeni:"
+          cat spojeni.lftp
+
+      # Projít starý web přes FTP je nejpomalejší část celého nasazení, proto
+      # vlastní strop. Při velkém úklidu se krok přeskakuje: existuje jen kvůli
+      # pojistce níž, a tu velký úklid stejně přebíjí.
       - name: Spočítat nanečisto, co by se smazalo
-        # Projít starý web přes FTP je to nejpomalejší na celém nasazení.
-        # Když se do deseti minut nedopočítá, je jich tolik, že nemá smysl
-        # čekat — v takovém případě se pouští „velký úklid", který tenhle
-        # krok přeskočí.
-        timeout-minutes: 10
-        # Přeskakuje se při „velkém úklidu": tenhle krok existuje jen proto,
-        # aby nakrmil pojistku níž, a tu velký úklid stejně přebíjí. Projít
-        # přes FTP celý starý web soubor po souboru trvá i desítky minut,
-        # takže to není zdržení, které by mělo smysl podstupovat zbytečně.
         if: inputs.zkusebni_soubor == false && inputs.velky_uklid == false
         id: zkouska
+        timeout-minutes: 10
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
-          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
-          # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
-          # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno.
-          #
-          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
-          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
-          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
-          #
-          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
-          #                                neřeší, že je na jiné jméno
-          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
-          #                                až když nepomůže to první
-          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate false'
-            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
-          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname false'
-            echo ">> Certifikat: overuji, na jmeno se neptam"
-          else
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname true'
-            echo ">> Certifikat: overuji certifikat i jmeno"
-          fi
+          ADR="${ADRESAR%/}"
+          cp spojeni.lftp prikazy.lftp
+          {
+            echo "mirror --reverse --delete --dry-run --verbose --exclude-glob .well-known/ dist/ \"$ADR\""
+            echo "bye"
+          } >> prikazy.lftp
 
-          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
-          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
-          # a nastaveni serveru by tise chybelo.
-          #
-          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
-          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
-          # nelze - shell by je vzal jako prikaz ke spusteni.
-          set ftp:list-options -a
-          $SSL
-          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
-          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
-          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
-          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
-          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
-          # spojeni.
-          set net:connection-limit 1
-          set mirror:parallel-transfer-count 1
-          set ftp:passive-mode true
-          set ftp:prefer-epsv false
-          set net:max-retries 3
-          set net:timeout 40
-          set net:reconnect-interval-base 5
-          mirror --reverse --delete --dry-run --verbose \
-            --exclude-glob .well-known/ \
-            dist/ "$ADRESAR"
-          bye
-          LFTP
+          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp > nanecisto.txt 2>&1 || true
 
-          # lftp podle verze vypisuje bud prikaz (`rm ...`), nebo vetu
-          # („Removing old file ..."). Hlidame obojí, at se pojistka
-          # nerozbije o jinou verzi lftp na runneru.
           VZOR='^(rm|rmdir) |Removing old'
           smaze=$(grep -c -E "$VZOR" nanecisto.txt || true)
           echo "smaze=$smaze" >> $GITHUB_OUTPUT
@@ -249,100 +246,47 @@ jobs:
           fi
           echo "Smaze se ${{ steps.zkouska.outputs.smaze }} souboru, to je v mezich."
 
+      # Nahrává se nadvakrát, a to schválně.
+      #
+      # lftp porovnává soubory podle velikosti a času změny. Sestavení v CI
+      # vyrábí soubory pokaždé znovu, takže mají čas „teď" a lftp je všechny
+      # považuje za novější než ty na serveru — při každém nasazení by se tedy
+      # znovu přenášelo 6 MB obrázků, i když se nezměnily.
+      #
+      # Obrázky a styly mají v názvu otisk obsahu: když se soubor změní, změní
+      # se i jeho jméno. Stejné jméno tedy znamená stejný obsah a čas se u nich
+      # může ignorovat. U stránek to neplatí — index.html se jmenuje pořád
+      # stejně a úprava textu nemusí změnit jeho velikost, takže se přenášejí
+      # vždycky. Je jich patnáct a jsou malé.
       - name: Nahrát na FTP
         if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
-          # lftp si heslo přečte z prostředí (`--env-password`), takže se
-          # neobjeví v příkazu ani v seznamu procesů.
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
-          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
-          # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
-          # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno.
-          #
-          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
-          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
-          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
-          #
-          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
-          #                                neřeší, že je na jiné jméno
-          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
-          #                                až když nepomůže to první
-          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate false'
-            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
-          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname false'
-            echo ">> Certifikat: overuji, na jmeno se neptam"
-          else
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname true'
-            echo ">> Certifikat: overuji certifikat i jmeno"
-          fi
-
-          # Bez odriznuti koncoveho lomitka by vznikla cesta se dvema.
           ADR="${ADRESAR%/}"
+          cp spojeni.lftp prikazy.lftp
+          {
+            echo "echo --- 1/2: obrazky a styly ---"
+            echo "mirror --reverse --delete --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
+            echo "echo --- 2/2: stranky a zbytek ---"
+            echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ dist/ \"$ADR\""
+            echo "bye"
+          } >> prikazy.lftp
 
-          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
-          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
-          # a nastaveni serveru by tise chybelo.
-          #
-          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
-          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
-          # nelze - shell by je vzal jako prikaz ke spusteni.
-          set ftp:list-options -a
-          $SSL
-          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
-          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
-          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
-          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
-          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
-          # spojeni.
-          set net:connection-limit 1
-          set mirror:parallel-transfer-count 1
-          set ftp:passive-mode true
-          set ftp:prefer-epsv false
-          set net:max-retries 3
-          set net:timeout 40
-          set net:reconnect-interval-base 5
-          set cmd:fail-exit true
-          # Vypisuje odpovedi serveru. Kdyz nahrani spadne, je v zaznamu videt
-          # vlastnimi slovy serveru, proc - treba „421 Too many connections".
-          # Heslo je v secrets, takze ho GitHub v zaznamu zamaskuje.
-          debug 3
-          echo "--- 1/2: obrazky a styly (preskoci se, co uz na serveru je) ---"
-          mirror --reverse --delete --ignore-time --verbose \
-            dist/_astro/ "$ADR/_astro/"
-          echo "--- 2/2: stranky a zbytek ---"
-          mirror --reverse --delete --verbose \
-            --exclude-glob .well-known/ \
-            --exclude-glob _astro/ \
-            dist/ "$ADR"
-          bye
-          LFTP
+          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp
 
+      # Po nahrání se web opravdu navštíví. „Soubory jsou na serveru"
+      # a „web funguje" nejsou totéž — server je může servírovat jinak, než
+      # čekáme. Otazník v adrese obchází mezipaměť hostingu.
       - name: Zkontrolovat nasazený web
-        # Po nahrani se web opravdu navstivi. Do ted jsme se spolehali na to,
-        # ze nahrani probehlo bez chyby - jenze „soubory jsou na serveru"
-        # a „web funguje" nejsou tataz vec: server je muze servirovat jinak,
-        # nez cekame. Otaznik v adrese obchazi mezipamet, aby se kontrolovalo
-        # to, co je tam ted.
         if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
         run: |
-          WEB="https://transparentnivyskov.cz"
           CHYBY=0
           echo "## Kontrola nasazeneho webu" >> $GITHUB_STEP_SUMMARY
 
-          # 1) Uvodni stranka musi byt ta nova.
           TELO=$(curl -s -m 30 "$WEB/?x=$GITHUB_RUN_ID")
           if echo "$TELO" | grep -q "Jdetoijinak"; then
             echo "- Uvodni stranka: nova verze webu" >> $GITHUB_STEP_SUMMARY
@@ -351,7 +295,6 @@ jobs:
             CHYBY=$((CHYBY+1))
           fi
 
-          # 2) Pruh „Nahled" a noindex na ostrem webu byt nesmi.
           if echo "$TELO" | grep -q "noindex"; then
             echo "- **Ostry web ma noindex**" >> $GITHUB_STEP_SUMMARY
             CHYBY=$((CHYBY+1))
@@ -359,7 +302,6 @@ jobs:
             echo "- Bez noindex, jak ma byt" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # 3) Neexistujici adresa: spravny kod a nase vlastni stranka.
           KOD=$(curl -s -m 30 -o ctyristactyri.html -w "%{http_code}" "$WEB/neexistuje-$GITHUB_RUN_ID")
           if [ "$KOD" = "404" ]; then
             echo "- Neexistujici adresa vraci 404" >> $GITHUB_STEP_SUMMARY
@@ -371,12 +313,11 @@ jobs:
             echo "- Ukazuje se nase stranka 404" >> $GITHUB_STEP_SUMMARY
           else
             echo "- **Ukazuje se serverova stranka 404, ne nase.**" >> $GITHUB_STEP_SUMMARY
-            echo "  Znamena to, ze server necte ErrorDocument z .htaccess." >> $GITHUB_STEP_SUMMARY
-            echo "  Nastavuje se to v administraci hostingu." >> $GITHUB_STEP_SUMMARY
+            echo "  Server tedy nebere ErrorDocument z .htaccess a musi se to" >> $GITHUB_STEP_SUMMARY
+            echo "  nastavit v administraci hostingu." >> $GITHUB_STEP_SUMMARY
             CHYBY=$((CHYBY+1))
           fi
 
-          # 4) .htaccess ma na serveru byt, ale nesmi jit stahnout.
           KOD=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$WEB/.htaccess")
           echo "- Soubor .htaccess: HTTP $KOD (403 znamena, ze tam je a je chraneny)" >> $GITHUB_STEP_SUMMARY
 
@@ -387,97 +328,43 @@ jobs:
             echo "Vse v poradku." >> $GITHUB_STEP_SUMMARY
           fi
 
+      # Žádné zrcadlení, žádné mazání — jen jeden soubor navíc a výpis složky.
       - name: Nahrát zkušební soubor a vypsat obsah složky
-        # Žádný `mirror`, žádné `--delete` — jen jeden `put` a výpis. Web se
-        # tím nezmění, jen v jeho složce přibude textový soubor, který jde
-        # kdykoliv smazat.
         if: inputs.zkusebni_soubor == true
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
-          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
+          set -o pipefail
+          ADR="${ADRESAR%/}"
+          echo ">> Adresar, do ktereho nahravam: '$ADR'"
+          echo "   (kdyz se misto nej vypisuje ***, je ulozeny jako secret;"
+          echo "    prehodte ho do Variables, at je v zaznamu videt)"
+
           {
             echo "Zkusebni soubor z nasazeni webu Transparentni Vyskov."
             echo "Overuje jen to, ze funguje pripojeni na FTP."
             echo "Da se kdykoliv smazat."
             echo ""
-            echo "Beh: ${{ github.run_id }}"
-            echo "Vytvoreno: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "Beh: $GITHUB_RUN_ID"
           } > zkouska-nasazeni.txt
 
-          echo ">> Adresar, do ktereho nahravam: '$ADRESAR'"
-          echo "   (kdyz se misto nej vypisuje ***, je ulozeny jako secret;"
-          echo "    prehodte ho do Variables, at je v logu videt)"
+          cp spojeni.lftp prikazy.lftp
+          {
+            echo "echo --- kde jsem po prihlaseni ---"
+            echo "pwd"
+            echo "echo --- co lezi hned po prihlaseni ---"
+            echo "cls -l"
+            echo "echo --- nahravam zkusebni soubor ---"
+            echo "put -O \"$ADR\" zkouska-nasazeni.txt"
+            echo "echo --- co lezi v cilove slozce ---"
+            echo "cls -l \"$ADR\""
+            echo "bye"
+          } >> prikazy.lftp
 
-          # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
-          # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno.
-          #
-          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
-          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
-          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
-          #
-          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
-          #                                neřeší, že je na jiné jméno
-          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
-          #                                až když nepomůže to první
-          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate false'
-            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
-          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname false'
-            echo ">> Certifikat: overuji, na jmeno se neptam"
-          else
-            SSL='set ssl:verify-certificate true
-          set ssl:check-hostname true'
-            echo ">> Certifikat: overuji certifikat i jmeno"
-          fi
-
-          # `set -o pipefail` je tu nutny: bez nej ma roura navratovy kod
-          # posledniho clanku, tedy `tee`. Kdyby lftp selhalo, krok by presto
-          # skoncil uspechem a nikdo by se o chybe nedozvedel.
-          set -o pipefail
-          lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
-          set ftp:ssl-force true
-          set ftp:ssl-protect-data true
-          # Bez prepinace -a server ve vypisu neuvadi soubory zacinajici
-          # teckou, takze by se soubor .htaccess nemusel prenest ani porovnat
-          # a nastaveni serveru by tise chybelo.
-          #
-          # POZOR: tenhle blok jde do heredocu, ktery neni v uvozovkach, aby
-          # se v nem daly pouzit promenne. Zpetne apostrofy v nem proto psat
-          # nelze - shell by je vzal jako prikaz ke spusteni.
-          set ftp:list-options -a
-          $SSL
-          # Jedno jedine spojeni. `mirror` si jinak otevira dalsi vedle
-          # toho, pres ktere vypisuje slozky, a sdilene hostingy maji pocet
-          # soucasnych prihlaseni omezeny - casto na jedno. Presne tim se lisi
-          # `put` jednoho souboru, ktery prochazel vzdycky, od `mirror`, ktery
-          # padal na „max-retries exceeded": ne poctem souboru, ale poctem
-          # spojeni.
-          set net:connection-limit 1
-          set mirror:parallel-transfer-count 1
-          set ftp:passive-mode true
-          set ftp:prefer-epsv false
-          set net:max-retries 3
-          set net:timeout 40
-          set net:reconnect-interval-base 5
-          set cmd:fail-exit true
-          echo "--- kde jsem po prihlaseni ---"
-          pwd
-          echo "--- co lezi hned po prihlaseni ---"
-          cls -l
-          echo "--- nahravam zkusebni soubor ---"
-          put -O "$ADRESAR" zkouska-nasazeni.txt
-          echo "--- co lezi v cilove slozce ---"
-          cls -l "$ADRESAR"
-          bye
-          LFTP
+          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp | tee vypis.txt
 
       - name: Vypsat, co ve složce leží
         if: inputs.zkusebni_soubor == true
@@ -489,19 +376,12 @@ jobs:
           echo "Beh dobehl bez chyby, takze prihlasovaci udaje funguji" >> $GITHUB_STEP_SUMMARY
           echo "a server soubor prijal. Web zustal nedotceny." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Soubor se jmenuje \`zkouska-nasazeni.txt\` a lezi primo" >> $GITHUB_STEP_SUMMARY
-          echo "v korenu webu. Az ho nebudete potrebovat, smazte ho" >> $GITHUB_STEP_SUMMARY
-          echo "FTP klientem." >> $GITHUB_STEP_SUMMARY
+          echo "Zkuste si ho otevrit na $WEB/zkouska-nasazeni.txt" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Zkuste si ho otevrit na** \`https://transparentnivyskov.cz/zkouska-nasazeni.txt\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Tim se zjisti to jedine, co je krome pristupu potreba vedet:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Otevre se** = domena uz na tenhle hosting miri. Po ostrem" >> $GITHUB_STEP_SUMMARY
-          echo "  nahrani bude novy web na doméne hned a s DNS neni co resit." >> $GITHUB_STEP_SUMMARY
-          echo "- **Neotevre se** (404 nebo stary web) = domena miri jinam." >> $GITHUB_STEP_SUMMARY
-          echo "  Nahrani projde, ale na doméne se nic nezmeni, dokud se" >> $GITHUB_STEP_SUMMARY
-          echo "  neprepnou DNS. Pak pozor na MX zaznamy, aby nepresla posta." >> $GITHUB_STEP_SUMMARY
+          echo "- Otevre se: domena uz na tenhle hosting miri." >> $GITHUB_STEP_SUMMARY
+          echo "- Neotevre se: nahrani proslo, ale domena miri jinam a bude" >> $GITHUB_STEP_SUMMARY
+          echo "  potreba prepnout DNS. Pak pozor na MX zaznamy, aby neprestala" >> $GITHUB_STEP_SUMMARY
+          echo "  chodit posta." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Co lezi v $ADRESAR" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
