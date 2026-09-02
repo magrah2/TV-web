@@ -159,12 +159,18 @@ Actions → New repository secret:
 | `FTP_SERVER` | adresa FTP serveru od Wedosu |
 | `FTP_UZIVATEL` | přihlašovací jméno |
 | `FTP_HESLO` | heslo |
-| `FTP_ADRESAR` | složka s webem, u Wedosu zpravidla `/public_html/` |
+| `FTP_ADRESAR` | složka s webem, zpravidla `/public_html/` — tahle jediná patří spíš do záložky **Variables** vedle Secrets, viz níž |
 
 `FTP_ADRESAR` musí sedět — je to složka, kterou hosting servíruje jako web,
 většinou `/public_html/`. Záleží na tom, protože ostré nahrávání **maže na
 serveru soubory, které ve webu nejsou** (jinak by tam po každé změně
 zůstávaly staré stránky).
+
+`FTP_ADRESAR` není tajný údaj, a proto ho uložte do **Variables** (stejná
+stránka, vedlejší záložka), ne do Secrets. Hodnoty ze Secrets GitHub
+v záznamu běhu maskuje hvězdičkami, takže by v diagnostickém výpisu nebylo
+vidět, kam se vlastně nahrálo. Jako secret to funguje taky, jen se hůř
+hledají chyby.
 
 Formulář má proto tři přepínače a stojí za to je projít v tomhle pořadí:
 

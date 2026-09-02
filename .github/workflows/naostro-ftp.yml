@@ -9,10 +9,15 @@
 # přihlašovací údaje — Settings → Secrets and variables → Actions →
 # New repository secret. Potřeba jsou čtyři:
 #
-#   FTP_SERVER    adresa FTP serveru od Wedosu, třeba ftp.transparentnivyskov.cz
+#   FTP_SERVER    adresa FTP serveru, třeba ftp.transparentnivyskov.cz
 #   FTP_UZIVATEL  přihlašovací jméno
 #   FTP_HESLO     heslo
-#   FTP_ADRESAR   složka na serveru, do které web patří (viz níž)
+#
+# A k tomu složka na serveru, do které web patří. Ta tajná není, takže patří
+# spíš do Variables (tamtéž, záložka „Variables") pod názvem FTP_ADRESAR —
+# hodnoty ze secrets GitHub v záznamu běhu maskuje hvězdičkami, takže by
+# v diagnostickém výpisu nebylo vidět, kam se vlastně nahrálo. Když je
+# uložená jako secret, funguje to taky, jen se hůř hledají chyby.
 #
 # FTP_ADRESAR je složka, kterou hosting servíruje jako web — bývá to
 # `/public_html/`. Když se netrefí, web se nahraje vedle a na doméně se nic
@@ -73,7 +78,7 @@ jobs:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           HESLO: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
         run: |
           chybi=""
           [ -z "$SERVER" ] && chybi="$chybi FTP_SERVER"
@@ -142,7 +147,7 @@ jobs:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
         run: |
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
           set ftp:ssl-force true
@@ -189,7 +194,7 @@ jobs:
           # lftp si heslo přečte z prostředí (`--env-password`), takže se
           # neobjeví v příkazu ani v seznamu procesů.
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
         run: |
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
@@ -213,7 +218,7 @@ jobs:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
         run: |
           {
             echo "Zkusebni soubor z nasazeni webu Transparentni Vyskov."
@@ -224,6 +229,10 @@ jobs:
             echo "Vytvoreno: $(date -u '+%Y-%m-%d %H:%M UTC')"
           } > zkouska-nasazeni.txt
 
+          echo ">> Adresar, do ktereho nahravam: '$ADRESAR'"
+          echo "   (kdyz se misto nej vypisuje ***, je ulozeny jako secret;"
+          echo "    prehodte ho do Variables, at je v logu videt)"
+
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
@@ -231,7 +240,13 @@ jobs:
           set net:max-retries 2
           set net:timeout 20
           set cmd:fail-exit true
+          echo "--- kde jsem po prihlaseni ---"
+          pwd
+          echo "--- co lezi hned po prihlaseni ---"
+          cls -l
+          echo "--- nahravam zkusebni soubor ---"
           put -O "$ADRESAR" zkouska-nasazeni.txt
+          echo "--- co lezi v cilove slozce ---"
           cls -l "$ADRESAR"
           bye
           LFTP
@@ -239,7 +254,7 @@ jobs:
       - name: Vypsat, co ve složce leží
         if: inputs.zkusebni_soubor == true
         env:
-          ADRESAR: ${{ secrets.FTP_ADRESAR }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
         run: |
           echo "## Zkusebni soubor nahran" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
