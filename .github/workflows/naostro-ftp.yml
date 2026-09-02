@@ -179,6 +179,10 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
+          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
+          # by tise chybelo.
+          set ftp:list-options -a
           $SSL
           set net:max-retries 3
           set net:timeout 20
@@ -253,6 +257,10 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
+          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
+          # by tise chybelo.
+          set ftp:list-options -a
           $SSL
           set net:max-retries 3
           set net:timeout 20
@@ -321,6 +329,10 @@ jobs:
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
+          # Bez `-a` server ve vypisu neuvadi soubory zacinajici teckou, takze
+          # by se `.htaccess` nemusel prenest ani porovnat - a nastaveni serveru
+          # by tise chybelo.
+          set ftp:list-options -a
           $SSL
           set net:max-retries 2
           set net:timeout 20

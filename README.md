@@ -210,6 +210,17 @@ musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
 úklid"**. Ve formuláři je i přepínač **„Jen nanečisto"**, který nic nenahraje
 a jen vypíše, co by se stalo.
 
+### Nastavení serveru je součástí webu
+
+V `public/.htaccess` leží nastavení pro server, na kterém web běží: vypnutá
+mezipaměť LiteSpeed a odkaz na vlastní stránku 404. Astro ten soubor při
+sestavení zkopíruje do `dist/`, takže se nahraje spolu se zbytkem webu a
+**přepíše ten, který tam nechal starý WordPress**.
+
+Nahrávat ho ručně nemá smysl — nasazení maže na serveru všechno, co ve webu
+není, takže by ho příště smazalo. Když je potřeba na serveru něco nastavit,
+patří to do `public/.htaccess`.
+
 ### Když se po nahrání nic nezmění
 
 Hosting si drží mezipaměť. Po nahrání proto může ještě chvíli vydávat staré
