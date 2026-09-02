@@ -166,23 +166,29 @@ většinou `/public_html/`. Záleží na tom, protože ostré nahrávání **ma�
 serveru soubory, které ve webu nejsou** (jinak by tam po každé změně
 zůstávaly staré stránky).
 
-Ve **Variables** (stejná stránka, vedlejší záložka) se nastavují ještě dvě
-věci, které tajné nejsou:
+Ve **Variables** (stejná stránka, vedlejší záložka) se nastavuje složka
+s webem a případně dvě věci kolem certifikátu. Tajné to není, a proto to
+nepatří do Secrets — hodnoty ze Secrets GitHub v záznamu běhu maskuje
+hvězdičkami a pak není poznat, co se vlastně stalo.
 
-| Variable | Kdy ji nastavit |
-|---|---|
-| `FTP_ADRESAR` | vždy — složka s webem |
-| `FTP_CERTIFIKAT` | jen když nahrávání hlásí problém s certifikátem |
+| Variable | Hodnota | Kdy |
+|---|---|---|
+| `FTP_ADRESAR` | složka s webem, třeba `/public_html/` | vždy |
+| `FTP_KONTROLOVAT_JMENO` | `ne` | jen když se připojení nepovede kvůli certifikátu |
+| `FTP_OVERIT_CERTIFIKAT` | `ne` | jen když nepomůže to předchozí |
 
-Na sdíleném hostingu bývá certifikát FTP serveru vystavený na jméno
-poskytovatele, ne na adresu, přes kterou se připojujete. Spojení je pak
-pořád šifrované, jen se neshoduje jméno. V takovém případě nastavte
-`FTP_CERTIFIKAT` na **`jine-jmeno`** — certifikát se dál ověřuje, jen se
-nekontroluje shoda jména. Hodnota `neoverovat` vypne kontrolu úplně a je
-až na případ, kdy nepomůže nic jiného; heslo je i tak zašifrované, ale
-nikdo už neručí za to, s kým se spojení navázalo.
+U těch dvou spodních se **vyplňuje slovo `ne`**, nic jiného. Nechte je
+nevyplněné, dokud nahrávání funguje.
 
-`FTP_ADRESAR` patří do Variables, ne do Secrets. Hodnoty ze Secrets GitHub
+K čemu jsou: na sdíleném hostingu bývá certifikát FTP serveru vystavený na
+jméno poskytovatele, ne na adresu, přes kterou se připojujete. Spojení je
+pak pořád šifrované, jen se neshoduje jméno — a od toho je
+`FTP_KONTROLOVAT_JMENO = ne`. Certifikát se dál ověřuje proti certifikační
+autoritě, jen se neřeší, na jaké je jméno.
+
+`FTP_OVERIT_CERTIFIKAT = ne` vypne kontrolu úplně. Heslo je i tak
+zašifrované, ale nikdo už neručí za to, s kým se spojení navázalo — proto
+až jako poslední možnost. Hodnoty ze Secrets GitHub
 v záznamu běhu maskuje hvězdičkami, takže by v diagnostickém výpisu nebylo
 vidět, kam se vlastně nahrálo. Jako secret to funguje taky, jen se hůř
 hledají chyby.

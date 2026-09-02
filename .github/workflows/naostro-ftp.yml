@@ -148,31 +148,33 @@ jobs:
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          CERT: ${{ vars.FTP_CERTIFIKAT }}
+          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
+          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
           # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
           # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno. Řídí to proměnná
-          # FTP_CERTIFIKAT (Settings > Secrets and variables > Actions >
-          # Variables):
+          # Spojení je pak šifrované, jen se neshodne jméno.
           #
-          #   nevyplněno   ověřit certifikát i jméno (nejpřísnější, výchozí)
-          #   jine-jmeno   ověřit certifikát, jméno neřešit  <- na tohle sáhnout,
-          #                když server hlásí certifikát na cizí doménu
-          #   neoverovat   neověřovat nic (až když nepomůže nic jiného)
-          case "${CERT:-overit}" in
-            jine-jmeno)
-              SSL='set ssl:verify-certificate true
+          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
+          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
+          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
+          #
+          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
+          #                                neřeší, že je na jiné jméno
+          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
+          #                                až když nepomůže to první
+          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate false'
+            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
+          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname false'
-              echo ">> Certifikat: overuji, jmeno neresim" ;;
-            neoverovat)
-              SSL='set ssl:verify-certificate false'
-              echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)" ;;
-            *)
-              SSL='set ssl:verify-certificate true
+            echo ">> Certifikat: overuji, na jmeno se neptam"
+          else
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname true'
-              echo ">> Certifikat: overuji certifikat i jmeno" ;;
-          esac
+            echo ">> Certifikat: overuji certifikat i jmeno"
+          fi
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP > nanecisto.txt 2>&1 || true
           set ftp:ssl-force true
@@ -220,31 +222,33 @@ jobs:
           # neobjeví v příkazu ani v seznamu procesů.
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          CERT: ${{ vars.FTP_CERTIFIKAT }}
+          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
+          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
           # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
           # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno. Řídí to proměnná
-          # FTP_CERTIFIKAT (Settings > Secrets and variables > Actions >
-          # Variables):
+          # Spojení je pak šifrované, jen se neshodne jméno.
           #
-          #   nevyplněno   ověřit certifikát i jméno (nejpřísnější, výchozí)
-          #   jine-jmeno   ověřit certifikát, jméno neřešit  <- na tohle sáhnout,
-          #                když server hlásí certifikát na cizí doménu
-          #   neoverovat   neověřovat nic (až když nepomůže nic jiného)
-          case "${CERT:-overit}" in
-            jine-jmeno)
-              SSL='set ssl:verify-certificate true
+          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
+          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
+          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
+          #
+          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
+          #                                neřeší, že je na jiné jméno
+          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
+          #                                až když nepomůže to první
+          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate false'
+            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
+          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname false'
-              echo ">> Certifikat: overuji, jmeno neresim" ;;
-            neoverovat)
-              SSL='set ssl:verify-certificate false'
-              echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)" ;;
-            *)
-              SSL='set ssl:verify-certificate true
+            echo ">> Certifikat: overuji, na jmeno se neptam"
+          else
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname true'
-              echo ">> Certifikat: overuji certifikat i jmeno" ;;
-          esac
+            echo ">> Certifikat: overuji certifikat i jmeno"
+          fi
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP
           set ftp:ssl-force true
@@ -269,7 +273,8 @@ jobs:
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-          CERT: ${{ vars.FTP_CERTIFIKAT }}
+          FTP_KONTROLOVAT_JMENO: ${{ vars.FTP_KONTROLOVAT_JMENO }}
+          FTP_OVERIT_CERTIFIKAT: ${{ vars.FTP_OVERIT_CERTIFIKAT }}
         run: |
           {
             echo "Zkusebni soubor z nasazeni webu Transparentni Vyskov."
@@ -286,27 +291,28 @@ jobs:
 
           # Certifikát FTP serveru bývá na sdíleném hostingu vystavený na jméno
           # poskytovatele, ne na tu adresu, přes kterou se člověk připojuje.
-          # Spojení je pak šifrované, jen se neshodne jméno. Řídí to proměnná
-          # FTP_CERTIFIKAT (Settings > Secrets and variables > Actions >
-          # Variables):
+          # Spojení je pak šifrované, jen se neshodne jméno.
           #
-          #   nevyplněno   ověřit certifikát i jméno (nejpřísnější, výchozí)
-          #   jine-jmeno   ověřit certifikát, jméno neřešit  <- na tohle sáhnout,
-          #                když server hlásí certifikát na cizí doménu
-          #   neoverovat   neověřovat nic (až když nepomůže nic jiného)
-          case "${CERT:-overit}" in
-            jine-jmeno)
-              SSL='set ssl:verify-certificate true
+          # Řídí to dvě proměnné (Settings > Secrets and variables > Actions >
+          # Variables). Obě se nechávají nevyplněné a nastavují se jen tehdy,
+          # když se připojení nepovede. Hodnota je vždycky slovo `ne`:
+          #
+          #   FTP_KONTROLOVAT_JMENO = ne   certifikát se dál ověřuje, jen se
+          #                                neřeší, že je na jiné jméno
+          #   FTP_OVERIT_CERTIFIKAT = ne   certifikát se neověřuje vůbec;
+          #                                až když nepomůže to první
+          if [ "${FTP_OVERIT_CERTIFIKAT:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate false'
+            echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)"
+          elif [ "${FTP_KONTROLOVAT_JMENO:-ano}" = "ne" ]; then
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname false'
-              echo ">> Certifikat: overuji, jmeno neresim" ;;
-            neoverovat)
-              SSL='set ssl:verify-certificate false'
-              echo ">> Certifikat: neoveruji vubec (spojeni je porad sifrovane)" ;;
-            *)
-              SSL='set ssl:verify-certificate true
+            echo ">> Certifikat: overuji, na jmeno se neptam"
+          else
+            SSL='set ssl:verify-certificate true
           set ssl:check-hostname true'
-              echo ">> Certifikat: overuji certifikat i jmeno" ;;
-          esac
+            echo ">> Certifikat: overuji certifikat i jmeno"
+          fi
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" <<LFTP | tee vypis.txt
           set ftp:ssl-force true
