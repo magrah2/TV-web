@@ -1,0 +1,153 @@
+---
+import Zaklad from '../layouts/Zaklad.astro';
+import { odkaz } from '../lib/odkaz';
+
+/**
+ * Oznámení o transparentnosti politické reklamy podle nařízení (EU) 2024/900.
+ *
+ * Je to stránka, ne soubor ke stažení. Text dodal tým ve wordovém dokumentu,
+ * ale zveřejnit ho jako `.docx` by znamenalo, že se k povinnému oznámení
+ * dostane jen ten, kdo má Word — na telefonu se to nepřečte, nedá se na to
+ * odkázat a vyhledávače to nenajdou. Nařízení chce, aby informace byla
+ * snadno dostupná, takže patří na web jako text.
+ *
+ * Údaje jsou přepsané doslova. Kdyby se měnily, mění se tady — jiná kopie
+ * nikde není, aby se nemohly rozejít.
+ *
+ * POZOR: platí pro konkrétní volby a konkrétní období. Po volbách nebo při
+ * změně částky se musí přepsat.
+ */
+
+const EMAIL = 'info@transparentnivyskov.cz';
+
+const UDAJE = [
+  { co: 'Zadavatel', hodnota: 'Transparentní Vyškov – sdružení nezávislých kandidátů' },
+  { co: 'Kontaktní osoba', hodnota: 'Eva Formánková' },
+  { co: 'Období', hodnota: '28. 6. – 10. 10. 2026' },
+  {
+    co: 'Částka za služby politické reklamy',
+    hodnota: '100 tis. Kč. Zmíněná částka je soukromého původu a pochází z EU.',
+  },
+  {
+    co: 'Čeho se sdělení týká',
+    hodnota:
+      'Volby do obecních zastupitelstev, které se budou konat 9.–10. října 2026.',
+  },
+];
+---
+
+<Zaklad
+  titulek="Oznámení o transparentnosti"
+  popis="Oznámení o transparentnosti politické reklamy podle nařízení (EU) 2024/900 — kdo je zadavatel, za jaké období a kolik na politickou reklamu vynaložil."
+>
+  <div class="pruh text">
+    <p class="nadtitulek">Oznámení o transparentnosti</p>
+    <h1>Kdo za to platí a kolik</h1>
+
+    <p class="perex uvod">
+      Tahle stránka je zveřejněna podle nařízení Evropského parlamentu a Rady (EU)
+      2024/900 o transparentnosti a cílení politické reklamy a související české
+      právní úpravy.
+    </p>
+
+    <dl class="udaje">
+      {
+        UDAJE.map((u) => (
+          <div class="udaj">
+            <dt>{u.co}</dt>
+            <dd>{u.hodnota}</dd>
+          </div>
+        ))
+      }
+      <div class="udaj">
+        <dt>Kontaktní e-mail</dt>
+        <dd><a href={`mailto:${EMAIL}`}>{EMAIL}</a></dd>
+      </div>
+    </dl>
+
+    <h2>Jak je částka spočítaná</h2>
+    <blockquote class="metodika">
+      Celková částka byla určena jako součet sjednaných cen za přípravu, výrobu,
+      umístění, propagaci, zveřejnění a doručování politického reklamního sdělení
+      dle objednávek nebo smluv.
+    </blockquote>
+
+    <h2>Když je něco špatně</h2>
+    <p>
+      Máte pocit, že některá naše reklama pravidla nedodržuje, nebo že je tady
+      uvedený údaj nesprávný? Napište na <a href={`mailto:${EMAIL}`}>{EMAIL}</a> a
+      podíváme se na to.
+    </p>
+
+    <h2>Co tohle oznámení není</h2>
+    <p>
+      Netýká se tohohle webu jako takového. Ten sám o sobě placená reklama není a
+      nesbírá o vás žádné údaje — jak s nimi nakládáme, popisují{' '}
+      <a href={odkaz('/soukromi/')}>zásady ochrany osobních údajů</a>. Oznámení se týká
+      placené propagace, tedy hlavně příspěvků na sociálních sítích, za jejichž
+      šíření se platí.
+    </p>
+  </div>
+</Zaklad>
+
+<style>
+  .text {
+    max-width: 42rem;
+  }
+
+  .uvod {
+    margin-top: 1rem;
+  }
+
+  .text h2 {
+    margin-top: clamp(2rem, 4vw, 2.75rem);
+    margin-bottom: 0.7rem;
+    font-size: var(--text-nadpis-3);
+  }
+
+  .text p {
+    margin-top: 0.9rem;
+  }
+
+  /* Údaje jsou seznam dvojic, ne tabulka — na úzkém displeji se tabulka
+     nezlomí, kdežto tohle jen zúží. */
+  .udaje {
+    margin: clamp(2rem, 4vw, 2.75rem) 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    border-top: 1px solid var(--linka);
+  }
+
+  .udaj {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--linka);
+  }
+
+  @media (min-width: 620px) {
+    .udaj {
+      grid-template-columns: 15rem 1fr;
+      gap: 1.25rem;
+      align-items: baseline;
+    }
+  }
+
+  .udaj dt {
+    font-size: var(--text-maly);
+    color: var(--inkoust-tlum);
+  }
+
+  .udaj dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .metodika {
+    margin: 0;
+    padding-left: 1.1rem;
+    border-left: 3px solid var(--zelena);
+    color: var(--inkoust-tlum);
+  }
+</style>
