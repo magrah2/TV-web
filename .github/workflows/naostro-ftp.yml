@@ -278,6 +278,43 @@ jobs:
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp
 
+      # Jestli soubor .htaccess na serveru leží, se zvenčí zjistit nedá:
+      # server na něj vrací 403 i tehdy, když tam vůbec není (chrání ho
+      # plošným pravidlem). Zeptáme se proto přes FTP, kde je vidět skutečný
+      # obsah složky. Na tom závisí výklad toho, proč nefunguje vlastní
+      # stránka 404: jinak nahrávání, jinak nastavení hostingu.
+      - name: Ověřit, že .htaccess je na serveru
+        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
+        env:
+          SERVER: ${{ secrets.FTP_SERVER }}
+          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
+          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
+          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
+        run: |
+          ADR="${ADRESAR%/}"
+          cp spojeni.lftp prikazy.lftp
+          {
+            echo "cls -a -l \"$ADR\""
+            echo "bye"
+          } >> prikazy.lftp
+
+          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp > obsah.txt 2>&1 || true
+
+          echo "## Soubory v korenu webu" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if grep -q "htaccess" obsah.txt; then
+            echo "- Soubor .htaccess na serveru **je**." >> $GITHUB_STEP_SUMMARY
+            echo "  Kdyz presto nefunguje vlastni stranka 404, hosting nebere" >> $GITHUB_STEP_SUMMARY
+            echo "  ErrorDocument z .htaccess a musi se to nastavit u nej." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Soubor .htaccess na serveru **neni**." >> $GITHUB_STEP_SUMMARY
+            echo "  Nahravani ho tedy neprenaslo - chyba je na nasi strane." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -v "^----\|^\*\*\*\|^<---\|^--->" obsah.txt | head -40 >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       # Po nahrání se web opravdu navštíví. „Soubory jsou na serveru"
       # a „web funguje" nejsou totéž — server je může servírovat jinak, než
       # čekáme. Otazník v adrese obchází mezipaměť hostingu.
