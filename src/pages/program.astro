@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Zaklad from '../layouts/Zaklad.astro';
 import { BARVA_TEMATU } from '../lib/temata';
+import IkonaTematu from '../components/IkonaTematu.astro';
 import { odkaz } from '../lib/odkaz';
 import type { Tema } from '../lib/temata';
 
@@ -47,17 +48,23 @@ const sObsahem = await Promise.all(
     <ol class="oblasti">
       {
         sObsahem.map((oblast) => (
-          <li class="oblast" id={`oblast-${oblast.data.poradi}`}>
+          <li
+            class="oblast"
+            id={`oblast-${oblast.data.poradi}`}
+            style={`--barva: ${BARVA_TEMATU[oblast.data.tema as Tema]}`}
+          >
             <div class="oblast-hlava">
-              <span
-                class="oblast-cislo"
-                style={`--barva: ${BARVA_TEMATU[oblast.data.tema as Tema]}`}
-                aria-hidden="true"
-              >
+              <span class="oblast-cislo" aria-hidden="true">
                 {String(oblast.data.poradi).padStart(2, '0')}
               </span>
               <div>
-                <h2>{oblast.data.nadpis ?? oblast.data.nazev}</h2>
+                <h2 class="oblast-nadpis">
+                  <IkonaTematu
+                    tema={oblast.data.tema as Tema}
+                    class="oblast-ikona"
+                  />
+                  <span>{oblast.data.nadpis ?? oblast.data.nazev}</span>
+                </h2>
                 <p class="oblast-shrnuti">{oblast.data.shrnuti}</p>
               </div>
             </div>
@@ -141,6 +148,19 @@ const sObsahem = await Promise.all(
 
   /* Odkaz na podrobnosti nosí stejné tlačítko jako hlavní odkazy na webu.
      Podtržený text se v odrážkách ztrácel a nikdo si ho nevšiml. */
+  .oblast-nadpis {
+    display: flex;
+    align-items: start;
+    gap: 0.6rem;
+  }
+
+  /* Barvu bere z kolečka s číslem, které stojí vedle — stejný odstín jako
+     ta oblast na úvodní stránce a její body na mapě záměrů. */
+  .oblast-nadpis :global(.oblast-ikona) {
+    margin-top: 0.3rem;
+    color: var(--barva);
+  }
+
   .oblast-vic {
     margin: 1.4rem 0 0;
   }

@@ -51,12 +51,21 @@ Zelená stopa z loga (`src/components/Krivka.astro`) je jediný dekorativní
 prvek webu. Cesta je doslova vytažená ze značky. Žádné další ozdoby,
 ikonky ani tvary nepřibývají — jinak se web rozpadne.
 
-**Jediná výjimka: znaky Facebooku a Instagramu** u odkazů na `/kontakt/`.
-Nejsou to ozdoby — jsou to značky, podle kterých člověk odkaz pozná dřív,
-než si ho přečte, a bez nich vypadala obě tlačítka stejně. Jsou nakreslené
-přímo v `kontakt.astro` jako inline SVG tahem v `currentColor`, ne stažené
-odjinud: web nesmí posílat požadavky na cizí servery. Další ikonky tímhle
-povolené nejsou.
+**Povolené výjimky jsou dvě a obě mají důvod:**
+
+1. **Znaky Facebooku a Instagramu** u odkazů na `/kontakt/`. Nejsou to
+   ozdoby — jsou to značky, podle kterých člověk odkaz pozná dřív, než si ho
+   přečte, a bez nich vypadala obě tlačítka stejně.
+2. **Ikony programových oblastí** (`src/components/IkonaTematu.astro`) na
+   dlaždicích a na `/program/`.
+
+Obojí je nakreslené jako inline SVG, ne stažené odjinud: web nesmí posílat
+požadavky na cizí servery. Ikony oblastí drží jednu soustavu — mřížka
+24 × 24, tah 1,75, zakulacené konce, `currentColor` obarvený barvou oblasti
+z `BARVA_TEMATU` — jinak by z toho byla sbírka klipartů. Nová oblast musí
+dostat ikonu, jinak sestavení spadne; tichá mezera na dlaždici by se nepoznala.
+
+**Nic dalšího už ne.** Každá další ikona ředí to, že web má jeden motiv.
 
 ## Zásady, které platí všude
 

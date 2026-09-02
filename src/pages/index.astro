@@ -3,6 +3,9 @@ import { getCollection, render } from 'astro:content';
 import Zaklad from '../layouts/Zaklad.astro';
 import KartaKandidata from '../components/KartaKandidata.astro';
 import { odkaz } from '../lib/odkaz';
+import IkonaTematu from '../components/IkonaTematu.astro';
+import { BARVA_TEMATU } from '../lib/temata';
+import type { Tema } from '../lib/temata';
 import { fotkaKandidata } from '../lib/portrety';
 
 const VOLBY = new Date('2026-10-09T14:00:00+02:00');
@@ -112,8 +115,17 @@ const prvni = kandidati.slice(0, 6);
       <div class="program-mrizka">
         {
           programSObsahem.map((oblast) => (
-            <a class="dlazdice" href={`#oblast-${oblast.id}`} data-dlazdice={oblast.id}>
+            <a
+              class="dlazdice"
+              href={`#oblast-${oblast.id}`}
+              data-dlazdice={oblast.id}
+              style={`--barva-oblasti: ${BARVA_TEMATU[oblast.data.tema as Tema]}`}
+            >
               <span class="dlazdice-nadpis">
+                <IkonaTematu
+                  tema={oblast.data.tema as Tema}
+                  class="dlazdice-ikona"
+                />
                 <span class="dlazdice-nazev">{oblast.data.nazev}</span>
                 <span class="dlazdice-znak" aria-hidden="true">→</span>
               </span>
@@ -422,14 +434,26 @@ const prvni = kandidati.slice(0, 6);
     border-color: var(--modra);
   }
 
+  /* Ikona a název drží vedle sebe, šipku odstrčí doprava `margin` u názvu.
+     `space-between` tu být nemůže — rozhodilo by to ikonu od názvu. */
   .dlazdice-nadpis {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    align-items: start;
+    gap: 0.55rem;
+  }
+
+  /* Ikona nese barvu své oblasti — stejný odstín pak má ta oblast
+     i na `/program/` a její body na mapě záměrů. */
+  .dlazdice :global(.dlazdice-ikona) {
+    /* Odsazení srovná ikonu s prvním řádkem názvu. U dvouřádkového názvu
+       („Transparentní správa") by se jinak zarovnala na střed obou řádků
+       a vypadala nakřivo. */
+    margin-top: 0.15rem;
+    color: var(--barva-oblasti);
   }
 
   .dlazdice-nazev {
+    margin-right: auto;
     font-size: var(--text-nadpis-3);
     font-weight: 600;
     letter-spacing: -0.015em;
