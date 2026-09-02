@@ -210,6 +210,19 @@ musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
 úklid"**. Ve formuláři je i přepínač **„Jen nanečisto"**, který nic nenahraje
 a jen vypíše, co by se stalo.
 
+### Když se po nahrání nic nezmění
+
+Hosting si drží mezipaměť. Po nahrání proto může ještě chvíli vydávat staré
+stránky a vypadá to, že se nahrání nepovedlo.
+
+Než začnete cokoliv opravovat, zkuste tutéž adresu s otazníkem na konci —
+třeba `https://transparentnivyskov.cz/?x=1`. Otazník mezipaměť obejde.
+Když se přes něj nový web ukáže, je všechno v pořádku a stačí mezipaměť
+vyprázdnit v administraci hostingu (nebo počkat, až vyprší).
+
+Stalo se to hned při první zkoušce: nahraný soubor se na adrese bez otazníku
+tvářil jako nenalezený, s otazníkem se otevřel bez problémů.
+
 ⚠️ **Pozor při přepínání domény:** záznamy `MX` musí zůstat u původního
 poskytovatele, jinak přestane chodit pošta na `info@transparentnivyskov.cz`.
 To je nejčastější chyba při stěhování webu.
