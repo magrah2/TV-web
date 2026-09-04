@@ -354,20 +354,20 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
      Podkladové SVG nemá vlastní barvy schválně — všechno se řídí odsud,
      takže mapa může kdykoliv změnit ladění bez přegenerování. */
 
-  .mapa-plocha :global(.mapa-zastavba path) { fill: #12304a; }
-  .mapa-plocha :global(.mapa-prumysl path) { fill: #0f2942; }
-  .mapa-plocha :global(.mapa-zelen path) { fill: #1a3a2c; }
-  .mapa-plocha :global(.mapa-vodni-plocha path) { fill: #1b4260; }
-  .mapa-plocha :global(.mapa-ulice path) { fill: none; stroke: #1c405e; stroke-width: 1; }
-  .mapa-plocha :global(.mapa-silnice path) { fill: none; stroke: #28536f; stroke-width: 1.7; }
-  .mapa-plocha :global(.mapa-silnice-hlavni path) { fill: none; stroke: #37678c; stroke-width: 2.8; }
+  .mapa-plocha :global(.mapa-zastavba path) { fill: var(--mapa-zastavba); }
+  .mapa-plocha :global(.mapa-prumysl path) { fill: var(--mapa-prumysl); }
+  .mapa-plocha :global(.mapa-zelen path) { fill: var(--mapa-zelen); }
+  .mapa-plocha :global(.mapa-vodni-plocha path) { fill: var(--mapa-voda); }
+  .mapa-plocha :global(.mapa-ulice path) { fill: none; stroke: var(--mapa-ulice); stroke-width: 1; }
+  .mapa-plocha :global(.mapa-silnice path) { fill: none; stroke: var(--mapa-silnice); stroke-width: 1.7; }
+  .mapa-plocha :global(.mapa-silnice-hlavni path) { fill: none; stroke: var(--mapa-silnice-hlavni); stroke-width: 2.8; }
   .mapa-plocha :global(.mapa-zeleznice path) {
     fill: none;
-    stroke: #3d5c76;
+    stroke: var(--mapa-zeleznice);
     stroke-width: 1.1;
     stroke-dasharray: 5 5;
   }
-  .mapa-plocha :global(.mapa-potok path) { fill: none; stroke: #255f88; stroke-width: 1; }
+  .mapa-plocha :global(.mapa-potok path) { fill: none; stroke: var(--mapa-potok); stroke-width: 1; }
 
   /* Řeka Haná je jediná zvýrazněná — je to orientační kotva mapy
      a zároveň to, co v programu slibujeme zpřístupnit. */

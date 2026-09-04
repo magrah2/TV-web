@@ -70,6 +70,28 @@
   --linka-vyrazna: rgb(14 29 40 / 0.22);
   --linka-na-noci: rgb(232 239 245 / 0.16);
 
+  /* ---------- Podklad map na tmavém pásu ----------
+     Vlastní řada odstínů, protože mapa potřebuje víc stupňů světlosti, než
+     kolik jich má základní paleta: od ploch přes ulice po hlavní tahy.
+     Souš je seřazená odshora dolů od nejtmavší po nejsvětlejší — kdo chce
+     mapu čitelnější, posune celou řadu, ne jednotlivé barvy.
+
+     Voda stojí stranou té řady a je výrazně modřejší. Dokud byla jen o kus
+     světlejší než zástavba, splývaly a rybník se nedal odlišit od bloku
+     domů. Rozdíl proto nedělá světlost, ale sytost.
+
+     Původně byla celá řada o poznání tmavší a město z mapy nebylo poznat;
+     splývalo s pozadím a čitelné zůstaly jen barevné oblasti nad ním. */
+  --mapa-prumysl: #2e4a63;
+  --mapa-zastavba: #3b5a75;
+  --mapa-zelen: #2c6444;
+  --mapa-ulice: #47708f;
+  --mapa-zeleznice: #6a8ba6;
+  --mapa-silnice: #5f8fb1;
+  --mapa-silnice-hlavni: #7aaed0;
+  --mapa-voda: #2b81bd;
+  --mapa-potok: #3f96cf;
+
   --varovani: #b3261e;     /* neplatný lístek, chybové stavy */
   --navrh: #a05a00;        /* označení „návrh — k ověření" */
 
