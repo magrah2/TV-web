@@ -517,12 +517,13 @@ const celek = {
 
   .mapa-plocha :global(.budova-plocha path) {
     /* Průsvitně, aby pod barvou zůstaly vidět ulice a zástavba. Při vyšší
-       sytosti se z mapy stala barevná deka, ve které se nedalo orientovat —
-       a protože oblasti pokrývají zrovna město, bylo pak okolí čitelnější
-       než střed. Oblast drží pohromadě spíš obrys než výplň, proto je
-       barva slabá a obrys výrazný. */
-    fill-opacity: 0.22;
-    stroke: rgb(255 255 255 / 0.55);
+       sytosti se z mapy stala barevná deka, ve které se nedalo orientovat.
+
+       Zkoušel jsem to snížit na 0,22, když se zesvětloval podklad, ale
+       oblasti tím zbledly. Podklad je nově světlejší sám o sobě, takže
+       se přes barvu vidí i při této sytosti a snižovat ji netřeba. */
+    fill-opacity: 0.3;
+    stroke: rgb(255 255 255 / 0.45);
     stroke-width: 1;
     stroke-linejoin: round;
     cursor: pointer;
