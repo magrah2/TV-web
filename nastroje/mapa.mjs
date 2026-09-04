@@ -47,12 +47,21 @@ const MAPY = [
 
 // --- Roztrideni do vrstev --------------------------------------------------
 
+// V OpenStreetMap se Hana jmenuje `river` az od soutoku pod Dedicemi; nad nim
+// jsou to `stream` Velka Hana a Mala Hana. Podle znacky by se tedy zelene
+// vykreslila jen dolni tretina toku a zbytek by splynul s potoky, prestoze je
+// to porad tataz reka - a prave ta, kterou mame v programu.
+// Jmena musi sedet znak po znaku s daty, proto tady s diakritikou - narozdil
+// od hlasek, ktere skript tiskne do konzole.
+const JMENA_REKY = new Set(['Haná', 'Velká Haná', 'Malá Haná']);
+
+
 function vrstva(prvek) {
   const t = prvek.tags ?? {};
   if (t.landuse) return t.landuse === 'residential' ? 'zastavba' : 'prumysl';
   if (t.leisure) return 'zelen';
   if (t.natural === 'water') return 'vodni-plocha';
-  if (t.waterway === 'river') return 'reka';
+  if (t.waterway === 'river' || JMENA_REKY.has(t.name)) return 'reka';
   if (t.waterway) return 'potok';
   if (t.railway) return 'zeleznice';
   if (['motorway', 'trunk', 'primary'].includes(t.highway)) return 'silnice-hlavni';
