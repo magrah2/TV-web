@@ -83,9 +83,10 @@
      Původně byla celá řada o poznání tmavší a město z mapy nebylo poznat;
      splývalo s pozadím a čitelné zůstaly jen barevné oblasti nad ním. */
   --mapa-prumysl: #2e4a63;
-  --mapa-zastavba: #3b5a75;
+  --mapa-zastavba: #33506a;
   --mapa-zelen: #2c6444;
-  --mapa-ulice: #47708f;
+  --mapa-cesta: #446a89;
+  --mapa-ulice: #6291b3;
   --mapa-zeleznice: #6a8ba6;
   --mapa-silnice: #5f8fb1;
   --mapa-silnice-hlavni: #7aaed0;

@@ -21,6 +21,7 @@
  * Data (c) prispevatele OpenStreetMap, licence ODbL.
  */
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -66,6 +67,17 @@ function vrstva(prvek) {
   if (t.railway) return 'zeleznice';
   if (['motorway', 'trunk', 'primary'].includes(t.highway)) return 'silnice-hlavni';
   if (['secondary', 'tertiary'].includes(t.highway)) return 'silnice';
+  // Vlastni vrstva pro to nejdrobnejsi: prijezdy k domum, chodniky, cyklostezky
+  // a schody. Ve meste tvori vetsinu site a bez nich mezi ulicemi zeje prazdno,
+  // ale kdyby se kreslily jako ulice, mapa by se zaplevelila - proto slabsim
+  // tahem a tlumeneji.
+  //
+  // Polni a lesni cesty (`track`, `path`) se nestahuji vubec. Delaly skoro
+  // polovinu vsech drobnych cest, lezi temer cele mimo mesto a mapu v polich
+  // zaplevelily pavucinou, ktera nikam nevede. Mapa ma ukazat mesto.
+  if (['service', 'footway', 'cycleway', 'steps'].includes(t.highway)) {
+    return 'cesta';
+  }
   return 'ulice';
 }
 
@@ -74,30 +86,42 @@ const PLOCHY = new Set(['zastavba', 'prumysl', 'zelen', 'vodni-plocha']);
 /** Poradi vykreslovani: co je vys v seznamu, to je vespod. */
 const PORADI = [
   'zastavba', 'prumysl', 'zelen', 'vodni-plocha',
-  'ulice', 'zeleznice', 'silnice', 'silnice-hlavni',
+  'cesta', 'ulice', 'zeleznice', 'silnice', 'silnice-hlavni',
   'potok', 'reka',
 ];
 
 // --- Stazeni dat -----------------------------------------------------------
 
+async function zkusOpakovane(dotaz, pokusu = 4) {
+  for (let pokus = 1; ; pokus++) {
+    // Overpass odmita pozadavky bez hlavicky User-Agent (odpovi 406),
+    // takze se slusne predstavime.
+    const odpoved = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'transparentnivyskov.cz generator mapy (jednorazove)',
+      },
+      body: new URLSearchParams({ data: dotaz }),
+    });
+    if (odpoved.ok) return await odpoved.json();
+
+    const prechodne = [429, 502, 503, 504].includes(odpoved.status);
+    if (!prechodne || pokus === pokusu) {
+      throw new Error('Overpass odpovedel ' + odpoved.status);
+    }
+    const cekat = pokus * 15;
+    console.log(`   Overpass ma napilno (${odpoved.status}), zkusim za ${cekat} s`);
+    await new Promise((hotovo) => setTimeout(hotovo, cekat * 1000));
+  }
+}
+
+
 async function stahniData(mapa) {
   const mezipamet = `nastroje/.mapa-data-${mapa.nazev}.json`;
   const v = mapa.vyrez;
-  // Klic vyrezu se uklada spolu s daty. Bez toho by se po posunuti okraje
-  // mapy pouzila stara data a novy pruh by v mape tise chybel - to je chyba,
-  // ktera se poznat neda, protoze mapa vypada v poradku, jen jsou v ni dira.
-  const klic = `${v.jih},${v.zapad},${v.sever},${v.vychod}`;
-
-  if (fs.existsSync(mezipamet)) {
-    const ulozene = JSON.parse(fs.readFileSync(mezipamet, 'utf8'));
-    if (ulozene.klicVyrezu === klic) {
-      console.log('   pouzivam ulozena data z ' + mezipamet);
-      return ulozene;
-    }
-    console.log('   vyrez se zmenil, stahuji data znovu');
-  }
-
   const bbox = `${v.jih},${v.zapad},${v.sever},${v.vychod}`;
+
   const dotaz = `[out:json][timeout:180];
 (
   way["landuse"~"^(residential|industrial|commercial|retail)$"](${bbox});
@@ -105,23 +129,33 @@ async function stahniData(mapa) {
   way["waterway"~"^(river|stream)$"](${bbox});
   way["natural"="water"](${bbox});
   way["railway"="rail"](${bbox});
-  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified)$"](${bbox});
+  way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|pedestrian|service|footway|cycleway|steps)$"](${bbox});
 );
 out geom;`;
+
+  // Klic je otisk celeho dotazu - a protoze je v dotazu i vyrez, hlida oboji
+  // najednou. Driv se klicoval jen vyrezem a po pridani dalsiho druhu cest by
+  // se tise pouzila stara data. To je chyba, kterou nejde poznat: mapa vypada
+  // v poradku, jen v ni neco chybi.
+  const klic = crypto.createHash('sha256').update(dotaz).digest('hex').slice(0, 16);
+
+  if (fs.existsSync(mezipamet)) {
+    const ulozene = JSON.parse(fs.readFileSync(mezipamet, 'utf8'));
+    if (ulozene.klicVyrezu === klic) {
+      console.log('   pouzivam ulozena data z ' + mezipamet);
+      return ulozene;
+    }
+    console.log('   vyrez nebo dotaz se zmenil, stahuji data znovu');
+  }
 
   console.log('   stahuji data z OpenStreetMap...');
   // Overpass odmita pozadavky bez hlavicky User-Agent (odpovi 406),
   // takze se slusne predstavime.
-  const odpoved = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'transparentnivyskov.cz generator mapy (jednorazove)',
-    },
-    body: new URLSearchParams({ data: dotaz }),
-  });
-  if (!odpoved.ok) throw new Error('Overpass odpovedel ' + odpoved.status);
-  const data = await odpoved.json();
+  // Overpass je verejna sluzba zdarma a kdyz ma napilno, odpovi 504 nebo 429.
+  // Neni to chyba dotazu - za chvili tentyz dotaz projde. Bez opakovani to
+  // navic konci hur, nez by se zdalo: mapy se vyrabeji po jedne, takze pad
+  // u druhe necha v repozitari jednu mapu novou a druhou starou.
+  const data = await zkusOpakovane(dotaz);
   data.klicVyrezu = klic;
   fs.writeFileSync(mezipamet, JSON.stringify(data));
   console.log('   ulozeno do ' + mezipamet + ' (' + data.elements.length + ' prvku)');
