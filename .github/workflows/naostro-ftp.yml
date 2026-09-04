@@ -198,9 +198,14 @@ jobs:
           echo "Nastaveni pripojeni:"
           cat spojeni.lftp
 
-      # Projít starý web přes FTP je nejpomalejší část celého nasazení, proto
-      # vlastní strop. Při velkém úklidu se krok přeskakuje: existuje jen kvůli
+      # Projít web přes FTP je nejpomalejší část celého nasazení, proto vlastní
+      # strop. Při velkém úklidu se krok přeskakuje: existuje jen kvůli
       # pojistce níž, a tu velký úklid stejně přebíjí.
+      #
+      # Průchod je jeden jediný, a to schválně. Dřív se sem chodilo třikrát:
+      # dvakrát `mirror --dry-run` a potřetí pro výpis souborů. Od chvíle, kdy
+      # se počítá porovnáním seznamů, jsou ty dva průchody nanečisto k ničemu —
+      # jen ztrojnásobovaly nejpomalejší krok celého nasazení.
       - name: Spočítat nanečisto, co by se smazalo
         if: inputs.zkusebni_soubor == false && inputs.velky_uklid == false
         id: zkouska
@@ -214,8 +219,6 @@ jobs:
           ADR="${ADRESAR%/}"
           cp spojeni.lftp prikazy.lftp
           {
-            echo "mirror --reverse --delete --dry-run --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
-            echo "mirror --reverse --delete --dry-run --verbose --exclude-glob .well-known/ --exclude-glob _astro/ dist/ \"$ADR\""
             echo "find \"$ADR\" > seznam-serveru.txt"
             echo "bye"
           } >> prikazy.lftp
@@ -248,7 +251,13 @@ jobs:
 
           comm -23 na-serveru.txt ve-webu.txt > ke-smazani.txt
           smaze=$(grep -c '' ke-smazani.txt || true)
-          prepise=$(grep -c "Removing old" nanecisto.txt || true)
+
+          # Prepise se to, co je na obou stranach - krome souboru z `_astro/`.
+          # Ty maji v nazvu otisk obsahu, takze stejne jmeno znamena stejny
+          # obsah a nahravani je diky --ignore-time preskoci.
+          comm -12 na-serveru.txt ve-webu.txt > spolecne.txt
+          prepise=$(grep -vc '^_astro/' spolecne.txt || true)
+          preskoci=$(grep -c '^_astro/' spolecne.txt || true)
 
           echo "smaze=$smaze" >> $GITHUB_OUTPUT
           echo "Na serveru: $(grep -c '' na-serveru.txt), ve webu: $(grep -c '' ve-webu.txt)."
@@ -259,6 +268,7 @@ jobs:
           echo "- Ve webu je souboru: $(grep -c '' ve-webu.txt)" >> $GITHUB_STEP_SUMMARY
           echo "- Smazalo by se: **$smaze** (jsou na serveru, ve webu uz ne)" >> $GITHUB_STEP_SUMMARY
           echo "- Prepsalo by se: **$prepise** (nova verze tehoz souboru)" >> $GITHUB_STEP_SUMMARY
+          echo "- Preskoci se: **$preskoci** (obrazky a styly, ktere se nezmenily)" >> $GITHUB_STEP_SUMMARY
           if [ "$smaze" -gt 0 ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Co by se smazalo:" >> $GITHUB_STEP_SUMMARY

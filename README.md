@@ -214,10 +214,11 @@ prvním nahrání přes starý WordPress to nastane — je to v pořádku, jen s
 musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
 úklid"**.
 
-Ve shrnutí běhu se rozlišuje **smazat** a **přepsat**. Smaže se jen to, co
-na serveru je a ve webu už není; přepsání je nová verze téhož souboru, která
-hned zase vznikne pod stejným jménem. To číslo bývá vysoké a nic zlého
-neznamená. Počítá se to porovnáním seznamu souborů na serveru se seznamem
+Ve shrnutí běhu se rozlišuje **smazat**, **přepsat** a **přeskočit**. Smaže
+se jen to, co na serveru je a ve webu už není; přepsání je nová verze téhož
+souboru, která hned zase vznikne pod stejným jménem, a to číslo bývá vysoké
+a nic zlého neznamená. Přeskočené jsou obrázky a styly, které se nezměnily —
+poznají se podle otisku v názvu a nepřenášejí se znovu. Počítá se to porovnáním seznamu souborů na serveru se seznamem
 souborů ve webu, ne čtením hlášek — dokud se počítaly hlášky, hlásila
 pojistka smazání celého webu i tehdy, když se nemazalo nic.
 
