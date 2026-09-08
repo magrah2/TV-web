@@ -198,29 +198,31 @@ v záznamu běhu maskuje hvězdičkami, takže by v diagnostickém výpisu nebyl
 vidět, kam se vlastně nahrálo. Jako secret to funguje taky, jen se hůř
 hledají chyby.
 
-Formulář má proto tři přepínače a stojí za to je projít v tomhle pořadí:
+Formulář má proto jeden přepínač, **„Jen zkušební soubor"**. Nahraje jediný
+neškodný textový soubor a vypíše obsah složky, takže ověří přístupy i adresář,
+aniž by na web sáhl. Ten soubor pak jde kdykoliv smazat FTP klientem. Vyplatí
+se ho pustit vždycky, když se mění `FTP_ADRESAR` — je to jediná kontrola, že
+míří tam, kam má.
 
-1. **Jen zkušební soubor** — nahraje jediný neškodný textový soubor a vypíše
-   obsah složky. Ověří přístupy i adresář, aniž by se na web sáhlo. Ten
-   soubor pak jde kdykoliv smazat FTP klientem.
-2. **Jen nanečisto** — vypíše, co by se nahrálo a smazalo, ale nic nezmění.
-3. Bez přepínačů — ostré nahrání. Poprvé k tomu bude potřeba i **Povolit
-   i velký úklid**, protože se běh sám zastaví, když by mazal víc než sto
-   souborů.
+Bez přepínače se web nahraje naostro.
 
-Proti chybě v adresáři je pojistka: běh si nejdřív nanečisto spočítá, kolik
-souborů by smazal, a když jich je sto a víc, zastaví se a vypíše je. Při
-prvním nahrání přes starý WordPress to nastane — je to v pořádku, jen se
-musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
-úklid"**.
+### Kolik se toho na server připojuje
 
-Ve shrnutí běhu se rozlišuje **smazat**, **přepsat** a **přeskočit**. Smaže
-se jen to, co na serveru je a ve webu už není; přepsání je nová verze téhož
-souboru, která hned zase vznikne pod stejným jménem, a to číslo bývá vysoké
-a nic zlého neznamená. Přeskočené jsou obrázky a styly, které se nezměnily —
-poznají se podle otisku v názvu a nepřenášejí se znovu. Počítá se to porovnáním seznamu souborů na serveru se seznamem
-souborů ve webu, ne čtením hlášek — dokud se počítaly hlášky, hlásila
-pojistka smazání celého webu i tehdy, když se nemazalo nic.
+Nasazení otevře na FTP **jediné přihlášení**. Není to kosmetika: hosting
+povoluje málo souběžných přihlášení a každé další je zdroj chyb typu
+„Timeout — reconnecting".
+
+Dřív se připojovalo třikrát. Napřed pojistka, která nanečisto spočítala,
+kolik souborů by zrcadlení smazalo, a nad sto se zastavila. Pak samotné
+nahrání. A nakonec kontrola, jestli na serveru leží `.htaccess`.
+
+Obojí navíc je pryč. Pojistka padala častěji, než chránila — procházela celý
+web přes FTP jen kvůli jednomu číslu — a kontrola `.htaccess` odpověděla na
+svoji otázku jednou provždy (viz níže) a dál už jen zabírala spojení.
+
+**Co to znamená:** proti chybě v `FTP_ADRESAR` už nestojí žádná automatická
+brzda. Kdyby mířil jinam než na web, zrcadlení tam smaže, co do webu nepatří.
+Proto ta zkouška zkušebním souborem před každou změnou té hodnoty.
 
 ### Nastavení serveru je součástí webu
 

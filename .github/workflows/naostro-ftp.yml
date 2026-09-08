@@ -28,8 +28,13 @@
 # na serveru navíc oproti sestavenému webu, to se SMAŽE — jinak by tam po
 # každé změně zůstávaly staré stránky. Kdyby byl FTP_ADRESAR špatně a mířil
 # třeba do kořene FTP, zrcadlení by smazalo i věci, které s webem nesouvisí.
-# Proti tomu je pojistka, která napřed nanečisto spočítá, kolik souborů by
-# zmizelo, a nad sto se zastaví.
+#
+# Dřív proti tomu stála pojistka, která napřed nanečisto spočítala, kolik
+# souborů by zmizelo. Byla zrušená, protože kvůli ní běh otevíral na server
+# dvě samostatná přihlášení — jedno jen kvůli počítání — a hosting jich
+# povoluje málo. Padala právě ona, a to opakovaně. Bezpečnost teď stojí na
+# tom, že FTP_ADRESAR je vyplněný správně; před jeho změnou si ověřte, kam
+# míří, přepínačem „Jen zkušební soubor", který vypíše obsah složky.
 #
 # ────────────────────────────────────────────────────────────────────────
 # PRAVIDLO PRO ÚPRAVY: příkazy pro lftp se skládají do souboru přes `echo`
@@ -52,14 +57,6 @@ on:
         description: 'Jen zkušební soubor — ověřit přístupy a vypsat obsah složky, web nechat být'
         type: boolean
         default: false
-      nanecisto:
-        description: 'Jen nanečisto — vypsat, co by se stalo, a nic nenahrávat'
-        type: boolean
-        default: false
-      velky_uklid:
-        description: 'Povolit i velký úklid (potřeba při prvním nahrání přes starý web)'
-        type: boolean
-        default: false
 
 # Dvě nahrávání naráz by si na serveru lezla do zelí. Rozdělaný běh se
 # nepřerušuje — přerušit nahrávání v půlce by nechalo web rozbitý.
@@ -71,8 +68,6 @@ permissions:
   contents: read
 
 env:
-  # Nad tolik smazaných souborů se běh zastaví a počká na potvrzení.
-  STROP_MAZANI: 100
   WEB: https://transparentnivyskov.cz
 
 jobs:
@@ -198,104 +193,6 @@ jobs:
           echo "Nastaveni pripojeni:"
           cat spojeni.lftp
 
-      # Projít web přes FTP je nejpomalejší část celého nasazení, proto vlastní
-      # strop. Při velkém úklidu se krok přeskakuje: existuje jen kvůli
-      # pojistce níž, a tu velký úklid stejně přebíjí.
-      #
-      # Průchod je jeden jediný, a to schválně. Dřív se sem chodilo třikrát:
-      # dvakrát `mirror --dry-run` a potřetí pro výpis souborů. Od chvíle, kdy
-      # se počítá porovnáním seznamů, jsou ty dva průchody nanečisto k ničemu —
-      # jen ztrojnásobovaly nejpomalejší krok celého nasazení.
-      - name: Spočítat nanečisto, co by se smazalo
-        if: inputs.zkusebni_soubor == false && inputs.velky_uklid == false
-        id: zkouska
-        timeout-minutes: 10
-        env:
-          SERVER: ${{ secrets.FTP_SERVER }}
-          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
-          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-        run: |
-          ADR="${ADRESAR%/}"
-          cp spojeni.lftp prikazy.lftp
-          {
-            echo "find \"$ADR\" > seznam-serveru.txt"
-            echo "bye"
-          } >> prikazy.lftp
-
-          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp > nanecisto.txt 2>&1 || true
-
-          # Kolik souboru by se smazalo, se pocita porovnanim seznamu, ne
-          # ctenim hlasek lftp. Smazat se ma to, co na serveru je a ve webu uz
-          # neni - a presne to je rozdil tech dvou seznamu.
-          #
-          # Driv se pocitaly radky vypisu, mimo jine "Removing old file". Ta
-          # hlaska ale znamena neco jineho: soubor se nahrazuje novou verzi,
-          # takze hned zase vznikne pod tymz jmenem. Po cerstvem sestaveni
-          # vypadaji novejsi vsechny soubory, takze se objevila u kazdeho z nich
-          # a pojistka hlasila mazani celeho webu, i kdyz se nemazalo nic.
-          # Navic tim cele mereni viselo na tom, jak lftp zrovna formuluje
-          # vypis. Porovnani seznamu na formulacich nezavisi.
-          sed -e "s|^${ADR}/||" -e 's|^\./||' seznam-serveru.txt             | grep -v '/$' | grep -v '^$' | grep -v '^\.well-known/'             | LC_ALL=C sort -u > na-serveru.txt
-          (cd dist && find . -type f | sed 's|^\./||') | LC_ALL=C sort -u > ve-webu.txt
-
-          # Kdyby se vypis ze serveru nepovedl, vysel by rozdil nula a pojistka
-          # by mlcky pustila dal cokoliv. Prazdny seznam je proto chyba.
-          if [ ! -s na-serveru.txt ]; then
-            echo "Seznam souboru na serveru je prazdny, coz nedava smysl."
-            echo "Nepokracuji - pojistka proti smazani webu by nefungovala."
-            echo "Vypis lftp:"
-            tail -30 nanecisto.txt
-            exit 1
-          fi
-
-          comm -23 na-serveru.txt ve-webu.txt > ke-smazani.txt
-          smaze=$(grep -c '' ke-smazani.txt || true)
-
-          # Prepise se to, co je na obou stranach - krome souboru z `_astro/`.
-          # Ty maji v nazvu otisk obsahu, takze stejne jmeno znamena stejny
-          # obsah a nahravani je diky --ignore-time preskoci.
-          comm -12 na-serveru.txt ve-webu.txt > spolecne.txt
-          prepise=$(grep -vc '^_astro/' spolecne.txt || true)
-          preskoci=$(grep -c '^_astro/' spolecne.txt || true)
-
-          echo "smaze=$smaze" >> $GITHUB_OUTPUT
-          echo "Na serveru: $(grep -c '' na-serveru.txt), ve webu: $(grep -c '' ve-webu.txt)."
-          echo "Nanecisto: smazalo by se $smaze souboru, prepsalo $prepise."
-
-          echo "### Nanecisto" >> $GITHUB_STEP_SUMMARY
-          echo "- Na serveru je souboru: $(grep -c '' na-serveru.txt)" >> $GITHUB_STEP_SUMMARY
-          echo "- Ve webu je souboru: $(grep -c '' ve-webu.txt)" >> $GITHUB_STEP_SUMMARY
-          echo "- Smazalo by se: **$smaze** (jsou na serveru, ve webu uz ne)" >> $GITHUB_STEP_SUMMARY
-          echo "- Prepsalo by se: **$prepise** (nova verze tehoz souboru)" >> $GITHUB_STEP_SUMMARY
-          echo "- Preskoci se: **$preskoci** (obrazky a styly, ktere se nezmenily)" >> $GITHUB_STEP_SUMMARY
-          if [ "$smaze" -gt 0 ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Co by se smazalo:" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            head -40 ke-smazani.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Zastavit se, když je mazání podezřele velké
-        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false && inputs.velky_uklid == false
-        run: |
-          if [ -z "${{ steps.zkouska.outputs.smaze }}" ]; then
-            echo "Pocet mazanych souboru se nepodarilo zjistit, nepokracuji."
-            exit 1
-          fi
-          if [ "${{ steps.zkouska.outputs.smaze }}" -ge "$STROP_MAZANI" ]; then
-            echo "Nahravani by smazalo ${{ steps.zkouska.outputs.smaze }} souboru."
-            echo "To je vic nez strop $STROP_MAZANI, takze se nic nenahralo."
-            echo ""
-            echo "Bud je FTP_ADRESAR spatne a miri jinam nez na web,"
-            echo "nebo jde o prvni nahrani pres stary web - a to je v poradku."
-            echo "Seznam je vys ve shrnuti. Kdyz sedi, spustte znovu"
-            echo "a zaskrtnete 'Povolit i velky uklid'."
-            exit 1
-          fi
-          echo "Smaze se ${{ steps.zkouska.outputs.smaze }} souboru, to je v mezich."
-
       # Nahrává se nadvakrát, a to schválně.
       #
       # lftp porovnává soubory podle velikosti a času změny. Sestavení v CI
@@ -309,7 +206,7 @@ jobs:
       # stejně a úprava textu nemusí změnit jeho velikost, takže se přenášejí
       # vždycky. Je jich patnáct a jsou malé.
       - name: Nahrát na FTP
-        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
+        if: inputs.zkusebni_soubor == false
         env:
           SERVER: ${{ secrets.FTP_SERVER }}
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
@@ -328,48 +225,11 @@ jobs:
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp
 
-      # Jestli soubor .htaccess na serveru leží, se zvenčí zjistit nedá:
-      # server na něj vrací 403 i tehdy, když tam vůbec není (chrání ho
-      # plošným pravidlem). Zeptáme se proto přes FTP, kde je vidět skutečný
-      # obsah složky. Na tom závisí výklad toho, proč nefunguje vlastní
-      # stránka 404: jinak nahrávání, jinak nastavení hostingu.
-      - name: Ověřit, že .htaccess je na serveru
-        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
-        env:
-          SERVER: ${{ secrets.FTP_SERVER }}
-          UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
-          LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
-          ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
-        run: |
-          ADR="${ADRESAR%/}"
-          cp spojeni.lftp prikazy.lftp
-          {
-            echo "cls -a -l \"$ADR\""
-            echo "bye"
-          } >> prikazy.lftp
-
-          lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp > obsah.txt 2>&1 || true
-
-          echo "## Soubory v korenu webu" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if grep -q "htaccess" obsah.txt; then
-            echo "- Soubor .htaccess na serveru **je**." >> $GITHUB_STEP_SUMMARY
-            echo "  Kdyz presto nefunguje vlastni stranka 404, hosting nebere" >> $GITHUB_STEP_SUMMARY
-            echo "  ErrorDocument z .htaccess a musi se to nastavit u nej." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- Soubor .htaccess na serveru **neni**." >> $GITHUB_STEP_SUMMARY
-            echo "  Nahravani ho tedy neprenaslo - chyba je na nasi strane." >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          grep -v "^----\|^\*\*\*\|^<---\|^--->" obsah.txt | head -40 >> $GITHUB_STEP_SUMMARY || true
-          echo '```' >> $GITHUB_STEP_SUMMARY
-
       # Po nahrání se web opravdu navštíví. „Soubory jsou na serveru"
       # a „web funguje" nejsou totéž — server je může servírovat jinak, než
       # čekáme. Otazník v adrese obchází mezipaměť hostingu.
       - name: Zkontrolovat nasazený web
-        if: inputs.zkusebni_soubor == false && inputs.nanecisto == false
+        if: inputs.zkusebni_soubor == false
         run: |
           CHYBY=0
           echo "## Kontrola nasazeneho webu" >> $GITHUB_STEP_SUMMARY
@@ -396,25 +256,14 @@ jobs:
             echo "- **Neexistujici adresa vraci $KOD misto 404**" >> $GITHUB_STEP_SUMMARY
             CHYBY=$((CHYBY+1))
           fi
+          # Vlastni stranka 404 se neukaze, protoze server na teto domene
+          # necte .htaccess - zmereno, podrobnosti v README. Neni to tedy chyba
+          # nasazeni a bezi to jen jako pripominka, kdyby to hosting jednou
+          # spravil.
           if grep -q "Tuhle stranku\|Tuhle stránku" ctyristactyri.html; then
             echo "- Ukazuje se nase stranka 404" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Ukazuje se serverova stranka 404, ne nase**" >> $GITHUB_STEP_SUMMARY
-            CHYBY=$((CHYBY+1))
-          fi
-
-          # Sonda z .htaccess. Jestli ho server cte, se jinak zvenci zjistit
-          # neda: na /.htaccess vraci 403 i tehdy, kdyz tam zadny neni, protoze
-          # ho chrani plosnym pravidlem - "403" tedy neznamena "je tam".
-          # Presmerovani je oproti tomu videt jednoznacne.
-          KOD=$(curl -s -m 30 -o /dev/null -w "%{http_code}" "$WEB/zkouska-htaccess")
-          if [ "$KOD" = "301" ] || [ "$KOD" = "302" ]; then
-            echo "- Server .htaccess **cte** (sonda presmerovala, HTTP $KOD)." >> $GITHUB_STEP_SUMMARY
-            echo "  Kdyz presto neplati ErrorDocument, vadi mu neco v tom souboru." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- Server .htaccess **necte** (sonda vratila HTTP $KOD misto 302)." >> $GITHUB_STEP_SUMMARY
-            echo "  Pak neucinkuje ani ErrorDocument a nema smysl ho ladit." >> $GITHUB_STEP_SUMMARY
-            CHYBY=$((CHYBY+1))
+            echo "- Ukazuje se serverova stranka 404 (hosting necte .htaccess)" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -488,8 +337,4 @@ jobs:
       - name: Shrnutí
         if: always() && inputs.zkusebni_soubor == false
         run: |
-          if [ "${{ inputs.nanecisto }}" = "true" ]; then
-            echo "Byla to zkouska nanecisto, na webu se nic nezmenilo." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "Web je na ostre adrese." >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "Web je na ostre adrese." >> $GITHUB_STEP_SUMMARY
