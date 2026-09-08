@@ -54,3 +54,7 @@ nastroje/.okrsky/
 # zalezi totiz na tom, ktere varianty si kdo vygeneroval.
 QR_codes/*.svg
 QR_codes/*.png
+
+# Podklady od tymu a dokumenty vyrobene generatorem. Do verejneho repozitare
+# nepatri: jsou to interni pracovni materialy.
+dokument/
