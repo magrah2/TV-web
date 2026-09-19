@@ -112,7 +112,7 @@ nevyplněný řádek v šabloně by shodil build.
 ## Odkazy jen přes `odkaz()`
 
 Draft běží v podsložce `/TV-web/`, ostrý web bude v kořeni domény. Odkazy
-psané natvrdo by po přepnutí vedly vedle. Vždy `odkaz('/lide/')`
+psané natvrdo by po přepnutí vedly vedle. Vždy `odkaz('/kandidati/')`
 z `src/lib/odkaz.ts`.
 
 ---

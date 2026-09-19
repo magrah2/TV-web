@@ -19,7 +19,7 @@ const VYCHOZI = 'vychozi';
  * Z adresy stránky vybere název karty.
  *
  * Hledá se od nejpodrobnějšího k nejobecnějšímu: nejdřív celá cesta
- * (`/kde-volit/`), pak její první část (`/lide/eva-formankova/` → `lide`).
+ * (`/kde-volit/`), pak její první část (`/kandidati/#nekdo` → `kandidati`).
  * Medailonek kandidáta tak zdědí kartu kandidátky a nemusí mít vlastní.
  */
 export function nahledSdileni(cesta: string): string {

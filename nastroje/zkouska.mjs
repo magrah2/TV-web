@@ -62,7 +62,7 @@ const skokVzad = async () => {
 };
 
 try {
-  await stranka.goto(`${ADRESA}lide/`, { waitUntil: 'networkidle' });
+  await stranka.goto(`${ADRESA}kandidati/`, { waitUntil: 'networkidle' });
 
   // --- Otevreni a preskakovani -------------------------------------------
   await stranka.click('[data-medailonek="3"]');

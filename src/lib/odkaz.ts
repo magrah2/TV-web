@@ -5,8 +5,8 @@
  * domény. Kdyby se odkazy psaly natvrdo, po přepnutí by všechny vedly vedle.
  * Proto se všude uvnitř webu odkazuje přes tuhle funkci.
  *
- *   odkaz('/lide/')  →  '/TV-web/lide/'  na draftu
- *                    →  '/lide/'         naostro
+ *   odkaz('/kandidati/')  →  '/TV-web/kandidati/'  na draftu
+ *                       →  '/kandidati/'         naostro
  */
 export function odkaz(cesta: string): string {
   const zaklad = import.meta.env.BASE_URL; // '/TV-web/' nebo '/'

@@ -110,7 +110,7 @@ const KARTY = [
     obrazek: { stranka: 'jak-volit/', prvek: '.listek', sirkaOkna: 760 },
   },
   {
-    nazev: 'lide',
+    nazev: 'kandidati',
     titulek: 'Sedmadvacet Vyškováků',
     popis: 'Lidé, kteří chtějí radnici dělat jinak. Poznejte je jménem po jménu.',
     obrazek: { portrety: 3 },
