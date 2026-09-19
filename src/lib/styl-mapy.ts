@@ -99,15 +99,15 @@ export const STYL_MAPY = {
       paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.8 },
     },
     {
-      // Hřiště, dětská hřiště a sportoviště. Leží v jiné vrstvě než parky,
-      // takže bez tohohle by se nekreslily vůbec — a přitom jsou to místa,
-      // o kterých se na stánku mluví často.
-      id: 'hriste',
+      // Zoo a zámecká zahrada. Leží v jiné zdrojové vrstvě než parky a bez
+      // tohohle se nekreslily vůbec — zůstaly z nich šedé bloky uprostřed
+      // města, přestože je to zeleň, kterou každý zná.
+      id: 'zelene-arealy',
       type: 'fill',
       source: 'openmaptiles',
       'source-layer': 'landuse',
-      filter: jeTrida('pitch', 'playground', 'stadium', 'track'),
-      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.75 },
+      filter: jeTrida('zoo', 'theme_park', 'cemetery'),
+      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.6 },
     },
     {
       id: 'zastavba',
@@ -225,6 +225,55 @@ export const STYL_MAPY = {
 
     // --- Popisky ----------------------------------------------------------
     // Kvůli nim to celé je: obsluha na stánku hledá místo podle názvu ulice.
+    //
+    // Pořadí není libovolné. Když se dva popisky perou o totéž místo, vyhraje
+    // ten dřívější — proto jdou názvy míst před názvy ulic. Ulic je hodně
+    // a jedna se vždycky najde jinde, kdežto zoopark je jen jeden.
+    {
+      // Zoopark, zámecká zahrada, hřbitov. Bez názvu je z nich jen zelená
+      // skvrna a člověk nepozná, na co se dívá.
+      id: 'nazvy-zelene',
+      type: 'symbol',
+      source: 'openmaptiles',
+      'source-layer': 'poi',
+      // Bez `attraction` schválně: pod tu třídu spadají i jednotlivé výběhy,
+      // takže se na mapě místo zooparku objevily „lamy" a „velbloudi".
+      filter: jeTrida('park', 'garden', 'zoo', 'cemetery'),
+      minzoom: 13,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 11,
+        'text-max-width': 8,
+        'text-anchor': 'top',
+        'text-offset': [0, 0.4],
+      },
+      paint: {
+        'text-color': BARVA.zelenZnacky,
+        'text-halo-color': BARVA.pozadi,
+        'text-halo-width': 1.6,
+      },
+    },
+    {
+      // Názvy větších ploch zeleně. Leží jinde než body zájmu, takže bez
+      // tohohle by u některých parků nebyl název vůbec.
+      id: 'nazvy-parku',
+      type: 'symbol',
+      source: 'openmaptiles',
+      'source-layer': 'park',
+      minzoom: 12,
+      layout: {
+        'text-field': ['get', 'name'],
+        'text-font': ['Noto Sans Regular'],
+        'text-size': 11,
+        'text-max-width': 8,
+      },
+      paint: {
+        'text-color': BARVA.zelenZnacky,
+        'text-halo-color': BARVA.pozadi,
+        'text-halo-width': 1.6,
+      },
+    },
     {
       id: 'nazvy-ulic',
       type: 'symbol',
