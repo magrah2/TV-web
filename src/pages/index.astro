@@ -7,6 +7,7 @@ import IkonaTematu from '../components/IkonaTematu.astro';
 import { BARVA_TEMATU } from '../lib/temata';
 import type { Tema } from '../lib/temata';
 import { fotkaKandidata } from '../lib/portrety';
+import podkladObec from '../../public/mapa-obec.svg?raw';
 
 const VOLBY = new Date('2026-10-09T14:00:00+02:00');
 
@@ -32,6 +33,31 @@ const programSObsahem = await Promise.all(
 
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
 const prvni = kandidati.slice(0, 6);
+
+/**
+ * Náhled mapy k odkazu na hledání volební místnosti.
+ *
+ * Z podkladu se berou jen plochy a řeka, ne ulice a cesty. Celý podklad má
+ * 322 kB a vložit ho do úvodní stránky kvůli ozdobě by ji nafouklo osmkrát —
+ * ulic a pěšin je v něm přes dva tisíce. Ze siluety zástavby a řeky je Vyškov
+ * poznat a váží to zlomek.
+ *
+ * Skupiny se vybírají hledáním, ne regulárním výrazem: jsou to prosté
+ * `<g class="…">…</g>` bez vnoření, takže na to stačí dva `indexOf`.
+ */
+function skupinaMapy(svg: string, trida: string): string {
+  const zacatek = svg.indexOf(`<g class="${trida}">`);
+  if (zacatek < 0) return '';
+  const konec = svg.indexOf('</g>', zacatek);
+  return svg.slice(zacatek, konec + 4);
+}
+
+const siluetaObce =
+  podkladObec.slice(0, podkladObec.indexOf('>') + 1) +
+  ['mapa-zastavba', 'mapa-prumysl', 'mapa-zelen', 'mapa-vodni-plocha', 'mapa-reka']
+    .map((trida) => skupinaMapy(podkladObec, trida))
+    .join('') +
+  '</svg>';
 ---
 
 <Zaklad
@@ -99,10 +125,25 @@ const prvni = kandidati.slice(0, 6);
           obyvatel i spolků. Záleží nám na transparentním hospodaření, férových zakázkách a
           dostupném bydlení pro běžné obyvatele — ne pro developery.
         </p>
-        <p>
-          <a href={odkaz('/lide/')}>Poznejte všech 27 →</a>
-        </p>
       </div>
+    </div>
+
+    <div class="pruh lide-mrizka">
+      {
+        prvni.map((clovek) => (
+          <KartaKandidata
+            poradi={clovek.data.poradi}
+            jmeno={clovek.data.jmeno}
+            vek={clovek.data.vek}
+            povolani={clovek.data.povolani}
+            foto={fotkaKandidata(clovek.id)}
+          />
+        ))
+      }
+    </div>
+
+    <div class="pruh lide-vic">
+      <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Poznejte všech 27 →</a>
     </div>
   </section>
 
@@ -197,32 +238,6 @@ const prvni = kandidati.slice(0, 6);
   </section>
 
   {/* ---------- Lidé ---------- */}
-  <section class="sekce lide">
-    <div class="pruh">
-      <div class="lide-hlava">
-        <div>
-          <p class="nadtitulek">Komu dáte hlas</p>
-          <h2>Naši kandidáti</h2>
-        </div>
-        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Všech 27 →</a>
-      </div>
-
-      <div class="lide-mrizka">
-        {
-          prvni.map((clovek) => (
-            <KartaKandidata
-              poradi={clovek.data.poradi}
-              jmeno={clovek.data.jmeno}
-              vek={clovek.data.vek}
-              povolani={clovek.data.povolani}
-              foto={fotkaKandidata(clovek.id)}
-            />
-          ))
-        }
-      </div>
-    </div>
-  </section>
-
   {/* ---------- Jak volit ---------- */}
   <section class="sekce pas-noc jak-volit">
     <div class="pruh jak-volit-vnitrek">
@@ -238,6 +253,33 @@ const prvni = kandidati.slice(0, 6);
           <a class="tlacitko tlacitko-hlavni" href={odkaz('/jak-volit/')}>Vyzkoušet lístek</a>
         </p>
       </div>
+    </div>
+  </section>
+
+  {/* ---------- Kde volit ---------- */}
+  <section class="sekce kde-volit">
+    <div class="pruh dvojice">
+      <div>
+        <p class="nadtitulek">Kde volit</p>
+        <h2>Nevíte, kam jít volit?</h2>
+      </div>
+      <div class="dvojice-text">
+        <p>
+          Zadejte svoji adresu a ukážeme vám na mapě, do které volební místnosti patříte.
+        </p>
+        <p class="kde-volit-tlacitko">
+          <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/kde-volit/')}>
+            Najít svoji volební místnost
+          </a>
+        </p>
+      </div>
+    </div>
+
+    <div class="pruh">
+      <a class="nahled-mapy" href={odkaz('/kde-volit/')}>
+        <span class="nahled-mapy-silueta" set:html={siluetaObce} />
+        <span class="nahled-mapy-popis">Otevřít mapu volebních míst →</span>
+      </a>
     </div>
   </section>
 </Zaklad>
@@ -569,6 +611,10 @@ const prvni = kandidati.slice(0, 6);
 
   /* ---------- Lidé ---------- */
 
+  .lide-vic {
+    margin-top: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
   .lide-hlava {
     display: flex;
     flex-wrap: wrap;
@@ -579,6 +625,7 @@ const prvni = kandidati.slice(0, 6);
   }
 
   .lide-mrizka {
+    margin-top: clamp(2rem, 4vw, 3rem);
     display: grid;
     gap: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.75rem);
     grid-template-columns: repeat(2, 1fr);
@@ -616,6 +663,61 @@ const prvni = kandidati.slice(0, 6);
 
   .jak-volit-tlacitko {
     margin: 1.75rem 0 0;
+  }
+
+  /* ---------- Kde volit ---------- */
+
+  .kde-volit-tlacitko {
+    margin: 1.5rem 0 0;
+  }
+
+  .nahled-mapy {
+    display: block;
+    position: relative;
+    margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
+    padding: clamp(1rem, 3vw, 2rem);
+    border-radius: var(--radius);
+    background: var(--noc);
+    text-decoration: none;
+    overflow: hidden;
+  }
+
+  /* Náhled je ozdoba a odkaz zároveň. Silueta nesmí chytat ukazatel, jinak by
+     se z jejích cest staly cíle kliknutí uvnitř odkazu. */
+  .nahled-mapy-silueta {
+    display: block;
+    pointer-events: none;
+  }
+
+  .nahled-mapy-silueta :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: clamp(180px, 34vw, 320px);
+  }
+
+  .nahled-mapy-silueta :global(.mapa-zastavba path) { fill: var(--mapa-zastavba); }
+  .nahled-mapy-silueta :global(.mapa-prumysl path) { fill: var(--mapa-prumysl); }
+  .nahled-mapy-silueta :global(.mapa-zelen path) { fill: var(--mapa-zelen); }
+  .nahled-mapy-silueta :global(.mapa-vodni-plocha path) { fill: var(--mapa-voda); }
+  .nahled-mapy-silueta :global(.mapa-reka path) {
+    fill: none;
+    stroke: var(--zelena);
+    stroke-width: 2.4;
+    opacity: 0.7;
+  }
+
+  .nahled-mapy-popis {
+    display: block;
+    margin-top: 0.85rem;
+    text-align: center;
+    font-size: var(--text-maly);
+    color: var(--na-noci);
+  }
+
+  .nahled-mapy:hover .nahled-mapy-popis,
+  .nahled-mapy:focus-visible .nahled-mapy-popis {
+    text-decoration: underline;
   }
 </style>
 
