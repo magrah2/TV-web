@@ -2,55 +2,67 @@
 /**
  * Sběr podnětů na stánku.
  *
- * Mapa celého Vyškova, do které jde ťuknutím přidat bod, vybrat mu kategorii
- * a napsat, co s tím místem je. Používá se na tabletu při kontaktní kampani,
- * takže všechno musí jít prstem: přibližuje se štípnutím, posouvá tažením
- * a cíle jsou velké.
+ * Mapa Vyškova, do které jde ťuknutím přidat bod, vybrat mu kategorii
+ * a napsat, co s tím místem je. Používá se na tabletu při kontaktní kampani.
+ *
+ * Proč tu není naše vlastní SVG mapa jako na zbytku webu: tahle mapa se
+ * neprohlíží, ale pracuje se s ní. Člověk u stánku ukáže „tady u té trafiky"
+ * a obsluha to musí najít — k tomu jsou potřeba názvy ulic a domy, tedy
+ * detail, který náš podklad nemá a mít nemůže. Jen budov je ve výřezu přes
+ * deset tisíc a SVG by narostlo na jednotky megabajtů.
+ *
+ * Stránka proto jako jediná na webu načítá dlaždice odjinud. Je to vědomá
+ * výjimka: není veřejná, je chráněná heslem a počítá se s tím, že tablet
+ * bude online. Zásada „web neposílá požadavky ven" dál platí pro celý
+ * veřejný web, kterého se tahle stránka netýká.
  *
  * Body se ukládají na server (`public/podnety.php`), aby všichni na stánku
- * viděli totéž. Když server není k dispozici — třeba na draftu, kde PHP
- * neběží — přepne se stránka do místního režimu a ukládá do prohlížeče,
- * aby sběr nestál. Viditelně to o sobě řekne.
- *
- * Proč se mapa vkládá jako SVG a ne jako obrázek: musí jít přibližovat přes
- * `viewBox`. S obrázkem by se při přiblížení rozmazala a hlavně by nešlo
- * spočítat, kam člověk ťukl.
+ * viděli totéž. Když server není k dispozici, přepne se stránka do místního
+ * režimu, ukládá do prohlížeče a viditelně to o sobě řekne.
  */
 
 import { KATEGORIE, BARVA_KATEGORIE, NEJDELSI_POPIS } from '../lib/podnety';
-import { ROZMER_OBCE, VYREZ_OBCE, naMapuObce } from '../lib/mapa-obce';
+import { VYREZ_OBCE } from '../lib/mapa-obce';
 import { odkaz } from '../lib/odkaz';
-import podklad from '../../public/mapa-obec.svg?raw';
 import okrsky from '../../public/data/okrsky.json';
 
 const adresaApi = odkaz('/podnety.php');
 
 /**
- * Obal obydlené části obce.
- *
- * Tlačítko „Celá obec" nemá ukazovat katastr, ale to, kde lidé bydlí. Výřez
- * obce je z velké části pole: na širokém displeji se vejde celý, jenže levá
- * polovina zůstane prázdná a město je namáčknuté vpravo.
+ * Klíč k Mapy.cz. Když chybí, použijí se dlaždice OpenStreetMap — mapa
+ * funguje hned, jen vypadá jinak. Nastavuje se proměnnou prostředí
+ * `MAPY_KLIC` při sestavení, aby klíč nestál v repozitáři.
+ */
+const klicMapy = import.meta.env.MAPY_KLIC ?? '';
+
+/**
+ * Obydlená část obce, na kterou se srovná tlačítko „Celá obec".
  *
  * Počítá se z adresních bodů, stejně jako u mapy „kde volit" — obě mapy tak
- * rámují totéž území. Obrysy volebních oblastí ani zástavby se použít nedají:
- * jsou rozlité přes celý výřez a obal by z nich vyšel jako celá mapa.
+ * rámují totéž území. Výřez katastru se použít nedá: je z velké části pole
+ * a město by v něm bylo namáčknuté do rohu.
  *
  * Adresy leží v poli jako `[…, lat, lon, …]`, index 4 a 5.
  */
 const obydlene = (() => {
-  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  let jih = Infinity;
+  let sever = -Infinity;
+  let zapad = Infinity;
+  let vychod = -Infinity;
+
   for (const adresa of okrsky.adresy as number[][]) {
-    const { x, y } = naMapuObce(adresa[4], adresa[5]);
-    x1 = Math.min(x1, x);
-    x2 = Math.max(x2, x);
-    y1 = Math.min(y1, y);
-    y2 = Math.max(y2, y);
+    jih = Math.min(jih, adresa[4]);
+    sever = Math.max(sever, adresa[4]);
+    zapad = Math.min(zapad, adresa[5]);
+    vychod = Math.max(vychod, adresa[5]);
   }
-  if (!Number.isFinite(x1)) {
-    throw new Error('V okrsky.json nejsou adresy — bez nich nejde spočítat, kam má sedět tlačítko „Celá obec".');
+
+  if (!Number.isFinite(jih)) {
+    throw new Error(
+      'V okrsky.json nejsou adresy — bez nich nejde spočítat, kam má sedět tlačítko „Celá obec".',
+    );
   }
-  return { x1, y1, x2, y2 };
+  return { jih, sever, zapad, vychod };
 })();
 ---
 
@@ -58,11 +70,9 @@ const obydlene = (() => {
   class="sber"
   data-sber
   data-api={adresaApi}
-  data-sirka={ROZMER_OBCE.sirka}
-  data-vyska={ROZMER_OBCE.vyska}
+  data-klic={klicMapy}
   data-vyrez={JSON.stringify(VYREZ_OBCE)}
   data-obydlene={JSON.stringify(obydlene)}
-  data-nejdelsi={NEJDELSI_POPIS}
 >
   <div class="sber-lista">
     <p class="sber-stav" data-stav>Načítám…</p>
@@ -89,10 +99,8 @@ const obydlene = (() => {
     <button type="button" class="sber-filtr sber-filtr-nic" data-filtr="nic">Skrýt vše</button>
   </div>
 
-  <div class="sber-mapa" data-mapa>
-    <div class="sber-podklad" set:html={podklad} />
-
-    <div class="sber-znacky" data-znacky></div>
+  <div class="sber-mapa-obal">
+    <div class="sber-mapa" data-mapa></div>
 
     <div class="sber-ovladani">
       <button type="button" data-zoom="ven" aria-label="Oddálit">−</button>
@@ -187,6 +195,20 @@ const obydlene = (() => {
     font-weight: 600;
   }
 
+  /* Cíle jsou velké schválně — ovládá se to prstem na stánku, často ve stoje.
+     Menší než 44 px se netrefuje. */
+  .sber-tlacitko {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--linka);
+    border-radius: 999px;
+    background: var(--plocha);
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-maly);
+    cursor: pointer;
+  }
+
   .sber-filtry {
     display: flex;
     flex-wrap: wrap;
@@ -229,65 +251,25 @@ const obydlene = (() => {
 
   /* ---------- Mapa ---------- */
 
-  .sber-mapa {
+  .sber-mapa-obal {
     position: relative;
+  }
+
+  .sber-mapa {
     height: clamp(420px, 66vh, 760px);
     border-radius: var(--radius);
     background: var(--noc);
     overflow: hidden;
-    /* Svislé posouvání stránky zůstává, dokud je mapa oddálená. Po přiblížení
-       si mapa vezme gesta celá — jinak by se při tažení posouvala stránka. */
-    touch-action: pan-y;
-  }
-
-  .sber-mapa[data-priblizeno] {
-    touch-action: none;
-  }
-
-  .sber-podklad,
-  .sber-podklad :global(svg) {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Čáry si drží tloušťku na obrazovce bez ohledu na přiblížení. */
-  .sber-podklad :global(svg path) {
-    vector-effect: non-scaling-stroke;
-  }
-
-  .sber-podklad :global(.mapa-zastavba path) { fill: var(--mapa-zastavba); }
-  .sber-podklad :global(.mapa-prumysl path) { fill: var(--mapa-prumysl); }
-  .sber-podklad :global(.mapa-zelen path) { fill: var(--mapa-zelen); }
-  .sber-podklad :global(.mapa-vodni-plocha path) { fill: var(--mapa-voda); }
-  .sber-podklad :global(.mapa-cesta path) { fill: none; stroke: var(--mapa-cesta); stroke-width: 0.55; }
-  .sber-podklad :global(.mapa-ulice path) { fill: none; stroke: var(--mapa-ulice); stroke-width: 0.9; }
-  .sber-podklad :global(.mapa-silnice path) { fill: none; stroke: var(--mapa-silnice); stroke-width: 1.4; }
-  .sber-podklad :global(.mapa-silnice-hlavni path) { fill: none; stroke: var(--mapa-silnice-hlavni); stroke-width: 2.2; }
-  .sber-podklad :global(.mapa-zeleznice path) {
-    fill: none;
-    stroke: var(--mapa-zeleznice);
-    stroke-width: 1;
-    stroke-dasharray: 5 5;
-  }
-  .sber-podklad :global(.mapa-potok path) { fill: none; stroke: var(--mapa-potok); stroke-width: 0.9; }
-  .sber-podklad :global(.mapa-reka path) {
-    fill: none;
-    stroke: var(--zelena);
-    stroke-width: 2.4;
-    opacity: 0.7;
-  }
-
-  .sber-znacky {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+    /* Mapa si dělá vlastní vrstvy. Bez tohohle by její prvky prolézaly nad
+       plovoucí panel i nad hlavičku webu. */
+    z-index: 0;
   }
 
   .sber-ovladani {
     position: absolute;
     right: 0.75rem;
     bottom: 0.75rem;
+    z-index: 5;
     display: flex;
     gap: 0.4rem;
   }
@@ -296,22 +278,27 @@ const obydlene = (() => {
     min-width: 44px;
     min-height: 44px;
     padding: 0 0.9rem;
-    border: 1px solid var(--linka-na-noci);
+    border: 1px solid var(--linka);
     border-radius: 999px;
-    background: var(--noc-svetlejsi);
-    color: var(--na-noci);
+    background: var(--plocha);
+    color: inherit;
     font: inherit;
     font-size: var(--text-maly);
+    box-shadow: var(--stin);
     cursor: pointer;
   }
 
   .sber-napoveda {
     position: absolute;
     left: 0.75rem;
-    bottom: 0.9rem;
+    top: 0.75rem;
+    z-index: 5;
     margin: 0;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.9);
     font-size: var(--text-drobny);
-    color: var(--na-noci-tlum);
+    color: var(--inkoust-tlum);
     pointer-events: none;
   }
 
@@ -325,7 +312,7 @@ const obydlene = (() => {
     position: fixed;
     left: 50%;
     bottom: 0.75rem;
-    z-index: 20;
+    z-index: 1000;
     width: min(46rem, calc(100vw - 1.5rem));
     max-height: min(62vh, 32rem);
     overflow-y: auto;
@@ -426,227 +413,187 @@ const obydlene = (() => {
 
 <!-- Značky na mapě vyrábí skript, ne šablona, takže jim Astro nedá značku
      rozsahu a scopované CSS se jich nechytne. Musí být proto globální.
-     Nebýt toho, zůstaly by bez velikosti, bez polohy a s `pointer-events:
-     none` zděděným z vrstvy — tedy neviditelné a neklikatelné.
+     Nebýt toho, zůstaly by bez velikosti i bez barvy.
 
-     Názvy tříd mají předponu `sber-`, aby se s ničím jiným na webu nepotkaly. -->
+     Názvy tříd mají předponu `sber-`, aby se s ničím jiným na webu
+     nepotkaly. -->
 <style is:global>
-  /* Značky jsou HTML nad mapou, ne uvnitř SVG — drží si tak velikost
-     nezávisle na přiblížení a polohu jim přepočítává skript. */
   .sber-znacka {
-    position: absolute;
+    display: block;
     width: 1.5rem;
     height: 1.5rem;
-    margin: -0.75rem 0 0 -0.75rem;
     border: 2px solid #fff;
     border-radius: 999px;
     background: var(--barva);
     box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
-    pointer-events: auto;
     cursor: pointer;
-  }
-
-  .sber-znacka[data-vybrany] {
-    width: 2rem;
-    height: 2rem;
-    margin: -1rem 0 0 -1rem;
-    z-index: 3;
   }
 
   /* Bod, který se právě zakládá. Bliká, aby bylo jasné, že ještě není
      uložený a dá se posunout dalším ťuknutím. */
   .sber-novy {
-    position: absolute;
+    display: block;
     width: 2.2rem;
     height: 2.2rem;
-    margin: -1.1rem 0 0 -1.1rem;
     border: 3px solid #fff;
     border-radius: 999px;
-    background: var(--zelena);
+    background: var(--zelena, #5bae39);
     box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
     animation: sber-puls 1.4s ease-in-out infinite;
-    z-index: 4;
   }
 
   @keyframes sber-puls {
-    50% { transform: scale(0.82); }
+    50% {
+      transform: scale(0.82);
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sber-novy { animation: none; }
+    .sber-novy {
+      animation: none;
+    }
+  }
+
+  /* Uvést zdroj dlaždic musíme, ale na stánku nemá překážet. */
+  .sber-mapa .leaflet-control-attribution {
+    font-size: 10px;
+    background: rgb(255 255 255 / 0.75);
   }
 </style>
 
 <script>
+  import L from 'leaflet';
+  import 'leaflet/dist/leaflet.css';
+
   const koren = document.querySelector<HTMLElement>('[data-sber]');
   if (koren) spustSber(koren);
 
   function spustSber(koren: HTMLElement) {
     const ADRESA = koren.dataset.api!;
-    const ROZMER = { sirka: Number(koren.dataset.sirka), vyska: Number(koren.dataset.vyska) };
+    const KLIC = koren.dataset.klic ?? '';
     const VYREZ = JSON.parse(koren.dataset.vyrez!);
     const OBYDLENE = JSON.parse(koren.dataset.obydlene!);
     const KLIC_HESLA = 'tv-sber-heslo';
     const KLIC_MISTNI = 'tv-sber-body';
 
-    const mapa = koren.querySelector<HTMLElement>('[data-mapa]')!;
-    const svg = mapa.querySelector('svg')!;
-    const vrstvaZnacek = koren.querySelector<HTMLElement>('[data-znacky]')!;
+    const prvekMapy = koren.querySelector<HTMLElement>('[data-mapa]')!;
     const stav = koren.querySelector<HTMLElement>('[data-stav]')!;
     const napoveda = koren.querySelector<HTMLElement>('[data-napoveda]')!;
-    const panelFiltru = koren.querySelector<HTMLElement>('[data-filtr]')!;
     const formular = koren.querySelector<HTMLFormElement>('[data-formular]')!;
     const detail = koren.querySelector<HTMLElement>('[data-detail]')!;
     const panelHesla = koren.querySelector<HTMLFormElement>('[data-heslo-panel]')!;
 
-    // --- Přepočty mapy ----------------------------------------------------
-    //
-    // Tytéž vzorce jako v `src/lib/mapa-obce.ts`. Opisují se sem proto, že
-    // tenhle kód běží v prohlížeči a pracuje se souřadnicemi obou směrů
-    // při každém ťuknutí i překreslení.
-    const merkator = (lat: number) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
-    const zMerkatoru = (y: number) => 2 * Math.atan(Math.exp(y)) - Math.PI / 2;
-    const NA_STUPNE = 180 / Math.PI;
-    const yJih = merkator(VYREZ.jih);
-    const MERITKO = ROZMER.sirka / (VYREZ.vychod - VYREZ.zapad);
-
-    const naMapu = (lat: number, lon: number) => ({
-      x: (lon - VYREZ.zapad) * MERITKO,
-      y: ROZMER.vyska - (merkator(lat) - yJih) * NA_STUPNE * MERITKO,
-    });
-
-    const zMapy = (x: number, y: number) => ({
-      lon: VYREZ.zapad + x / MERITKO,
-      lat: zMerkatoru(yJih + (ROZMER.vyska - y) / (MERITKO * NA_STUPNE)) * NA_STUPNE,
-    });
-
-    // --- Stav -------------------------------------------------------------
-
-    type Bod = { id: string; lat: number; lon: number; kategorie: string; popis: string; kdy: string };
+    type Bod = {
+      id: string;
+      lat: number;
+      lon: number;
+      kategorie: string;
+      popis: string;
+      kdy: string;
+    };
 
     let body: Bod[] = [];
     let heslo = localStorage.getItem(KLIC_HESLA) ?? '';
     let mistniRezim = false;
-    let novy: { x: number; y: number } | null = null;
     let vybranaKategorie = '';
-    let vybranyBod: string | null = null;
+    let novy: L.LatLng | null = null;
     /** `vse`, `nic`, nebo název jedné kategorie. */
     let vybranyFiltr = 'vse';
 
-    // --- Pohled na mapu ---------------------------------------------------
+    // --- Mapa -------------------------------------------------------------
 
-    const NEJMENSI_SIRKA = 60;
-    const pomer = () => mapa.clientHeight / mapa.clientWidth;
+    const HRANICE = L.latLngBounds([VYREZ.jih, VYREZ.zapad], [VYREZ.sever, VYREZ.vychod]);
+    const OBYDLENE_HRANICE = L.latLngBounds(
+      [OBYDLENE.jih, OBYDLENE.zapad],
+      [OBYDLENE.sever, OBYDLENE.vychod],
+    );
 
-    // Nejvíc oddálený pohled ukazuje celou obydlenou část i s okrajem. Není
-    // svázaný s okrajem mapy: obydlená část je skoro čtvercová a rám bývá
-    // široký, takže kdyby se pohled musel vejít do mapy, ořízla by se
-    // zrovna ona. Radši zbude kus pozadí po stranách — to je aspoň
-    // souměrné.
-    const OKRAJ = Math.round(Math.max(OBYDLENE.x2 - OBYDLENE.x1, OBYDLENE.y2 - OBYDLENE.y1) * 0.04);
-    const nejvetsiSirka = () =>
-      Math.max(
-        OBYDLENE.x2 - OBYDLENE.x1 + OKRAJ * 2,
-        (OBYDLENE.y2 - OBYDLENE.y1 + OKRAJ * 2) / pomer(),
-      );
+    const mapa = L.map(prvekMapy, {
+      center: [49.2773, 16.9989],
+      zoom: 15,
+      // Vlastní ovládání je níž — to od knihovny je na prst moc malé.
+      zoomControl: false,
+      // Za hranice obce se nedá odjet. Bod mimo ni by server stejně nepřijal.
+      maxBounds: HRANICE.pad(0.15),
+      maxBoundsViscosity: 0.9,
+      minZoom: 11,
+      maxZoom: 19,
+    });
 
-    // Výchozí pohled je přiblížený na střed města — tam se sbírá nejvíc.
-    // Tlačítko „Celá obec" pak ukáže všechny místní části.
-    const STRED = naMapu(49.2773, 16.9989);
-    const pohled = { x: 0, y: 0, w: 420 };
-
-    /**
-     * Dorovná pohled, aby neutekl mimo mapu.
-     *
-     * Když je pohled širší (nebo vyšší) než mapa, nedá se o co opřít —
-     * postaví se tedy na střed. Bez toho by se přisál k jednomu okraji
-     * a všechno prázdno by zbylo na druhé straně.
-     */
-    function srovnej() {
-      pohled.w = Math.min(nejvetsiSirka(), Math.max(NEJMENSI_SIRKA, pohled.w));
-      const v = pohled.w * pomer();
-
-      pohled.x =
-        pohled.w >= ROZMER.sirka
-          ? (ROZMER.sirka - pohled.w) / 2
-          : Math.min(ROZMER.sirka - pohled.w, Math.max(0, pohled.x));
-
-      pohled.y =
-        v >= ROZMER.vyska
-          ? (ROZMER.vyska - v) / 2
-          : Math.min(ROZMER.vyska - v, Math.max(0, pohled.y));
-    }
-
-    function vykresli() {
-      srovnej();
-      const v = pohled.w * pomer();
-      svg.setAttribute('viewBox', `${pohled.x} ${pohled.y} ${pohled.w} ${v}`);
-      mapa.toggleAttribute('data-priblizeno', pohled.w < nejvetsiSirka() - 0.01);
-
-      for (const znacka of vrstvaZnacek.children as HTMLCollectionOf<HTMLElement>) {
-        const mx = Number(znacka.dataset.mx);
-        const my = Number(znacka.dataset.my);
-        znacka.style.left = `${((mx - pohled.x) / pohled.w) * 100}%`;
-        znacka.style.top = `${((my - pohled.y) / v) * 100}%`;
-      }
-    }
-
-    function naStred(x: number, y: number, sirka: number) {
-      pohled.w = sirka;
-      pohled.x = x - sirka / 2;
-      pohled.y = y - (sirka * pomer()) / 2;
-      vykresli();
-    }
-
-    function zoomKolem(nasobek: number, sx: number, sy: number) {
-      const r = mapa.getBoundingClientRect();
-      const v = pohled.w * pomer();
-      const mx = pohled.x + (sx / r.width) * pohled.w;
-      const my = pohled.y + (sy / r.height) * v;
-
-      const nova = Math.min(nejvetsiSirka(), Math.max(NEJMENSI_SIRKA, pohled.w / nasobek));
-      pohled.x = mx - (sx / r.width) * nova;
-      pohled.y = my - (sy / r.height) * nova * pomer();
-      pohled.w = nova;
-      vykresli();
+    // Dlaždice: s klíčem Mapy.cz, protože ty lidé znají; bez klíče
+    // OpenStreetMap, aby mapa fungovala i bez zařizování.
+    if (KLIC) {
+      L.tileLayer('https://api.mapy.cz/v1/maptiles/basic/256/{z}/{x}/{y}?apikey=' + KLIC, {
+        attribution: '<a href="https://mapy.cz/" target="_blank" rel="noreferrer">Mapy.cz</a>',
+        maxZoom: 19,
+      }).addTo(mapa);
+    } else {
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© přispěvatelé OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(mapa);
     }
 
     // --- Značky -----------------------------------------------------------
 
-    function prekresliZnacky() {
-      vrstvaZnacek.textContent = '';
-
-      if (vybranyFiltr !== 'nic') {
-        for (const bod of body) {
-          if (vybranyFiltr !== 'vse' && bod.kategorie !== vybranyFiltr) continue;
-          const { x, y } = naMapu(bod.lat, bod.lon);
-          const znacka = document.createElement('button');
-          znacka.type = 'button';
-          znacka.className = 'sber-znacka';
-          znacka.dataset.mx = String(x);
-          znacka.dataset.my = String(y);
-          znacka.dataset.id = bod.id;
-          znacka.style.setProperty('--barva', barvaKategorie(bod.kategorie));
-          znacka.setAttribute('aria-label', `${bod.kategorie}: ${bod.popis}`);
-          if (vybranyBod === bod.id) znacka.dataset.vybrany = '';
-          vrstvaZnacek.append(znacka);
-        }
-      }
-
-      if (novy) {
-        const tecka = document.createElement('span');
-        tecka.className = 'sber-novy';
-        tecka.dataset.mx = String(novy.x);
-        tecka.dataset.my = String(novy.y);
-        vrstvaZnacek.append(tecka);
-      }
-
-      vykresli();
-    }
+    const vrstvaZnacek = L.layerGroup().addTo(mapa);
+    let znackaNoveho: L.Marker | null = null;
 
     function barvaKategorie(kategorie: string): string {
-      const stitek = formular.querySelector<HTMLElement>(`[data-kategorie="${CSS.escape(kategorie)}"]`);
+      const stitek = formular.querySelector<HTMLElement>(
+        '[data-kategorie="' + CSS.escape(kategorie) + '"]',
+      );
       return stitek?.style.getPropertyValue('--barva') || '#5a6c78';
+    }
+
+    function prekresliZnacky() {
+      vrstvaZnacek.clearLayers();
+      if (vybranyFiltr === 'nic') return;
+
+      for (const bod of body) {
+        if (vybranyFiltr !== 'vse' && bod.kategorie !== vybranyFiltr) continue;
+
+        const znacka = L.marker([bod.lat, bod.lon], {
+          icon: L.divIcon({
+            className: '',
+            html:
+              '<span class="sber-znacka" style="--barva: ' +
+              barvaKategorie(bod.kategorie) +
+              '"></span>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          }),
+          keyboard: false,
+          title: bod.kategorie + ': ' + bod.popis,
+        });
+
+        znacka.on('click', (udalost) => {
+          // Bez tohohle by ťuknutí na značku propadlo do mapy a založilo
+          // vedle ní nový bod.
+          L.DomEvent.stopPropagation(udalost as unknown as Event);
+          ukazDetail(bod.id);
+        });
+        znacka.addTo(vrstvaZnacek);
+      }
+    }
+
+    function ukazNovy(kde: L.LatLng | null) {
+      if (znackaNoveho) {
+        mapa.removeLayer(znackaNoveho);
+        znackaNoveho = null;
+      }
+      if (!kde) return;
+
+      znackaNoveho = L.marker(kde, {
+        icon: L.divIcon({
+          className: '',
+          html: '<span class="sber-novy"></span>',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        }),
+        keyboard: false,
+        zIndexOffset: 1000,
+      }).addTo(mapa);
     }
 
     // --- Server -----------------------------------------------------------
@@ -659,7 +606,9 @@ const obydlene = (() => {
       });
       const data = await odpoved.json().catch(() => null);
       if (!data) throw new Error('Server odpověděl nesrozumitelně.');
-      if (!data.ok) throw Object.assign(new Error(data.chyba ?? 'Chyba serveru.'), { stav: odpoved.status });
+      if (!data.ok) {
+        throw Object.assign(new Error(data.chyba ?? 'Chyba serveru.'), { stav: odpoved.status });
+      }
       return data;
     }
 
@@ -682,15 +631,15 @@ const obydlene = (() => {
     /** Čeština skloňuje: 1 podnět, 2–4 podněty, 5 a víc podnětů. */
     function pocetPodnetu(kolik: number): string {
       if (kolik === 1) return '1 podnět';
-      if (kolik >= 2 && kolik <= 4) return `${kolik} podněty`;
-      return `${kolik} podnětů`;
+      if (kolik >= 2 && kolik <= 4) return kolik + ' podněty';
+      return kolik + ' podnětů';
     }
 
     function ukazStav() {
       const kolik = pocetPodnetu(body.length);
       stav.textContent = mistniRezim
-        ? `${kolik} · uloženo jen v tomto zařízení, server není dostupný`
-        : `${kolik} na serveru`;
+        ? kolik + ' · uloženo jen v tomto zařízení, server není dostupný'
+        : kolik + ' na serveru';
       stav.toggleAttribute('data-varovani', mistniRezim);
     }
 
@@ -714,7 +663,6 @@ const obydlene = (() => {
           otevri(panelHesla);
           return;
         }
-        // Server nedostupný (třeba draft bez PHP). Sběr musí jet dál.
         mistniRezim = true;
         body = nactiMistni();
       }
@@ -744,148 +692,44 @@ const obydlene = (() => {
       if (misto) misto.hidden = true;
     }
 
-    // --- Ovládání mapy prstem --------------------------------------------
-
-    const prsty = new Map<number, { x: number; y: number }>();
-    let tazeniZ: { x: number; y: number; pohledX: number; pohledY: number; sirka: number } | null = null;
-    let stipnutiZ: { vzdalenost: number; sirka: number } | null = null;
-    let taholJsem = false;
-    let znackaPodStiskem: string | null = null;
-
-    const rozestup = () => {
-      const b = [...prsty.values()];
-      return Math.hypot(b[0].x - b[1].x, b[0].y - b[1].y);
-    };
-    const stred = () => {
-      const b = [...prsty.values()];
-      return { x: (b[0].x + b[1].x) / 2, y: (b[0].y + b[1].y) / 2 };
-    };
-
-    mapa.addEventListener('pointerdown', (e) => {
-      if ((e.target as HTMLElement).closest('.sber-ovladani')) return;
-      const r = mapa.getBoundingClientRect();
-      prsty.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top });
-      mapa.setPointerCapture(e.pointerId);
-      taholJsem = false;
-
-      const znacka = (e.target as HTMLElement).closest<HTMLElement>('.sber-znacka');
-      znackaPodStiskem = znacka?.dataset.id ?? null;
-
-      if (prsty.size === 1) {
-        const p = prsty.get(e.pointerId)!;
-        tazeniZ = { x: p.x, y: p.y, pohledX: pohled.x, pohledY: pohled.y, sirka: r.width };
-      } else if (prsty.size === 2) {
-        tazeniZ = null;
-        stipnutiZ = { vzdalenost: rozestup(), sirka: pohled.w };
-      }
-    });
-
-    mapa.addEventListener('pointermove', (e) => {
-      if (!prsty.has(e.pointerId)) return;
-      const r = mapa.getBoundingClientRect();
-      prsty.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top });
-
-      if (prsty.size === 2 && stipnutiZ && stipnutiZ.vzdalenost > 0) {
-        const s = stred();
-        const cilovaSirka = stipnutiZ.sirka / (rozestup() / stipnutiZ.vzdalenost);
-        zoomKolem(pohled.w / cilovaSirka, s.x, s.y);
-        taholJsem = true;
-        return;
-      }
-
-      if (tazeniZ) {
-        const p = prsty.get(e.pointerId)!;
-        // Práh v pixelech odděluje ťuknutí od tažení. Bez něj by každé
-        // posunutí mapy o chlup založilo bod.
-        if (Math.hypot(p.x - tazeniZ.x, p.y - tazeniZ.y) > 6) taholJsem = true;
-        const naJednotky = pohled.w / tazeniZ.sirka;
-        pohled.x = tazeniZ.pohledX - (p.x - tazeniZ.x) * naJednotky;
-        pohled.y = tazeniZ.pohledY - (p.y - tazeniZ.y) * naJednotky;
-        vykresli();
-      }
-    });
-
-    const pustil = (e: PointerEvent) => {
-      const posledni = prsty.size === 1;
-      const r = mapa.getBoundingClientRect();
-      const px = e.clientX - r.left;
-      const py = e.clientY - r.top;
-
-      prsty.delete(e.pointerId);
-      if (prsty.size < 2) stipnutiZ = null;
-      if (prsty.size === 0) tazeniZ = null;
-
-      if (e.type !== 'pointerup' || !posledni || taholJsem) {
-        znackaPodStiskem = null;
-        return;
-      }
-
-      if (znackaPodStiskem) {
-        ukazDetail(znackaPodStiskem);
-      } else {
-        const v = pohled.w * pomer();
-        const mx = pohled.x + (px / r.width) * pohled.w;
-        const my = pohled.y + (py / r.height) * v;
-        zalozBod(mx, my);
-      }
-      znackaPodStiskem = null;
-    };
-
-    mapa.addEventListener('pointerup', pustil);
-    mapa.addEventListener('pointercancel', pustil);
-
-    mapa.addEventListener(
-      'wheel',
-      (e) => {
-        e.preventDefault();
-        const r = mapa.getBoundingClientRect();
-        zoomKolem(Math.pow(1.0018, -e.deltaY), e.clientX - r.left, e.clientY - r.top);
-      },
-      { passive: false },
-    );
-
     // --- Akce -------------------------------------------------------------
 
-    function zalozBod(mx: number, my: number) {
-      novy = { x: mx, y: my };
-      vybranyBod = null;
+    mapa.on('click', (udalost: L.LeafletMouseEvent) => {
+      novy = udalost.latlng;
       schovejChybu(formular);
       otevri(formular);
-      prekresliZnacky();
+      ukazNovy(novy);
       napoveda.textContent = 'Ťuknutím jinam bod posunete';
-    }
+    });
 
     function ukazDetail(id: string) {
       const bod = body.find((b) => b.id === id);
       if (!bod) return;
-      vybranyBod = id;
       novy = null;
+      ukazNovy(null);
       detail.querySelector<HTMLElement>('[data-detail-kategorie]')!.textContent = bod.kategorie;
       detail.querySelector<HTMLElement>('[data-detail-popis]')!.textContent = bod.popis;
       detail.querySelector<HTMLElement>('[data-smazat]')!.dataset.id = id;
       otevri(detail);
-      prekresliZnacky();
     }
 
     function zrus() {
       novy = null;
-      vybranyBod = null;
+      ukazNovy(null);
       zavriPanely();
       napoveda.textContent = 'Ťukněte do mapy a přidejte podnět';
-      prekresliZnacky();
     }
 
-    for (const stitek of formular.querySelectorAll<HTMLElement>('[data-volba-kategorie] [data-kategorie]')) {
+    const stitky = formular.querySelectorAll<HTMLElement>('[data-volba-kategorie] [data-kategorie]');
+    for (const stitek of stitky) {
       stitek.addEventListener('click', () => {
         vybranaKategorie = stitek.dataset.kategorie!;
-        for (const jiny of formular.querySelectorAll<HTMLElement>('[data-volba-kategorie] [data-kategorie]')) {
-          jiny.toggleAttribute('data-vybrano', jiny === stitek);
-        }
+        for (const jiny of stitky) jiny.toggleAttribute('data-vybrano', jiny === stitek);
       });
     }
 
-    formular.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    formular.addEventListener('submit', async (udalost) => {
+      udalost.preventDefault();
       schovejChybu(formular);
 
       const popis = formular.querySelector<HTMLTextAreaElement>('[data-popis]')!;
@@ -893,10 +737,9 @@ const obydlene = (() => {
       if (!vybranaKategorie) return ukazChybu(formular, 'Vyberte kategorii.');
       if (!popis.value.trim()) return ukazChybu(formular, 'Napište, co s tím místem je.');
 
-      const { lat, lon } = zMapy(novy.x, novy.y);
-      const pripravený = {
-        lat: Number(lat.toFixed(6)),
-        lon: Number(lon.toFixed(6)),
+      const pripraveny = {
+        lat: Number(novy.lat.toFixed(6)),
+        lon: Number(novy.lng.toFixed(6)),
         kategorie: vybranaKategorie,
         popis: popis.value.trim(),
       };
@@ -905,15 +748,16 @@ const obydlene = (() => {
       tlacitko.disabled = true;
       try {
         if (mistniRezim) {
-          body.push({ ...pripravený, id: `m-${Date.now()}`, kdy: new Date().toISOString() });
+          body.push({ ...pripraveny, id: 'm-' + Date.now(), kdy: new Date().toISOString() });
           ulozMistni();
         } else {
-          const data = await zavolej({ akce: 'pridej', bod: pripravený });
+          const data = await zavolej({ akce: 'pridej', bod: pripraveny });
           body.push(data.bod);
         }
         popis.value = '';
         zrus();
         ukazStav();
+        prekresliZnacky();
       } catch (chyba: any) {
         ukazChybu(formular, chyba.message ?? 'Uložení se nepovedlo.');
       } finally {
@@ -924,9 +768,8 @@ const obydlene = (() => {
     formular.querySelector('[data-zrusit]')!.addEventListener('click', zrus);
     detail.querySelector('[data-zavrit]')!.addEventListener('click', zrus);
 
-    detail.querySelector<HTMLElement>('[data-smazat]')!.addEventListener('click', async (e) => {
-      const tlacitko = e.currentTarget as HTMLElement;
-      const id = tlacitko.dataset.id!;
+    detail.querySelector<HTMLElement>('[data-smazat]')!.addEventListener('click', async (udalost) => {
+      const id = (udalost.currentTarget as HTMLElement).dataset.id!;
       if (!confirm('Opravdu smazat tenhle podnět?')) return;
       try {
         if (!mistniRezim) await zavolej({ akce: 'smaz', id });
@@ -934,13 +777,14 @@ const obydlene = (() => {
         if (mistniRezim) ulozMistni();
         zrus();
         ukazStav();
+        prekresliZnacky();
       } catch (chyba: any) {
         alert(chyba.message ?? 'Smazání se nepovedlo.');
       }
     });
 
-    panelHesla.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    panelHesla.addEventListener('submit', async (udalost) => {
+      udalost.preventDefault();
       schovejChybu(panelHesla);
       const vstup = panelHesla.querySelector<HTMLInputElement>('[data-heslo-vstup]')!;
       heslo = vstup.value.trim();
@@ -952,13 +796,10 @@ const obydlene = (() => {
     });
 
     // --- Filtr ------------------------------------------------------------
-    //
-    // Vybraná je vždy právě jedna možnost: `vse`, `nic`, nebo jedna oblast.
-    // Přepíná se tím jedním ťuknutím, což je na stánku to podstatné.
-    const filtry = koren.querySelector<HTMLElement>('[data-filtry]')!;
 
-    filtry.addEventListener('click', (e) => {
-      const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.sber-filtr');
+    const filtry = koren.querySelector<HTMLElement>('[data-filtry]')!;
+    filtry.addEventListener('click', (udalost) => {
+      const tlacitko = (udalost.target as HTMLElement).closest<HTMLButtonElement>('.sber-filtr');
       if (!tlacitko) return;
       vybranyFiltr = tlacitko.dataset.filtr!;
       for (const jine of filtry.querySelectorAll('.sber-filtr')) {
@@ -972,38 +813,24 @@ const obydlene = (() => {
     koren.querySelector('[data-stahnout]')!.addEventListener('click', () => {
       const soubor = new Blob([JSON.stringify(body, null, 2)], { type: 'application/json' });
       const adresa = URL.createObjectURL(soubor);
-      const odkaz = document.createElement('a');
-      odkaz.href = adresa;
-      odkaz.download = `podnety-${new Date().toISOString().slice(0, 10)}.json`;
-      odkaz.click();
+      const odkazKeStazeni = document.createElement('a');
+      odkazKeStazeni.href = adresa;
+      odkazKeStazeni.download = 'podnety-' + new Date().toISOString().slice(0, 10) + '.json';
+      odkazKeStazeni.click();
       URL.revokeObjectURL(adresa);
     });
 
-    // --- Ovládací tlačítka mapy ------------------------------------------
+    // --- Ovládání mapy ----------------------------------------------------
 
     for (const tlacitko of koren.querySelectorAll<HTMLElement>('[data-zoom]')) {
       tlacitko.addEventListener('click', () => {
         const co = tlacitko.dataset.zoom;
-        if (co === 'celek') {
-          // Střed pohledu je město, ne střed mapy. Výřez obce je z velké části
-          // pole a když se celý nevejde, oříznout se má ta prázdná půlka —
-          // jinak se oddálením ztratí zrovna to, na co se člověk dívá.
-          // Okraje dorovná `srovnej()`, takže se pohled nikdy nevysune ven.
-          naStred(
-            (OBYDLENE.x1 + OBYDLENE.x2) / 2,
-            (OBYDLENE.y1 + OBYDLENE.y2) / 2,
-            nejvetsiSirka(),
-          );
-          return;
-        }
-        const r = mapa.getBoundingClientRect();
-        zoomKolem(co === 'dovnitr' ? 1.5 : 1 / 1.5, r.width / 2, r.height / 2);
+        if (co === 'celek') mapa.fitBounds(OBYDLENE_HRANICE, { padding: [24, 24] });
+        else if (co === 'dovnitr') mapa.zoomIn();
+        else mapa.zoomOut();
       });
     }
 
-    window.addEventListener('resize', vykresli);
-
-    naStred(STRED.x, STRED.y, 420);
     nactiBody();
   }
 </script>

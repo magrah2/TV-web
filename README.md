@@ -362,6 +362,16 @@ Stránka **`/stanek/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
 vybrat mu oblast (osm programových plus „Ostatní") a napsat, co s tím místem
 je. Používá se na tabletu při kontaktní kampani.
 
+Jako jediná na webu má **dlaždicovou mapu z cizího serveru**, ne náš vlastní
+podklad. Je to vědomá výjimka: s touhle mapou se pracuje, obsluha musí podle
+názvů ulic najít místo, které člověk u stánku ukáže. Náš podklad takový
+detail nemá a mít nemůže — jen budov je ve výřezu přes deset tisíc a SVG by
+narostlo na jednotky megabajtů. Počítá se s tím, že tablet bude online.
+
+Výchozí jsou dlaždice **OpenStreetMap**, protože fungují bez zařizování.
+Když do secrets přidáte **`MAPY_KLIC`** (bezplatný klíč z `developer.mapy.cz`),
+přepne se mapa na **Mapy.cz** — ty lidé znají. Klíč není povinný.
+
 **Nikde na ni nevede odkaz.** Není v navigaci ani v patičce, nepouští se do
 mapy webu a má `noindex`. Je to ale překážka, ne zámek: repozitář je veřejný,
 takže adresa je dohledatelná. Skutečná ochrana je heslo.

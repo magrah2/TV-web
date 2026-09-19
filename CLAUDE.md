@@ -83,9 +83,19 @@ když jsem si je vykreslil vedle sebe ve velkém i v cílové velikosti.
 2. **Bez JavaScriptu web funguje.** Medailonky otevírá CSS `:target`,
    odkazy jsou skutečné odkazy. Ovládání, které bez JS nefunguje (filtry),
    je v HTML `hidden` a odkrývá ho až skript — **žádná mrtvá tlačítka**.
-3. **Žádné požadavky ven.** Písmo je self-hosted, mapa bude vlastní SVG.
+3. **Žádné požadavky ven.** Písmo je self-hosted, mapy jsou vlastní SVG.
    Web nesmí načítat nic z cizích serverů — je to důvod, proč nepotřebuje
    cookie lištu, a u strany s tímhle názvem to není detail.
+
+   **Jediná výjimka je `/stanek/`**, interní stránka pro sběr podnětů při
+   kontaktní kampani. Ta načítá dlaždicovou mapu (Mapy.cz, bez klíče
+   OpenStreetMap), protože se s ní pracuje: obsluha musí podle názvů ulic
+   najít místo, které člověk u stánku ukáže. Vlastní podklad takový detail
+   nemá a mít nemůže — jen budov je ve výřezu přes deset tisíc.
+
+   Výjimka platí jen pro tu jednu stránku: není veřejná, nevede na ni odkaz
+   a je chráněná heslem. **Na veřejné stránky se nic zvenčí přidávat nesmí**
+   a v patičce dál stojí, že web o nikom nesbírá data.
 4. **Nic vymyšleného se nevydává za program.** Co jsem odhadl a tým to
    nepotvrdil, musí být viditelně označené jako návrh (`stav: navrh`,
    komentář `# NÁVRH` v datech).

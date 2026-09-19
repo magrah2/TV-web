@@ -43,6 +43,10 @@ jobs:
         # NAOSTRO se tu záměrně NENASTAVUJE — tenhle běh vyrábí draft,
         # takže web dostane noindex a pruh „Náhled". Až se bude přepínat
         # na vlastní doménu, přibude sem `env: NAOSTRO: '1'`.
+        env:
+          # Klíč k dlaždicím Mapy.cz pro stránku /stanek/. Bez něj se použijí
+          # dlaždice OpenStreetMap — mapa funguje, jen vypadá jinak.
+          MAPY_KLIC: ${{ secrets.MAPY_KLIC }}
         run: npm run build
 
       - name: Nahrát výsledek
