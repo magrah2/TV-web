@@ -6,6 +6,11 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "_poznamka": "Pred kazdym sestavenim i nahledem se same zmensi fotky z fotky-original/. Bez toho se na rucni spusteni zapominalo a na webu zustavaly siluety. Kdyz ta slozka neexistuje (treba na serveru pri nasazeni), skript nic neudela.",
+    "prenahled": "node nastroje/zmensit-fotky.mjs",
+    "predev": "node nastroje/zmensit-fotky.mjs",
+    "presestavit": "node nastroje/zmensit-fotky.mjs",
+    "prebuild": "node nastroje/zmensit-fotky.mjs",
     "nahled": "astro dev --open",
     "sestavit": "astro build",
     "zverejnit": "node nastroje/zverejnit.mjs",

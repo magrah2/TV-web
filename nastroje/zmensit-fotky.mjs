@@ -6,7 +6,14 @@
  * jde do `src/assets/portrety/`, odkud uz fotky bere zbytek webu
  * (src/lib/portrety.ts). Nazev souboru se nemeni, jen pripona vzdy na .jpg.
  *
- * Bezpecne se da spoustet opakovane - kazde spusteni prepise vsechno znovu.
+ * Pousti se SAM pred kazdym sestavenim i pred spustenim nahledu (viz
+ * `package.json`). Staci tedy hodit fotku do `fotky-original/` a je hotovo -
+ * driv se na rucni spusteni dalo snadno zapomenout a clovek pak marne hledal,
+ * proc se na webu porad ukazuje silueta.
+ *
+ * Zmensuje jen to, co je potreba: kdyz uz hotova fotka existuje a je novejsi
+ * nez original, preskoci se. Bez toho by kazde sestaveni znovu prepocitavalo
+ * vsech sedmadvacet fotek.
  */
 
 import fs from 'node:fs';
@@ -35,12 +42,20 @@ if (soubory.length === 0) {
 
 fs.mkdirSync(CIL, { recursive: true });
 
+let zmenseno = 0;
+let preskoceno = 0;
+
 for (const soubor of soubory) {
   const id = soubor.replace(/\.[^.]+$/, '');
   const vstup = path.join(ZDROJ, soubor);
   const vystup = path.join(CIL, `${id}.jpg`);
 
-  const { size: velikostPred } = fs.statSync(vstup);
+  const { size: velikostPred, mtimeMs: kdyOriginal } = fs.statSync(vstup);
+
+  if (fs.existsSync(vystup) && fs.statSync(vystup).mtimeMs >= kdyOriginal) {
+    preskoceno++;
+    continue;
+  }
 
   await sharp(vstup)
     .rotate() // otoci podle EXIF orientace, pak ji zahodi spolu se zbytkem metadat
@@ -50,7 +65,12 @@ for (const soubor of soubory) {
 
   const { size: velikostPo } = fs.statSync(vystup);
   const kB = (b) => Math.round(b / 1024);
-  console.log(`${id}: ${kB(velikostPred)} kB -> ${kB(velikostPo)} kB`);
+  console.log(`   ${id}: ${kB(velikostPred)} kB -> ${kB(velikostPo)} kB`);
+  zmenseno++;
 }
 
-console.log(`\nHotovo - ${soubory.length} fotek v ${CIL}/.`);
+// Kdyz nebylo co zmensovat, skript mlci. Pousti se pred kazdym sestavenim
+// a hlaska "0 novych fotek" by jen zaplevelila vypis.
+if (zmenseno) {
+  console.log(`Zmenseno ${zmenseno} fotek do ${CIL}/.`);
+}

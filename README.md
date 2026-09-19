@@ -63,14 +63,21 @@ gitu nepatří — jinak by si je při každém stažení repozitáře musel st�
    a uložte do `fotky-original/` — třeba fotka Vojtěcha Lišky
    (`20-vojtech-liska.md`) je `fotky-original/20-vojtech-liska.jpg`.
    Tahle složka se do gitu neukládá (viz `.gitignore`).
-2. Spusťte `npm run zmensit-fotky`. Skript zmenší všechny fotky ze
-   `fotky-original/` na rozumnou velikost a uloží je do
-   `src/assets/portrety/` — tuhle složku už web skutečně používá a
-   commituje se.
+2. **Víc není potřeba.** Zmenšení se pustí samo, jakmile si web pustíte
+   (`npm run nahled`) nebo ho sestavíte. Výsledek jde do
+   `src/assets/portrety/` — tuhle složku už web skutečně používá
+   a commituje se.
+
+   Zmenšuje se jen to nové; hotové fotky se přeskakují. Ručně to jde
+   spustit příkazem `npm run zmensit-fotky`, ale normálně netřeba.
 
 Odtud si web sám vyrobí zmenšeniny pro různé displeje, převede je do
 moderních formátů a doplní ořezy — nic dalšího se nemusí nastavovat. Dokud
 fotka chybí, ukáže se zástupná silueta.
+
+> Dřív se krok 2 musel spouštět ručně a dalo se na něj zapomenout — fotka
+> ležela v `fotky-original/` a na webu pořád svítila silueta. Proto se to
+> teď děje samo.
 
 ---
 
@@ -452,7 +459,7 @@ seznam je jediné místo, kde se udržují ručně.
 
 ## Sběr podnětů na stánku
 
-Stránka **`/stanek/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
+Stránka **`/mapa-napadu/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
 vybrat mu oblast (osm programových plus „Ostatní") a napsat, co s tím místem
 je. Používá se na tabletu při kontaktní kampani.
 
