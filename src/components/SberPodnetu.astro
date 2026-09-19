@@ -18,11 +18,40 @@
  */
 
 import { KATEGORIE, BARVA_KATEGORIE, NEJDELSI_POPIS } from '../lib/podnety';
-import { ROZMER_OBCE, VYREZ_OBCE } from '../lib/mapa-obce';
+import { ROZMER_OBCE, VYREZ_OBCE, naMapuObce } from '../lib/mapa-obce';
 import { odkaz } from '../lib/odkaz';
 import podklad from '../../public/mapa-obec.svg?raw';
+import okrsky from '../../public/data/okrsky.json';
 
 const adresaApi = odkaz('/podnety.php');
+
+/**
+ * Obal obydlené části obce.
+ *
+ * Tlačítko „Celá obec" nemá ukazovat katastr, ale to, kde lidé bydlí. Výřez
+ * obce je z velké části pole: na širokém displeji se vejde celý, jenže levá
+ * polovina zůstane prázdná a město je namáčknuté vpravo.
+ *
+ * Počítá se z adresních bodů, stejně jako u mapy „kde volit" — obě mapy tak
+ * rámují totéž území. Obrysy volebních oblastí ani zástavby se použít nedají:
+ * jsou rozlité přes celý výřez a obal by z nich vyšel jako celá mapa.
+ *
+ * Adresy leží v poli jako `[…, lat, lon, …]`, index 4 a 5.
+ */
+const obydlene = (() => {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const adresa of okrsky.adresy as number[][]) {
+    const { x, y } = naMapuObce(adresa[4], adresa[5]);
+    x1 = Math.min(x1, x);
+    x2 = Math.max(x2, x);
+    y1 = Math.min(y1, y);
+    y2 = Math.max(y2, y);
+  }
+  if (!Number.isFinite(x1)) {
+    throw new Error('V okrsky.json nejsou adresy — bez nich nejde spočítat, kam má sedět tlačítko „Celá obec".');
+  }
+  return { x1, y1, x2, y2 };
+})();
 ---
 
 <section
@@ -32,6 +61,7 @@ const adresaApi = odkaz('/podnety.php');
   data-sirka={ROZMER_OBCE.sirka}
   data-vyska={ROZMER_OBCE.vyska}
   data-vyrez={JSON.stringify(VYREZ_OBCE)}
+  data-obydlene={JSON.stringify(obydlene)}
   data-nejdelsi={NEJDELSI_POPIS}
 >
   <div class="sber-lista">
@@ -455,6 +485,7 @@ const adresaApi = odkaz('/podnety.php');
     const ADRESA = koren.dataset.api!;
     const ROZMER = { sirka: Number(koren.dataset.sirka), vyska: Number(koren.dataset.vyska) };
     const VYREZ = JSON.parse(koren.dataset.vyrez!);
+    const OBYDLENE = JSON.parse(koren.dataset.obydlene!);
     const KLIC_HESLA = 'tv-sber-heslo';
     const KLIC_MISTNI = 'tv-sber-body';
 
@@ -506,18 +537,44 @@ const adresaApi = odkaz('/podnety.php');
 
     const NEJMENSI_SIRKA = 60;
     const pomer = () => mapa.clientHeight / mapa.clientWidth;
-    const nejvetsiSirka = () => Math.min(ROZMER.sirka, ROZMER.vyska / pomer());
 
-    // Výchozí pohled je přiblížený na střed města. Celá obec je z velké části
-    // pole; kdyby se začínalo na ní, první ťuknutí by trefilo louku.
+    // Nejvíc oddálený pohled ukazuje celou obydlenou část i s okrajem. Není
+    // svázaný s okrajem mapy: obydlená část je skoro čtvercová a rám bývá
+    // široký, takže kdyby se pohled musel vejít do mapy, ořízla by se
+    // zrovna ona. Radši zbude kus pozadí po stranách — to je aspoň
+    // souměrné.
+    const OKRAJ = Math.round(Math.max(OBYDLENE.x2 - OBYDLENE.x1, OBYDLENE.y2 - OBYDLENE.y1) * 0.04);
+    const nejvetsiSirka = () =>
+      Math.max(
+        OBYDLENE.x2 - OBYDLENE.x1 + OKRAJ * 2,
+        (OBYDLENE.y2 - OBYDLENE.y1 + OKRAJ * 2) / pomer(),
+      );
+
+    // Výchozí pohled je přiblížený na střed města — tam se sbírá nejvíc.
+    // Tlačítko „Celá obec" pak ukáže všechny místní části.
     const STRED = naMapu(49.2773, 16.9989);
     const pohled = { x: 0, y: 0, w: 420 };
 
+    /**
+     * Dorovná pohled, aby neutekl mimo mapu.
+     *
+     * Když je pohled širší (nebo vyšší) než mapa, nedá se o co opřít —
+     * postaví se tedy na střed. Bez toho by se přisál k jednomu okraji
+     * a všechno prázdno by zbylo na druhé straně.
+     */
     function srovnej() {
       pohled.w = Math.min(nejvetsiSirka(), Math.max(NEJMENSI_SIRKA, pohled.w));
       const v = pohled.w * pomer();
-      pohled.x = Math.min(ROZMER.sirka - pohled.w, Math.max(0, pohled.x));
-      pohled.y = Math.min(ROZMER.vyska - v, Math.max(0, pohled.y));
+
+      pohled.x =
+        pohled.w >= ROZMER.sirka
+          ? (ROZMER.sirka - pohled.w) / 2
+          : Math.min(ROZMER.sirka - pohled.w, Math.max(0, pohled.x));
+
+      pohled.y =
+        v >= ROZMER.vyska
+          ? (ROZMER.vyska - v) / 2
+          : Math.min(ROZMER.vyska - v, Math.max(0, pohled.y));
     }
 
     function vykresli() {
@@ -932,7 +989,11 @@ const adresaApi = odkaz('/podnety.php');
           // pole a když se celý nevejde, oříznout se má ta prázdná půlka —
           // jinak se oddálením ztratí zrovna to, na co se člověk dívá.
           // Okraje dorovná `srovnej()`, takže se pohled nikdy nevysune ven.
-          naStred(STRED.x, STRED.y, nejvetsiSirka());
+          naStred(
+            (OBYDLENE.x1 + OBYDLENE.x2) / 2,
+            (OBYDLENE.y1 + OBYDLENE.y2) / 2,
+            nejvetsiSirka(),
+          );
           return;
         }
         const r = mapa.getBoundingClientRect();
