@@ -34,7 +34,7 @@ const BARVA = {
   silnice: token('mapa-silnice'),
   hlavni: token('mapa-silnice-hlavni'),
   zeleznice: token('mapa-zeleznice'),
-  reka: token('zelena'),
+  zelenZnacky: token('zelena'),
   popisek: token('na-noci'),
   popisekTlum: token('na-noci-tlum'),
 };
@@ -87,14 +87,27 @@ export const STYL_MAPY = {
       // a tady zabírají skoro celý okolní kraj — natřené zeleně přebijí
       // město, tedy to jediné, na co se člověk dívá.
       filter: jeTrida('wood', 'grass'),
-      paint: { 'fill-color': BARVA.zelen, 'fill-opacity': 0.5 },
+      paint: { 'fill-color': BARVA.zelen, 'fill-opacity': 0.9 },
     },
     {
       id: 'parky',
       type: 'fill',
       source: 'openmaptiles',
       'source-layer': 'park',
-      paint: { 'fill-color': BARVA.zelen, 'fill-opacity': 0.7 },
+      // Parky dostávají zelenou ze značky. Jsou malé, takže výraznější odstín
+      // je neutopí v ploše — a je na nich hned vidět, že jsou to parky.
+      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.8 },
+    },
+    {
+      // Hřiště, dětská hřiště a sportoviště. Leží v jiné vrstvě než parky,
+      // takže bez tohohle by se nekreslily vůbec — a přitom jsou to místa,
+      // o kterých se na stánku mluví často.
+      id: 'hriste',
+      type: 'fill',
+      source: 'openmaptiles',
+      'source-layer': 'landuse',
+      filter: jeTrida('pitch', 'playground', 'stadium', 'track'),
+      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.75 },
     },
     {
       id: 'zastavba',
@@ -145,7 +158,8 @@ export const STYL_MAPY = {
       filter: neniTrida('river'),
       paint: { 'line-color': BARVA.potok, 'line-width': sirka([[11, 0.6], [17, 2.5]]) },
     },
-    // Řeka je zelená stejně jako na ostatních mapách webu — je to tatáž Haná.
+    // Řeka má barvu vody, ne značky. Zelená stopa je grafický motiv webu
+    // a na mapě, kde se pracuje, mate: člověk ji čte jako zeleň, ne jako tok.
     {
       id: 'reka',
       type: 'line',
@@ -153,9 +167,8 @@ export const STYL_MAPY = {
       'source-layer': 'waterway',
       filter: ['==', ['get', 'class'], 'river'],
       paint: {
-        'line-color': BARVA.reka,
-        'line-opacity': 0.75,
-        'line-width': sirka([[11, 1.2], [17, 5]]),
+        'line-color': BARVA.voda,
+        'line-width': sirka([[11, 1.4], [17, 6]]),
       },
     },
 

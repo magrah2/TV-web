@@ -583,9 +583,15 @@ const obydlene = (() => {
       }
       if (!kde) return;
 
+      // Pulzující tečka sedí uvnitř obalu, ne přímo v značce. Knihovna si
+      // polohu značky drží přes `transform` a animace, která `transform`
+      // taky používá, by ji přepsala — bod by skákal do levého horního rohu.
+      const obal = document.createElement('span');
       const tecka = document.createElement('span');
       tecka.className = 'sber-novy';
-      znackaNoveho = new maplibre.Marker({ element: tecka })
+      obal.append(tecka);
+
+      znackaNoveho = new maplibre.Marker({ element: obal })
         .setLngLat([kde.lng, kde.lat])
         .addTo(mapa);
     }
