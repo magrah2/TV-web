@@ -63,6 +63,37 @@ function jeTrida(...tridy: string[]) {
   return ['match', ['get', 'class'], tridy, true, false];
 }
 
+/**
+ * Je to zpevněná cesta?
+ *
+ * Chodník a cyklostezka ano, polní cesta ne. Povrch se bere jako druhé
+ * vodítko, protože v datech u spousty cest chybí.
+ */
+const JE_ZPEVNENA = [
+  'any',
+  ['match', ['get', 'subclass'], ['footway', 'cycleway'], true, false],
+  ['==', ['get', 'surface'], 'paved'],
+];
+
+/**
+ * Název místa, jak se má ukázat na mapě.
+ *
+ * Vychází z dat OpenStreetMap, ale u zooparku se opravuje: v datech je
+ * zapsaný jako „Zoologická zahrada Vyškov", jenže tak se nejmenuje a přívlastek
+ * „Vyškov" je na mapě Vyškova navíc. Správné řešení je opravit to přímo
+ * v OpenStreetMap — do té doby to sedí aspoň tady.
+ *
+ * Výrazy neumí nahrazovat text, takže se to dělá výčtem. Až jméno v datech
+ * někdo opraví, tahle větev se prostě přestane používat.
+ */
+const NAZEV_MISTA = [
+  'match',
+  ['get', 'name'],
+  ['Zoologická zahrada Vyškov', 'Zoologická zahrada a zámek Vyškov'],
+  'Zoo Park',
+  ['get', 'name'],
+];
+
 /** Filtr „třída není…" */
 function neniTrida(trida: string) {
   return ['!=', ['get', 'class'], trida];
@@ -173,16 +204,36 @@ export const STYL_MAPY = {
     },
 
     // --- Cesty a silnice --------------------------------------------------
+    // Chodníky a stezky se kreslí plnou čarou. Jsou to cesty, po kterých se
+    // chodí — třeba ta podél řeky ve Smetanových sadech — a čárkovaně se
+    // ztrácely. Čárkovaně zůstávají jen polní a lesní pěšiny.
+    //
+    // Rozhoduje se podle druhu cesty a podle povrchu. Samotný povrch by
+    // nestačil: v datech často chybí, takže by i chodník ve městě spadl mezi
+    // nezpevněné.
     {
-      id: 'pesiny',
+      id: 'cesty-zpevnene',
       type: 'line',
       source: 'openmaptiles',
       'source-layer': 'transportation',
-      filter: jeTrida('path', 'track'),
+      filter: ['all', jeTrida('path', 'track'), JE_ZPEVNENA],
       minzoom: 13,
       paint: {
         'line-color': BARVA.cesta,
-        'line-width': sirka([[13, 0.5], [18, 2]]),
+        'line-width': sirka([[13, 0.8], [18, 3.5]]),
+      },
+    },
+    {
+      id: 'cesty-polni',
+      type: 'line',
+      source: 'openmaptiles',
+      'source-layer': 'transportation',
+      filter: ['all', jeTrida('path', 'track'), ['!', JE_ZPEVNENA]],
+      minzoom: 14,
+      paint: {
+        'line-color': BARVA.cesta,
+        'line-opacity': 0.75,
+        'line-width': sirka([[14, 0.5], [18, 1.8]]),
         'line-dasharray': [2, 2],
       },
     },
@@ -241,7 +292,7 @@ export const STYL_MAPY = {
       filter: jeTrida('park', 'garden', 'zoo', 'cemetery'),
       minzoom: 13,
       layout: {
-        'text-field': ['get', 'name'],
+        'text-field': NAZEV_MISTA,
         'text-font': ['Noto Sans Regular'],
         'text-size': 11,
         'text-max-width': 8,
