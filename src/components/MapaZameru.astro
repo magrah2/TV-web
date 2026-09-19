@@ -362,6 +362,21 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     line-height: 0;
   }
 
+  /* Pořadí vykreslení se musí řídit ODSUD, ne z odznaku uvnitř.
+     Mapa dává každé značce vlastní umístění právě na tenhle obal, takže
+     `z-index` na odznaku pod ním rozhoduje jen o vrstvách uvnitř jedné
+     značky — mezi značkami navzájem neznamená nic. Vybraný bod se proto
+     schovával pod sousedy, kteří jsou v HTML za ním, a protože ti zároveň
+     ustupují do 40 % průhlednosti, prosvítal skrz ně a vypadal vybledle.
+     Je to vidět jen tam, kde se odznaky překrývají — tedy v centru. */
+  .mapa-znacka.je-vybrana {
+    z-index: 3;
+  }
+
+  .mapa-znacka:has(.mapa-bod:hover) {
+    z-index: 2;
+  }
+
   .mapa-znacky[hidden] {
     display: none;
   }
@@ -396,7 +411,6 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
   .mapa-bod:hover {
     --zvetseni: 1.28;
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.6);
-    z-index: 2;
   }
 
   /* Vybraný bod musí být poznat na první pohled. Samotné zvětšení nestačí —
@@ -408,7 +422,6 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
     box-shadow:
       0 0 0 4px rgb(255 255 255 / 0.4),
       0 6px 20px rgb(0 0 0 / 0.7);
-    z-index: 3;
   }
 
   /* `:not([data-skryty])` tu musí být: odfiltrovaný bod má ustupovat víc
@@ -569,7 +582,13 @@ const jsouNavrhy = zamery.some((z) => z.data.stav === 'navrh');
 
     /** Zvýrazní dvojici bod + položka. Volá se z obou stran. */
     function zvyraznit(poradi: string | null) {
-      for (const b of body) b.classList.toggle('je-zvyrazneny', b.dataset.bod === poradi);
+      for (const b of body) {
+        const vybrany = b.dataset.bod === poradi;
+        b.classList.toggle('je-zvyrazneny', vybrany);
+        // Vytažení dopředu patří na obal značky, ne na odznak — proč, viz
+        // komentář u `.mapa-znacka.je-vybrana` ve stylech.
+        b.closest('.mapa-znacka')?.classList.toggle('je-vybrana', vybrany);
+      }
       for (const p of polozky) p.classList.toggle('je-zvyrazneny', p.dataset.polozka === poradi);
       // Podle tohohle příznaku CSS utlumí ostatní body. Kdyby se ustupovalo
       // pořád, mapa by vypadala vybledle i bez vybraného bodu.
