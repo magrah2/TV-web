@@ -12,8 +12,6 @@
 #   FTP_SERVER    adresa FTP serveru, třeba ftp.transparentnivyskov.cz
 #   FTP_UZIVATEL  přihlašovací jméno
 #   FTP_HESLO     heslo
-#   MAPY_KLIC     klíč k dlaždicím Mapy.cz pro /stanek/. Nepovinné — bez něj
-#                 se použijí dlaždice OpenStreetMap.
 #   SBER_HESLO    heslo ke sběru podnětů na stánku (/stanek/). Nepovinné —
 #                 bez něj sběr zůstane vypnutý. Nahraje se na server sám,
 #                 takže se kvůli němu nemusí nic zakládat ručně.
@@ -121,9 +119,6 @@ jobs:
         if: inputs.zkusebni_soubor == false
         env:
           NAOSTRO: '1'
-          # Klíč k dlaždicím Mapy.cz pro stránku /stanek/. Bez něj se použijí
-          # dlaždice OpenStreetMap — mapa funguje, jen vypadá jinak.
-          MAPY_KLIC: ${{ secrets.MAPY_KLIC }}
         run: npm run build
 
       # Levná pojistka. Kdyby se NAOSTRO někdy přestalo propisovat, chyba se

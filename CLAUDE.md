@@ -88,10 +88,13 @@ když jsem si je vykreslil vedle sebe ve velkém i v cílové velikosti.
    cookie lištu, a u strany s tímhle názvem to není detail.
 
    **Jediná výjimka je `/stanek/`**, interní stránka pro sběr podnětů při
-   kontaktní kampani. Ta načítá dlaždicovou mapu (Mapy.cz, bez klíče
-   OpenStreetMap), protože se s ní pracuje: obsluha musí podle názvů ulic
-   najít místo, které člověk u stánku ukáže. Vlastní podklad takový detail
-   nemá a mít nemůže — jen budov je ve výřezu přes deset tisíc.
+   kontaktní kampani. Ta si stahuje vektorové dlaždice (OpenFreeMap),
+   protože se s ní pracuje: obsluha musí podle názvů ulic najít místo, které
+   člověk u stánku ukáže. Vlastní podklad takový detail nemá a mít nemůže —
+   jen budov je ve výřezu přes deset tisíc.
+
+   Vzhled si ale určujeme sami: styl v `src/lib/styl-mapy.ts` bere barvy
+   z tokenů, takže i tahle mapa vypadá jako zbytek webu.
 
    Výjimka platí jen pro tu jednu stránku: není veřejná, nevede na ni odkaz
    a je chráněná heslem. **Na veřejné stránky se nic zvenčí přidávat nesmí**
