@@ -12,7 +12,7 @@
 #   FTP_SERVER    adresa FTP serveru, třeba ftp.transparentnivyskov.cz
 #   FTP_UZIVATEL  přihlašovací jméno
 #   FTP_HESLO     heslo
-#   SBER_HESLO    heslo ke sběru podnětů na stánku (/stanek/). Nepovinné —
+#   SBER_HESLO    heslo ke sběru podnětů na stánku (/mapa-napadu/). Nepovinné —
 #                 bez něj sběr zůstane vypnutý. Nahraje se na server sám,
 #                 takže se kvůli němu nemusí nic zakládat ručně.
 #
@@ -213,6 +213,12 @@ jobs:
       # může ignorovat. U stránek to neplatí — index.html se jmenuje pořád
       # stejně a úprava textu nemusí změnit jeho velikost, takže se přenášejí
       # vždycky. Je jich patnáct a jsou malé.
+      #
+      # Totéž platí pro mapové dlaždice a písma popisků. Ty otisk v názvu
+      # nemají, ale jsou to zamrzlá data: mění se jedině tehdy, když je někdo
+      # přegeneruje `nastroje/dlazdice.mjs`, a to se jim změní i velikost.
+      # Je jich přes sto padesát a váží skoro čtyři megabajty, takže právě ony
+      # dělaly většinu každého nasazení.
       - name: Nahrát na FTP
         if: inputs.zkusebni_soubor == false
         env:
@@ -229,10 +235,14 @@ jobs:
 
           cp spojeni.lftp prikazy.lftp
           {
-            echo "echo --- 1/2: obrazky a styly ---"
+            echo "echo --- 1/4: obrazky a styly ---"
             echo "mirror --reverse --delete --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
-            echo "echo --- 2/2: stranky a zbytek ---"
-            echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ --exclude-glob podnety-data/ dist/ \"$ADR\""
+            echo "echo --- 2/4: mapove dlazdice ---"
+            echo "mirror --reverse --delete --ignore-time --verbose dist/dlazdice/ \"$ADR/dlazdice/\""
+            echo "echo --- 3/4: pisma popisku v mape ---"
+            echo "mirror --reverse --delete --ignore-time --verbose dist/pisma-mapy/ \"$ADR/pisma-mapy/\""
+            echo "echo --- 4/4: stranky a zbytek ---"
+            echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ --exclude-glob dlazdice/ --exclude-glob pisma-mapy/ --exclude-glob podnety-data/ dist/ \"$ADR\""
           } >> prikazy.lftp
 
           # Heslo ke sběru podnětů se nahraje ze secrets, aby se nemuselo nic
