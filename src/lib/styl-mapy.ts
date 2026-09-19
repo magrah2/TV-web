@@ -156,13 +156,6 @@ export const STYL_MAPY = {
       filter: jeTrida('industrial', 'commercial', 'retail'),
       paint: { 'fill-color': BARVA.prumysl, 'fill-opacity': 0.7 },
     },
-    {
-      id: 'voda',
-      type: 'fill',
-      source: 'openmaptiles',
-      'source-layer': 'water',
-      paint: { 'fill-color': BARVA.voda },
-    },
 
     // --- Domy -------------------------------------------------------------
     // Vidět začnou až zblízka. Dřív by z nich byla jen šedá kaše a právě ony
@@ -203,6 +196,17 @@ export const STYL_MAPY = {
       },
     },
 
+    {
+      // Kreslí se AŽ ZA toky, ne před nimi. Řeka i potok jsou čáry vedené
+      // skrz rybník, a když byly navrchu, táhla se hladinou čára jako by
+      // voda tekla po rybníce. Takhle je plocha překryje a vidět je jen
+      // rybník.
+      id: 'voda',
+      type: 'fill',
+      source: 'openmaptiles',
+      'source-layer': 'water',
+      paint: { 'fill-color': BARVA.voda },
+    },
     // --- Cesty a silnice --------------------------------------------------
     // Chodníky a stezky se kreslí plnou čarou. Jsou to cesty, po kterých se
     // chodí — třeba ta podél řeky ve Smetanových sadech — a čárkovaně se
