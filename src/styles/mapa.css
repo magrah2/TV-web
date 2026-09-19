@@ -19,9 +19,7 @@
    a uvedení zdrojů nešlo přečíst — což je u věci, která tam je kvůli
    licenci, dost vedle. */
 .maplibregl-ctrl-attrib {
-  background: rgb(11 32 50 / 0.9) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: var(--mapa-lista) !important;
   border-radius: var(--radius-maly) 0 0 0;
   font-size: 11px;
 }
@@ -49,9 +47,30 @@
   text-decoration-color: currentColor;
 }
 
-/* Tlačítko, kterým se zdroje rozbalí na úzkém displeji. */
+/* Tlačítko, kterým se zdroje rozbalí na úzkém displeji.
+
+   Knihovna do něj kreslí „i" jako obrázek na pozadí, a to obrázek ČERNÝ —
+   na tmavé liště zmizelo úplně stejně jako text vedle něj. Obrázek se proto
+   vypne a znak se vykreslí přes masku: maska drží jen tvar, barvu si bere
+   z tokenu. Kdyby se znak jen přebarvil v obrázku, byla by to další barva
+   zapsaná natvrdo mimo `tokeny.css`. */
 .maplibregl-ctrl-attrib-button {
-  background-color: rgb(11 32 50 / 0.9) !important;
+  background-color: var(--mapa-lista) !important;
+  background-image: none !important;
+}
+
+.maplibregl-ctrl-attrib-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--na-noci);
+  mask: var(--znak-zdroju) center / 20px 20px no-repeat;
+  -webkit-mask: var(--znak-zdroju) center / 20px 20px no-repeat;
+}
+
+/* Tentýž znak, jaký používá knihovna — jen bez barvy, tu dává maska. */
+.maplibregl-ctrl-attrib-button {
+  --znak-zdroju: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill-rule='evenodd' viewBox='0 0 20 20'%3E%3Cpath d='M4 10a6 6 0 1 0 12 0 6 6 0 1 0-12 0m5-3a1 1 0 1 0 2 0 1 1 0 1 0-2 0m0 3a1 1 0 1 1 2 0v3a1 1 0 1 1-2 0'/%3E%3C/svg%3E");
 }
 
 /* Na telefonu se rozbalený text roztáhne přes celou šířku a druhý řádek
@@ -75,8 +94,11 @@
    přikrýt: je to vysvětlení, ne clona. Knihovna ji vykresluje jako velký
    bílý nápis přes celou plochu, což je na tmavé mapě rána do oka. */
 
+/* Bez rozostření pozadí. Nad plátnem mapy (WebGL) umí `backdrop-filter`
+   v prohlížeči při rolování rozmazat i kus plochy okolo — z lišty se pak
+   na okamžik stane modrý pruh přes mapu. Lišta je dost krycí i bez toho. */
 .maplibregl-cooperative-gesture-screen {
-  background: rgb(11 32 50 / 0.35);
+  background: var(--mapa-zavoj);
   font: inherit;
 }
 
@@ -84,7 +106,7 @@
 .maplibregl-cooperative-gesture-screen .maplibregl-mobile-message {
   padding: 0.5rem 1rem;
   border-radius: 999px;
-  background: rgb(11 32 50 / 0.92);
+  background: var(--mapa-lista);
   color: var(--na-noci);
   font-size: var(--text-maly);
   font-weight: 600;

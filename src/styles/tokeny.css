@@ -98,6 +98,13 @@
      zelená: ta je na mapě vyhrazená našim vlastním značkám a vybrané
      volební oblasti. Dokud ji měly i hřbitovy, svítily z mapy jako by to
      bylo to nejdůležitější, co ve Vyškově je. */
+  /* Lišta nad mapou — uvedení zdrojů, tlačítka přiblížení, nápověda
+     k ovládání. Je to noc s průhledností: pod ní mapa prosvítá, ale text
+     na ní zůstane čitelný. Závoj je tatáž barva mnohem slabší; překrývá
+     celou mapu, když člověk zkusí posunout jedním prstem. */
+  --mapa-lista: rgb(11 32 50 / 0.88);
+  --mapa-zavoj: rgb(11 32 50 / 0.35);
+
   --mapa-areal: #3a7f56;
   --mapa-areal-popis: #7cb495;
 
