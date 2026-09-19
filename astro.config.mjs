@@ -10,7 +10,14 @@ export default defineConfig({
   site: naostro ? 'https://transparentnivyskov.cz' : 'https://magrah2.github.io',
   base: naostro ? '/' : '/TV-web',
   trailingSlash: 'always',
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      // Stránka pro stánek se nikde neodkazuje a nemá co dělat ve
+      // vyhledávačích. Mapa webu je první místo, kam se roboti dívají,
+      // takže by ji tam našli dřív než kdekoliv jinde.
+      filter: (adresa) => !adresa.includes('/stanek/'),
+    }),
+  ],
   build: {
     // Každá stránka jako složka s index.html — hezké adresy bez .html
     format: 'directory',

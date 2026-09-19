@@ -1,0 +1,54 @@
+---
+/**
+ * Sběr podnětů na stánku.
+ *
+ * Stránka schválně nikde není odkazovaná — kdo ji má otevřít, dostane adresu.
+ * Nevede na ni nic z navigace ani z patičky, nepouští se do mapy webu
+ * (`astro.config.mjs`) a má `noindex`, takže se nedostane do vyhledávačů.
+ *
+ * Je to překážka, ne zámek: repozitář je veřejný, takže adresa je
+ * dohledatelná. Skutečná ochrana je heslo, bez kterého server žádné podněty
+ * nevydá ani neuloží.
+ */
+
+import Zaklad from '../layouts/Zaklad.astro';
+import SberPodnetu from '../components/SberPodnetu.astro';
+---
+
+<Zaklad
+  titulek="Sběr podnětů"
+  popis="Interní stránka pro sběr podnětů od lidí na stánku."
+  neindexovat
+>
+  <div class="pruh stanek">
+    <header class="stanek-hlava">
+      <p class="nadtitulek">Interní stránka</p>
+      <h1>Co vás ve Vyškově trápí?</h1>
+      <p class="perex">
+        Ťukněte do mapy na místo, o kterém je řeč, vyberte oblast a napište,
+        co s ním je. Podnět uvidí všichni, kdo mají tuhle stránku otevřenou.
+      </p>
+    </header>
+
+    <SberPodnetu />
+  </div>
+</Zaklad>
+
+<style>
+  .stanek {
+    padding-block: clamp(1.5rem, 4vw, 2.5rem);
+  }
+
+  .stanek-hlava {
+    margin-bottom: clamp(1.25rem, 3vw, 1.75rem);
+  }
+
+  .stanek-hlava h1 {
+    margin: 0 0 0.6rem;
+    font-size: var(--text-nadpis-2);
+  }
+
+  .stanek-hlava .perex {
+    max-width: 52ch;
+  }
+</style>

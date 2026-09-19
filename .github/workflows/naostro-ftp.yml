@@ -193,6 +193,11 @@ jobs:
           echo "Nastaveni pripojeni:"
           cat spojeni.lftp
 
+      # Složka `podnety-data/` se vynechává. Leží v ní podněty nasbírané na
+      # stánku a ve webu nejsou — zrcadlení by je při každém nasazení smazalo.
+      # (Primárně se ukládají o patro nad webem, kam zrcadlení nedosáhne;
+      # tohle je pojistka pro případ, že by je tam server nepustil.)
+      #
       # Nahrává se nadvakrát, a to schválně.
       #
       # lftp porovnává soubory podle velikosti a času změny. Sestavení v CI
@@ -219,7 +224,7 @@ jobs:
             echo "echo --- 1/2: obrazky a styly ---"
             echo "mirror --reverse --delete --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
             echo "echo --- 2/2: stranky a zbytek ---"
-            echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ dist/ \"$ADR\""
+            echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ --exclude-glob podnety-data/ dist/ \"$ADR\""
             echo "bye"
           } >> prikazy.lftp
 

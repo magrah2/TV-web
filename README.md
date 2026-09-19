@@ -356,6 +356,68 @@ seznam je jediné místo, kde se udržují ručně.
 
 ---
 
+## Sběr podnětů na stánku
+
+Stránka **`/stanek/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
+vybrat mu oblast (osm programových plus „Ostatní") a napsat, co s tím místem
+je. Používá se na tabletu při kontaktní kampani.
+
+**Nikde na ni nevede odkaz.** Není v navigaci ani v patičce, nepouští se do
+mapy webu a má `noindex`. Je to ale překážka, ne zámek: repozitář je veřejný,
+takže adresa je dohledatelná. Skutečná ochrana je heslo.
+
+### Co je potřeba udělat jednou, ručně
+
+Přes FTP založte **o patro výš, než je složka webu**, složku `podnety-data`
+a v ní soubor `heslo.txt` s jedním řádkem — heslem, které se pak na stánku
+zadává. Dokud ten soubor není, server žádné podněty nevydá ani neuloží a sám
+to napíše.
+
+Heslo schválně není v repozitáři: ten je veřejný.
+
+Složka je o patro výš proto, aby se k podnětům nikdo nedostal přes prohlížeč,
+ani kdyby adresu uhodl. Kdyby tam server zapisovat nepustil, použije se
+složka uvnitř webu — a data se pak ukládají do souboru s příponou `.php`,
+který začíná `exit`, takže by při stažení vrátil prázdno. Nasazení tu složku
+v obou případech vynechává, jinak by podněty při každém nahrání zmizely.
+
+### Když server není k dispozici
+
+Na draftu PHP neběží, takže se stránka přepne do **místního režimu**: ukládá
+do prohlížeče, body se nesdílejí a nahoře o tom svítí upozornění. Sběr na
+stánku se tím nezastaví. Tlačítkem **Stáhnout** jdou body kdykoliv vytáhnout
+jako soubor.
+
+### Proč PHP
+
+Body mají být vidět na všech zařízeních naráz, a statický web nemá kam
+zapisovat. PHP na vlastním hostingu je z možností ta nejlevnější: nahraje se
+s webem přes totéž FTP, data zůstanou u nás a nepřibude žádná cizí služba.
+Alternativou bez PHP je vlastní funkce u Cloudflare — jiný účet a druhý
+způsob nasazení. Stránka mluví s jedinou adresou, takže přepsat úložiště je
+změna v jednom souboru.
+
+### Kdyby se sbíralo i online
+
+Zadání počítá se stánkem, ne s veřejným sběrem — a to je dobře, protože
+veřejný sběr má jeden problém, který se technikou neřeší: **někdo to musí
+číst.** Deset podnětů denně je práce na pět minut, tisíc urážek za noc je
+práce na celý den. Kdyby se do toho někdy šlo, dávalo by smysl tohle:
+
+1. **Nic se nezveřejní samo.** Podnět z internetu přistane jako nepotvrzený
+   a na mapě se neukáže, dokud ho někdo z týmu neprojde. Trollovi tím zmizí
+   důvod — nikdo jeho text neuvidí.
+2. **Strop na počet z jedné adresy**, třeba pět za hodinu. Nezastaví to
+   odhodlaného člověka, ale zastaví to skript.
+3. **Žádné odesílání bez rozmyslu** — po odeslání se ukáže, co dorazilo,
+   a že to někdo projde. Lidé, kteří chtějí být slyšet, to ocení; ti druzí
+   ztratí zábavu.
+4. **Mazat smí jen ten, kdo zná heslo.** To už platí teď.
+
+Technicky je to malá změna: přibude příznak „potvrzeno" a na stánku
+tlačítko, kterým se podnět schválí. Vydá to ale práci navíc při každém
+nasazení kampaně, takže bych do toho šel, až bude jasné, že je o sběr zájem.
+
 ## Co ještě chybí
 
 - [ ] Portréty kandidátů a fotky Vyškova
