@@ -454,6 +454,35 @@ const obydlene = (() => {
     }
   }
 
+  /* ---------- Sladění dlaždic se značkou ----------
+     Cizí dlaždice mají svoje barvy — zelené lesy, žluté silnice, růžové
+     dálnice. Vedle zbytku webu to vypadá jako vložený cizí prvek.
+
+     Nepřebarvují se proto jednotlivé věci, to u rastru nejde, ale celá
+     vrstva najednou: ubere se sytost a odstín se stočí k modré ze značky.
+     Text zůstává čitelný, protože se nesahá na kontrast.
+
+     Filtr sedí jen na vrstvě dlaždic. Značky, popisky ani ovládání jsou
+     v jiných vrstvách a musí si nechat plnou barvu — jinak by se ztratilo
+     právě to, co má být vidět nejvíc. */
+  .sber-mapa .leaflet-tile-pane {
+    filter: grayscale(0.88) brightness(1.06) contrast(0.92);
+  }
+
+  /* Nádech značkové modři přes celou mapu. `soft-light` obarví, ale nezakryje
+     — s obyčejnou průhlednou vrstvou by mapa zešedla. */
+  .sber-mapa-obal::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: var(--radius);
+    background: var(--modra);
+    opacity: 0.22;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+
   /* Uvést zdroj dlaždic musíme, ale na stánku nemá překážet. */
   .sber-mapa .leaflet-control-attribution {
     font-size: 10px;
