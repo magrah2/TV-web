@@ -391,6 +391,33 @@ node nastroje/nahledy-map.mjs
 
 ---
 
+## Náhledy pro sdílení
+
+Když někdo hodí odkaz na web do Messengeru, na Facebook nebo na Instagram,
+síť si stránku stáhne a hledá v ní obrázek. Bez něj ukáže holý odkaz — a ten
+na sociálních sítích nikdo neotevře.
+
+Každá hlavní stránka má proto vlastní kartu 1200 × 630: mapa ukáže mapu,
+kandidáti ukážou lidi, „jak volit" ukáže volební lístek. Stránky bez vlastní
+karty dostanou výchozí; medailonek kandidáta zdědí kartu kandidátky.
+
+Karty se vyrábějí tak, že se složí jako obyčejná stránka a vyfotí — mají
+tedy skutečné písmo i barvy webu a obsah se s nimi nemůže rozejít:
+
+```
+npm run nahled          # v jednom okně
+node nastroje/nahledy-sdileni.mjs
+```
+
+Pustit se to musí vždy, když se **změní mapa, lístek, dlaždice programu nebo
+portréty**. Texty na kartách jsou v `nastroje/nahledy-sdileni.mjs`.
+
+⚠️ Facebook si obrázky pamatuje. Když se karta změní, projděte odkaz jeho
+[ladicím nástrojem](https://developers.facebook.com/tools/debug/) a dejte
+„Scrape Again", jinak bude ještě dlouho ukazovat tu starou.
+
+---
+
 ## Kde volit — vyhledávač volební místnosti
 
 Člověk napíše adresu a web mu řekne, do kterého okrsku patří a kde volí.

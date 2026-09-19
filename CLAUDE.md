@@ -219,6 +219,11 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
 - **Adresa volební místnosti se hledá nejdřív podle čísla orientačního.**
   Vyhláška píše čísla tak, jak jsou na domech. Stejné číslo existuje i v řadě
   popisných, takže bez toho pořadí trefí „Slovanská 111" dům o 200 m vedle.
+- **Náhled pro sdílení musí být úplná adresa i s doménou.** Sociální síť si
+  stránku stahuje u sebe, takže `/nahledy/mapa.png` by jí nic neřeklo.
+  A z cesty se před hledáním karty musí odstranit `BASE_URL` — na draftu by
+  se jinak první částí cesty stalo `TV-web` a všechny stránky by dostaly
+  výchozí kartu.
 - **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
   by na draftu mířil vedle, protože ten běží v podsložce `/TV-web/`.
   Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro
