@@ -1,8 +1,8 @@
 ---
 nazev: Pocitová mapa bezpečnosti
 tema: Bezpečnost
-lat: 49.27327
-lon: 16.99571
+lat: 49.28229
+lon: 17.00237
 stav: overeno
 ---
 

@@ -1,8 +1,8 @@
 ---
 nazev: Podnikatelský hub v centru
 tema: Podnikání
-lat: 49.27735
-lon: 17.00080
+lat: 49.27662
+lon: 16.99980
 stav: overeno
 ---
 
