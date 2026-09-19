@@ -7,7 +7,11 @@ import IkonaTematu from '../components/IkonaTematu.astro';
 import { BARVA_TEMATU } from '../lib/temata';
 import type { Tema } from '../lib/temata';
 import { fotkaKandidata } from '../lib/portrety';
-import podkladObec from '../../public/mapa-obec.svg?raw';
+import { Image } from 'astro:assets';
+// Náhledy map vyrábí `node nastroje/nahledy-map.mjs` z týchž podkladů,
+// které jsou na cílových stránkách — nemůžou se s nimi rozejít.
+import nahledZameru from '../assets/nahled-mapa-zameru.png';
+import nahledOkrsku from '../assets/nahled-mapa-okrsku.png';
 
 const VOLBY = new Date('2026-10-09T14:00:00+02:00');
 
@@ -34,30 +38,6 @@ const programSObsahem = await Promise.all(
 const kandidati = (await getCollection('kandidati')).sort((a, b) => a.data.poradi - b.data.poradi);
 const prvni = kandidati.slice(0, 6);
 
-/**
- * Náhled mapy k odkazu na hledání volební místnosti.
- *
- * Z podkladu se berou jen plochy a řeka, ne ulice a cesty. Celý podklad má
- * 322 kB a vložit ho do úvodní stránky kvůli ozdobě by ji nafouklo osmkrát —
- * ulic a pěšin je v něm přes dva tisíce. Ze siluety zástavby a řeky je Vyškov
- * poznat a váží to zlomek.
- *
- * Skupiny se vybírají hledáním, ne regulárním výrazem: jsou to prosté
- * `<g class="…">…</g>` bez vnoření, takže na to stačí dva `indexOf`.
- */
-function skupinaMapy(svg: string, trida: string): string {
-  const zacatek = svg.indexOf(`<g class="${trida}">`);
-  if (zacatek < 0) return '';
-  const konec = svg.indexOf('</g>', zacatek);
-  return svg.slice(zacatek, konec + 4);
-}
-
-const siluetaObce =
-  podkladObec.slice(0, podkladObec.indexOf('>') + 1) +
-  ['mapa-zastavba', 'mapa-prumysl', 'mapa-zelen', 'mapa-vodni-plocha', 'mapa-reka']
-    .map((trida) => skupinaMapy(podkladObec, trida))
-    .join('') +
-  '</svg>';
 ---
 
 <Zaklad
@@ -80,7 +60,7 @@ const siluetaObce =
 
         <div class="hero-tlacitka">
           <a class="tlacitko tlacitko-hlavni" href={odkaz('/program/')}>Náš program</a>
-          <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/jak-volit/')}>Jak volit →</a>
+          <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Naši kandidáti →</a>
         </div>
       </div>
 
@@ -108,47 +88,8 @@ const siluetaObce =
     </p>
   </section>
 
-  {/* ---------- Kdo jsme ---------- */}
-  <section class="sekce">
-    <div class="pruh dvojice">
-      <div>
-        <p class="nadtitulek">Kdo jsme</p>
-        <h2>Sedmadvacet lidí, kteří tady žijí</h2>
-      </div>
-      <div class="dvojice-text">
-        <p>
-          Učitelé, živnostníci, zdravotní sestra, konstruktér, studenti i důchodci. Nikdo z nás
-          není profesionální politik a většina z nás nekandiduje za žádnou stranu.
-        </p>
-        <p>
-          Chceme radnici, která s lidmi mluví, vysvětluje své záměry a bere vážně názory
-          obyvatel i spolků. Záleží nám na transparentním hospodaření, férových zakázkách a
-          dostupném bydlení pro běžné obyvatele — ne pro developery.
-        </p>
-      </div>
-    </div>
-
-    <div class="pruh lide-mrizka">
-      {
-        prvni.map((clovek) => (
-          <KartaKandidata
-            poradi={clovek.data.poradi}
-            jmeno={clovek.data.jmeno}
-            vek={clovek.data.vek}
-            povolani={clovek.data.povolani}
-            foto={fotkaKandidata(clovek.id)}
-          />
-        ))
-      }
-    </div>
-
-    <div class="pruh lide-vic">
-      <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Poznejte všech 27 →</a>
-    </div>
-  </section>
-
   {/* ---------- Program ---------- */}
-  <section class="sekce program" id="program">
+  <section class="sekce pas-noc program" id="program">
     <div class="pruh">
       <p class="nadtitulek">Náš program</p>
       <h2 class="program-nadpis">Co chceme ve Vyškově změnit</h2>
@@ -219,9 +160,36 @@ const siluetaObce =
     </div>
   </section>
 
+  {/* ---------- Kandidáti ---------- */}
+  <section class="sekce lide">
+    <div class="pruh">
+      <div class="lide-hlava">
+        <div>
+          <p class="nadtitulek">Komu dáte hlas</p>
+          <h2>Naši kandidáti</h2>
+        </div>
+        <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/lide/')}>Všech 27 →</a>
+      </div>
+
+      <div class="lide-mrizka">
+        {
+          prvni.map((clovek) => (
+            <KartaKandidata
+              poradi={clovek.data.poradi}
+              jmeno={clovek.data.jmeno}
+              vek={clovek.data.vek}
+              povolani={clovek.data.povolani}
+              foto={fotkaKandidata(clovek.id)}
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
   {/* ---------- Mapa záměrů ---------- */}
   <section class="sekce pas-noc zamery">
-    <div class="pruh zamery-vnitrek">
+    <div class="pruh sekce-s-nahledem">
       <div>
         <p class="nadtitulek">Mapa záměrů</p>
         <h2>Program není seznam přání. Jsou to&nbsp;místa, která denně míjíte.</h2>
@@ -234,12 +202,16 @@ const siluetaObce =
           <a class="tlacitko tlacitko-hlavni" href={odkaz('/mapa/')}>Otevřít mapu</a>
         </p>
       </div>
+
+      <a class="nahled-mapy" href={odkaz('/mapa/')} tabindex="-1" aria-hidden="true">
+        <Image src={nahledZameru} alt="" widths={[320, 480, 640]} sizes="(min-width: 60rem) 26rem, 90vw" />
+      </a>
     </div>
   </section>
 
   {/* ---------- Lidé ---------- */}
   {/* ---------- Jak volit ---------- */}
-  <section class="sekce pas-noc jak-volit">
+  <section class="sekce jak-volit">
     <div class="pruh jak-volit-vnitrek">
       <div>
         <p class="nadtitulek">Jak volit</p>
@@ -257,28 +229,23 @@ const siluetaObce =
   </section>
 
   {/* ---------- Kde volit ---------- */}
-  <section class="sekce kde-volit">
-    <div class="pruh dvojice">
+  <section class="sekce pas-noc kde-volit">
+    <div class="pruh sekce-s-nahledem">
       <div>
         <p class="nadtitulek">Kde volit</p>
         <h2>Nevíte, kam jít volit?</h2>
-      </div>
-      <div class="dvojice-text">
-        <p>
+        <p class="perex">
           Zadejte svoji adresu a ukážeme vám na mapě, do které volební místnosti patříte.
         </p>
         <p class="kde-volit-tlacitko">
-          <a class="tlacitko tlacitko-vedlejsi" href={odkaz('/kde-volit/')}>
-            Najít svoji volební místnost
+          <a class="tlacitko tlacitko-hlavni" href={odkaz('/kde-volit/')}>
+            Najít volební místnost
           </a>
         </p>
       </div>
-    </div>
 
-    <div class="pruh">
-      <a class="nahled-mapy" href={odkaz('/kde-volit/')}>
-        <span class="nahled-mapy-silueta" set:html={siluetaObce} />
-        <span class="nahled-mapy-popis">Otevřít mapu volebních míst →</span>
+      <a class="nahled-mapy" href={odkaz('/kde-volit/')} tabindex="-1" aria-hidden="true">
+        <Image src={nahledOkrsku} alt="" widths={[320, 480, 640]} sizes="(min-width: 60rem) 26rem, 90vw" />
       </a>
     </div>
   </section>
@@ -526,6 +493,56 @@ const siluetaObce =
   /* ---------- Sdílený panel ----------
      Beze všeho otevřeného nezabírá vůbec žádné místo — každý panel má
      `display: none` a zviditelní ho, spolu s odsazením, teprve `:target`. */
+  /* ---------- Program na tmavém pásu ----------
+     Dlaždice se převlékají do tmavého, neplavou na pásu jako bílé karty.
+     Bílá karta na tmavém pozadí vypadala jako vystřižená z jiné stránky.
+
+     Přebíjí se toho víc, protože dlaždice i panel jsou postavené pro světlý
+     podklad: plocha, linka, stín i barvy textu. */
+  .pas-noc .dlazdice,
+  .pas-noc .program-panel:target {
+    background: var(--noc-svetlejsi);
+    border-color: var(--linka-na-noci);
+    box-shadow: none;
+    color: var(--na-noci);
+  }
+
+  .pas-noc .dlazdice:hover {
+    border-color: rgb(232 239 245 / 0.4);
+    box-shadow: none;
+  }
+
+  .pas-noc .dlazdice.je-aktivni {
+    border-color: var(--zelena);
+  }
+
+  .pas-noc .dlazdice-shrnuti,
+  .pas-noc .program-panel-nadtitulek {
+    color: var(--na-noci-tlum);
+  }
+
+  .pas-noc .dlazdice-znak {
+    color: var(--na-noci);
+  }
+
+  .pas-noc .program-panel-nadpis,
+  .pas-noc .program-panel h3 {
+    color: var(--na-noci);
+  }
+
+  /* Jen odkazy v textu. Tlačítko si barvu nese samo a přebarvit ho znamená
+     modrý text na modrém pozadí. */
+  .pas-noc .program-panel a:not(.tlacitko) {
+    color: #8fc4ec;
+  }
+
+  /* Ikony nesou barvu své oblasti a ta je laděná na světlý podklad — tmavě
+     modrá „Doprava" by na tmavé dlaždici zmizela. Odstín zůstává, jen se
+     rozsvítí; nová barva se tím nezavádí. */
+  .pas-noc .dlazdice :global(.dlazdice-ikona) {
+    filter: brightness(1.55) saturate(1.15);
+  }
+
   .program-panel {
     display: none;
   }
@@ -611,10 +628,6 @@ const siluetaObce =
 
   /* ---------- Lidé ---------- */
 
-  .lide-vic {
-    margin-top: clamp(1.5rem, 3vw, 2.25rem);
-  }
-
   .lide-hlava {
     display: flex;
     flex-wrap: wrap;
@@ -625,7 +638,6 @@ const siluetaObce =
   }
 
   .lide-mrizka {
-    margin-top: clamp(2rem, 4vw, 3rem);
     display: grid;
     gap: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.75rem);
     grid-template-columns: repeat(2, 1fr);
@@ -671,54 +683,43 @@ const siluetaObce =
     margin: 1.5rem 0 0;
   }
 
+  /* Sekce, u které je vpravo vidět, jak cílová mapa vypadá. Na úzkém
+     displeji jde náhled pod text — vedle sebe by z obojího nezbylo nic. */
+  .sekce-s-nahledem {
+    display: grid;
+    gap: clamp(1.75rem, 4vw, 3rem);
+    align-items: center;
+  }
+
+  @media (min-width: 60rem) {
+    .sekce-s-nahledem {
+      grid-template-columns: 1fr 26rem;
+      gap: 4rem;
+    }
+  }
+
   .nahled-mapy {
     display: block;
-    position: relative;
-    margin-top: clamp(1.75rem, 3.5vw, 2.5rem);
-    padding: clamp(1rem, 3vw, 2rem);
     border-radius: var(--radius);
-    background: var(--noc);
-    text-decoration: none;
     overflow: hidden;
+    line-height: 0;
+    /* Náhled má stejné pozadí jako tmavý pás, na kterém leží. Bez linky by
+       splynul a sloupec by vypadal prázdný. */
+    border: 1px solid var(--linka-na-noci);
+    transition: transform var(--prechod);
   }
 
-  /* Náhled je ozdoba a odkaz zároveň. Silueta nesmí chytat ukazatel, jinak by
-     se z jejích cest staly cíle kliknutí uvnitř odkazu. */
-  .nahled-mapy-silueta {
-    display: block;
-    pointer-events: none;
-  }
-
-  .nahled-mapy-silueta :global(svg) {
-    display: block;
+  .nahled-mapy img {
     width: 100%;
     height: auto;
-    max-height: clamp(180px, 34vw, 320px);
   }
 
-  .nahled-mapy-silueta :global(.mapa-zastavba path) { fill: var(--mapa-zastavba); }
-  .nahled-mapy-silueta :global(.mapa-prumysl path) { fill: var(--mapa-prumysl); }
-  .nahled-mapy-silueta :global(.mapa-zelen path) { fill: var(--mapa-zelen); }
-  .nahled-mapy-silueta :global(.mapa-vodni-plocha path) { fill: var(--mapa-voda); }
-  .nahled-mapy-silueta :global(.mapa-reka path) {
-    fill: none;
-    stroke: var(--zelena);
-    stroke-width: 2.4;
-    opacity: 0.7;
+  @media (hover: hover) {
+    .nahled-mapy:hover {
+      transform: translateY(-2px);
+    }
   }
 
-  .nahled-mapy-popis {
-    display: block;
-    margin-top: 0.85rem;
-    text-align: center;
-    font-size: var(--text-maly);
-    color: var(--na-noci);
-  }
-
-  .nahled-mapy:hover .nahled-mapy-popis,
-  .nahled-mapy:focus-visible .nahled-mapy-popis {
-    text-decoration: underline;
-  }
 </style>
 
 <script>
