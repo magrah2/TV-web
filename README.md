@@ -366,20 +366,28 @@ je. Používá se na tabletu při kontaktní kampani.
 mapy webu a má `noindex`. Je to ale překážka, ne zámek: repozitář je veřejný,
 takže adresa je dohledatelná. Skutečná ochrana je heslo.
 
-### Co je potřeba udělat jednou, ručně
+### Jak se zapne
 
-Přes FTP založte **o patro výš, než je složka webu**, složku `podnety-data`
-a v ní soubor `heslo.txt` s jedním řádkem — heslem, které se pak na stánku
-zadává. Dokud ten soubor není, server žádné podněty nevydá ani neuloží a sám
-to napíše.
+V **Settings → Secrets and variables → Actions** přidejte secret
+**`SBER_HESLO`** a do něj napište heslo, které se pak na stánku zadává.
+Vymyslete si jakékoliv — slouží jen k tomu, aby se ke sběru nedostal někdo,
+kdo najde adresu stránky.
 
-Heslo schválně není v repozitáři: ten je veřejný.
+Víc není potřeba. Při nejbližším nasazení se heslo nahraje na server samo,
+do složky `podnety-data` o patro nad webem. Nic se nezakládá ručně přes FTP.
 
-Složka je o patro výš proto, aby se k podnětům nikdo nedostal přes prohlížeč,
-ani kdyby adresu uhodl. Kdyby tam server zapisovat nepustil, použije se
-složka uvnitř webu — a data se pak ukládají do souboru s příponou `.php`,
-který začíná `exit`, takže by při stažení vrátil prázdno. Nasazení tu složku
-v obou případech vynechává, jinak by podněty při každém nahrání zmizely.
+Dokud secret vyplněný není, sběr zůstane vypnutý a stránka to napíše.
+
+Dvě věci, které stojí za to vědět:
+
+- **Heslo není v repozitáři** a nikdy tam být nesmí — ten je veřejný. Žije
+  jen v secrets a na serveru.
+- **Složka je o patro nad webem** proto, aby se k podnětům nikdo nedostal
+  přes prohlížeč, ani kdyby adresu uhodl. Kdyby tam server zapisovat
+  nepustil, použije se složka uvnitř webu — a data se pak ukládají do
+  souboru s příponou `.php`, který začíná `exit`, takže by při stažení
+  vrátil prázdno. Nasazení tu složku v obou případech vynechává, jinak by
+  podněty při každém nahrání zmizely.
 
 ### Když server není k dispozici
 

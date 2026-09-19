@@ -12,6 +12,9 @@
 #   FTP_SERVER    adresa FTP serveru, třeba ftp.transparentnivyskov.cz
 #   FTP_UZIVATEL  přihlašovací jméno
 #   FTP_HESLO     heslo
+#   SBER_HESLO    heslo ke sběru podnětů na stánku (/stanek/). Nepovinné —
+#                 bez něj sběr zůstane vypnutý. Nahraje se na server sám,
+#                 takže se kvůli němu nemusí nic zakládat ručně.
 #
 # Do Variables (vedlejší záložka) pak složka a případné úlevy u certifikátu:
 #
@@ -217,16 +220,39 @@ jobs:
           UZIVATEL: ${{ secrets.FTP_UZIVATEL }}
           LFTP_PASSWORD: ${{ secrets.FTP_HESLO }}
           ADRESAR: ${{ vars.FTP_ADRESAR || secrets.FTP_ADRESAR }}
+          SBER_HESLO: ${{ secrets.SBER_HESLO }}
         run: |
           ADR="${ADRESAR%/}"
+          # Složka s podněty leží o patro nad webem, aby se k datům nikdo
+          # nedostal přes prohlížeč.
+          DATA="$(dirname "$ADR")/podnety-data"
+
           cp spojeni.lftp prikazy.lftp
           {
             echo "echo --- 1/2: obrazky a styly ---"
             echo "mirror --reverse --delete --ignore-time --verbose dist/_astro/ \"$ADR/_astro/\""
             echo "echo --- 2/2: stranky a zbytek ---"
             echo "mirror --reverse --delete --verbose --exclude-glob .well-known/ --exclude-glob _astro/ --exclude-glob podnety-data/ dist/ \"$ADR\""
-            echo "bye"
           } >> prikazy.lftp
+
+          # Heslo ke sběru podnětů se nahraje ze secrets, aby se nemuselo nic
+          # zakládat ručně přes FTP. Do `dist/` nesmí — to je veřejné —, takže
+          # se posílá zvlášť a do složky mimo web.
+          #
+          # Jede to ve stejném přihlášení jako nahrávání: hosting povoluje málo
+          # souběžných a každé další spojení je zdroj potíží.
+          if [ -n "$SBER_HESLO" ]; then
+            printf '%s' "$SBER_HESLO" > heslo.txt
+            {
+              echo "echo --- heslo ke sberu podnetu ---"
+              echo "mkdir -p -f \"$DATA\""
+              echo "put -O \"$DATA\" heslo.txt"
+            } >> prikazy.lftp
+          else
+            echo ">> SBER_HESLO neni vyplnene, sber podnetu zustane vypnuty."
+          fi
+
+          echo "bye" >> prikazy.lftp
 
           lftp -u "$UZIVATEL" --env-password "$SERVER" < prikazy.lftp
 
