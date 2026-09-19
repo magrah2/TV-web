@@ -14,26 +14,44 @@
    Je to podmínka licence OpenStreetMap i OpenMapTiles — nesmí zmizet.
    Sedí ale v rohu tmavé mapy, tak ať do ní aspoň zapadne. */
 
+/* Text musí být světlý a podklad pod ním dost krycí. Dokud byl text
+   tlumený a pozadí průsvitné, prosvítaly skrz něj silnice a popisky mapy
+   a uvedení zdrojů nešlo přečíst — což je u věci, která tam je kvůli
+   licenci, dost vedle. */
 .maplibregl-ctrl-attrib {
-  background: rgb(11 32 50 / 0.72) !important;
+  background: rgb(11 32 50 / 0.9) !important;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius-maly) 0 0 0;
-  font-size: 10px;
+  font-size: 11px;
 }
 
+/* Dvojitá třída je tu nutná. Knihovna má vlastní pravidlo
+   `.maplibregl-ctrl-attrib.maplibregl-compact { color: #000 }` a to je
+   specifičtější než jedna třída — černý text na tmavé mapě pak prostě
+   zmizel. Odkazy tou barvou nešly, protože ty přebíjelo pravidlo níž. */
 .maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact,
+.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-inner,
 .maplibregl-ctrl-attrib a {
-  color: var(--na-noci-tlum);
+  color: var(--na-noci);
+}
+
+/* Odkazy se od textu poznají podle podtržení, ne podle tmavší barvy —
+   ta by je zase udělala nečitelnými. */
+.maplibregl-ctrl-attrib a {
+  text-decoration: underline;
+  text-decoration-color: var(--na-noci-tlum);
+  text-underline-offset: 2px;
 }
 
 .maplibregl-ctrl-attrib a:hover {
-  color: var(--na-noci);
+  text-decoration-color: currentColor;
 }
 
 /* Tlačítko, kterým se zdroje rozbalí na úzkém displeji. */
 .maplibregl-ctrl-attrib-button {
-  background-color: rgb(11 32 50 / 0.72) !important;
+  background-color: rgb(11 32 50 / 0.9) !important;
 }
 
 /* Na telefonu se rozbalený text roztáhne přes celou šířku a druhý řádek
