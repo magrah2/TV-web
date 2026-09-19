@@ -8,8 +8,9 @@ import { BARVA_TEMATU } from '../lib/temata';
 import type { Tema } from '../lib/temata';
 import { fotkaKandidata } from '../lib/portrety';
 import { Image } from 'astro:assets';
-// Náhledy map vyrábí `node nastroje/nahledy-map.mjs` z týchž podkladů,
-// které jsou na cílových stránkách — nemůžou se s nimi rozejít.
+// Náhledy map vyrábí `node nastroje/nahledy-map.mjs` tak, že vyfotí skutečné
+// stránky — nemůžou se s nimi tedy rozejít. Tytéž obrázky se ukazují i místo
+// mapy, když je vypnutý JavaScript.
 import nahledZameru from '../assets/nahled-mapa-zameru.png';
 import nahledOkrsku from '../assets/nahled-mapa-okrsku.png';
 

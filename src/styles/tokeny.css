@@ -93,6 +93,17 @@
   --mapa-voda: #2b81bd;
   --mapa-potok: #3f96cf;
 
+  /* Barvy oblastí na mapě „kde volit". Jedna barva = jedna volební budova;
+     generátor je rozděluje tak, aby dvě sousední oblasti nikdy nedostaly
+     stejnou. Zelená mezi nimi schválně není — ta je vyhrazená té oblasti,
+     kterou si člověk vybral, a jinak by nešlo poznat, která je jeho. */
+  --mapa-oblast-1: #2f7fd0;
+  --mapa-oblast-2: #d29a3a;
+  --mapa-oblast-3: #8a7fd0;
+  --mapa-oblast-4: #29a8b8;
+  --mapa-oblast-5: #c4708f;
+  --mapa-oblast-6: #7b93b8;
+
   --varovani: #b3261e;     /* neplatný lístek, chybové stavy */
   --navrh: #a05a00;        /* označení „návrh — k ověření" */
 

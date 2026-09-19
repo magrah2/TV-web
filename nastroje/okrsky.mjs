@@ -15,12 +15,18 @@
  *
  * Vysledky (obojí se commituje, web uz nikam nesaha):
  *   public/data/okrsky.json   adresy pro vyhledavac
- *   public/mapa-okrsky.svg    plochy okrsku jako skutecne vektorove obrysy
+ *   public/data/okrsky-plochy.json   plochy okrsku pro mapu na webu
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { VYREZ, MERITKO, merkator } from './vyrez-obce.mjs';
+
+/** Vyrez i jeho prepocet ziji ve `vyrez-obce.mjs`, spolecne s generatorem
+    dlazdic. Kdyby si je kazdy skript drzel sam, plochy okrsku by po zmene
+    vyrezu sedely jinam nez mapa pod nimi. */
+const vyrez = VYREZ;
 
 const KOD_OBCE = '592889'; // Vyskov
 const ZDROJ = `https://services.cuzk.gov.cz/sestavy/VO/${KOD_OBCE}.zip`;
@@ -28,10 +34,16 @@ const DOCASNE = 'nastroje/.okrsky';
 // Data lezi v public/, ne v src/: maji skoro 200 kB a nacita je jen jedna
 // stranka. Vlozena do HTML by zbytecne zvetsila kazdou jinou.
 const CIL = 'public/data/okrsky.json';
-const CIL_PLOCHY = 'public/mapa-okrsky.svg';
+/**
+ * Plochy volebnich oblasti pro mapu na webu.
+ *
+ * Zemepisne souradnice, ne jednotky mapy: mapa se da posouvat a priblizovat,
+ * takze tvary pevne k jednomu vyrezu by byly k nicemu. Vykresluje je MapLibre
+ * jako vlastni vrstvu nad dlazdicemi.
+ */
+const CIL_PLOCHY_GEO = 'public/data/okrsky-plochy.json';
 // Sirsi mapa cele obce — okrsky 24 a 25 (Rychtarov, Lhota) lezi mimo
 // tesny vyrez mesta a na te uzsi mape by je nikdo nenasel.
-const VYREZ_JSON = 'src/lib/mapa-vyrez-obec.json';
 const MISTNOSTI_JSON = 'src/lib/volebni-mistnosti.json';
 const NEJVETSI_ODCHYLKA = 5; // metru; nad tim prevod povazujeme za chybny
 
@@ -277,8 +289,6 @@ const adresyKompaktne = zaznamy
 // Je to priblizeni, ne uredni hranice — na mape ale ukaze presne to, co clovek
 // potrebuje videt: kde konci "muj" okrsek.
 
-if (!fs.existsSync(VYREZ_JSON)) skonci(`Chybi ${VYREZ_JSON}. Spustte nejdriv nastroje/mapa.mjs.`);
-const vyrez = JSON.parse(fs.readFileSync(VYREZ_JSON, 'utf8'));
 
 // Plochy se kresli po BUDOVACH, ne po okrscich. Volice nezajima cislo okrsku,
 // ale do ktere budovy ma jit — a kdyz nekolik okrsku voli na stejnem miste,
@@ -310,9 +320,7 @@ const BUNKA = 2;      // jemnost mrizky v souradnicich mapy
 const DOSAH = 60;     // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
 const TOLERANCE = 1.6; // jak moc se smi obrys zjednodusit
 
-const merkator = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
 const yJih = merkator(vyrez.jih);
-const MERITKO = vyrez.sirka / (vyrez.vychod - vyrez.zapad);
 const naMapu = (lat, lon) => ({
   x: (lon - vyrez.zapad) * MERITKO,
   y: vyrez.vyska - (merkator(lat) - yJih) * (180 / Math.PI) * MERITKO,
@@ -572,61 +580,126 @@ for (const o of [...cisla].sort((p, q) => (sousede.get(q)?.size ?? 0) - (sousede
 }
 
 /**
- * Prolozi mnohouhelnik hladkou krivkou.
+ * Prolozi vytrasovany obrys hladkou krivkou a rozlozi ji na body.
  *
  * Obrys vytrasovany z mrizky ma na sikmych usecich schody. Douglas-Peucker
  * z nich udela lomenou caru, ale porad jsou videt zuby. Kvadraticke krivky
- * vedene STREDY hran, kde vrcholy slouzi jako ridici body, zuby zaobli
- * a pritom nepridaji ani jeden bod navic.
+ * vedene STREDY hran, kde vrcholy slouzi jako ridici body, zuby zaobli.
+ *
+ * Mapa zna jen lomene cary, takze se krivka hned zase naseka na usecky.
+ * Vzorkuje se po tretinach: pri zjednoduseni obrysu je krok kolem patnacti
+ * metru, takze tri body na krivku staci a zuby videt nejsou.
  */
-function vyhlad(body) {
-  // Trasovani vraci smycku, ktera konci tam, kde zacala.
+const VZORKU_NA_KRIVKU = 3;
+
+function vyhladNaBody(body) {
   const b = body.slice();
   if (b.length > 1 && b[0][0] === b[b.length - 1][0] && b[0][1] === b[b.length - 1][1]) b.pop();
   const n = b.length;
   if (n < 3) return null;
 
-  const zaokrouhli = ([x, y]) => `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
   const stred = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const kridlo = [stred(b[0], b[1])];
 
-  let d = 'M' + zaokrouhli(stred(b[0], b[1]));
   for (let i = 1; i <= n; i++) {
-    const vrchol = b[i % n];
-    const dalsi = b[(i + 1) % n];
-    d += 'Q' + zaokrouhli(vrchol) + ' ' + zaokrouhli(stred(vrchol, dalsi));
+    const zacatek = stred(b[(i - 1) % n], b[i % n]);
+    const ridici = b[i % n];
+    const konec = stred(b[i % n], b[(i + 1) % n]);
+    for (let k = 1; k <= VZORKU_NA_KRIVKU; k++) {
+      const t = k / VZORKU_NA_KRIVKU;
+      const u = 1 - t;
+      kridlo.push([
+        u * u * zacatek[0] + 2 * u * t * ridici[0] + t * t * konec[0],
+        u * u * zacatek[1] + 2 * u * t * ridici[1] + t * t * konec[1],
+      ]);
+    }
   }
-  return d + 'Z';
+  return kridlo;
 }
 
-const skupiny = [];
+/** Opacny smer k `merkator` - z polohy na mape zpatky na zemepisne souradnice. */
+const zMerkatoru = (y) => 2 * Math.atan(Math.exp(y)) - Math.PI / 2;
+
+/** Bod mapy -> [delka, sirka]. Pet desetinnych mist je zhruba metr. */
+function naZemekouli([x, y]) {
+  const lon = vyrez.zapad + x / MERITKO;
+  const lat = (zMerkatoru(yJih + ((vyrez.vyska - y) / MERITKO) * (Math.PI / 180)) * 180) / Math.PI;
+  return [Math.round(lon * 1e5) / 1e5, Math.round(lat * 1e5) / 1e5];
+}
+
+/** Plocha se znamenkem. Vnitrni smycka se toci opacne nez vnejsi. */
+function plochaSmycky(body) {
+  let dvojnasobek = 0;
+  for (let i = 0; i < body.length; i++) {
+    const [x1, y1] = body[i];
+    const [x2, y2] = body[(i + 1) % body.length];
+    dvojnasobek += x1 * y2 - x2 * y1;
+  }
+  return dvojnasobek / 2;
+}
+
+/** Lezi bod uvnitr smycky? Klasicky paprsek doprava. */
+function uvnitrSmycky([x, y], smycka) {
+  let uvnitr = false;
+  for (let i = 0, j = smycka.length - 1; i < smycka.length; j = i++) {
+    const [xi, yi] = smycka[i];
+    const [xj, yj] = smycka[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) uvnitr = !uvnitr;
+  }
+  return uvnitr;
+}
+
+const plochyGeo = [];
 let celkemBodu = 0;
+
 for (const o of cisla) {
-  const cesty = obrysy(o)
+  const smycky = obrysy(o)
     .map((smycka) => zjednodus(smycka, TOLERANCE))
-    .filter((s) => s.length > 3)
-    .map((s) => {
-      celkemBodu += s.length;
-      return vyhlad(s);
-    })
-    .filter(Boolean);
-  if (!cesty.length) continue;
+    .filter((s) => s.length > 3);
+  if (!smycky.length) continue;
+  for (const s of smycky) celkemBodu += s.length;
+
   const b = budovy[o - 1];
-  skupiny.push(
-    `  <g class="budova-plocha" data-budova="${o - 1}" data-okrsky="${b.okrsky.join(' ')}" data-barva="${barvy.get(o)}">\n` +
-      `    <path d="${cesty.join('')}"/>\n  </g>`,
-  );
+
+  // Diry. Obrysy jsou vedene tak, ze uvnitr oblasti je vpravo od smeru chuze,
+  // takze vnitrni smycka se toci opacne nez vnejsi. V SVG to resi pravidlo
+  // `nonzero` samo, GeoJSON ale chce diry vyjmenovane u toho prstence, do
+  // ktereho patri - jinak by se vnitrni dvory vyplnily barvou.
+  const kridla = smycky.map(vyhladNaBody).filter(Boolean);
+  const vnejsi = kridla.filter((k) => plochaSmycky(k) > 0);
+  const diry = kridla.filter((k) => plochaSmycky(k) <= 0);
+
+  const mnohouhelniky = vnejsi.map((k) => [k]);
+  for (const dira of diry) {
+    const kam = mnohouhelniky.find((m) => uvnitrSmycky(dira[0], m[0]));
+    // Dira, ktera nelezi v zadnem prstenci teze oblasti, je chyba trasovani.
+    // Zahodit ji je mensi zlo nez ji pripsat nahodne plose.
+    if (kam) kam.push(dira);
+  }
+  if (!mnohouhelniky.length) continue;
+
+  plochyGeo.push({
+    type: 'Feature',
+    properties: { budova: o - 1, okrsky: b.okrsky.join(' '), barva: barvy.get(o) },
+    geometry: {
+      type: 'MultiPolygon',
+      coordinates: mnohouhelniky.map((m) =>
+        m.map((prstenec) => {
+          const body = prstenec.map(naZemekouli);
+          // GeoJSON chce prstenec uzavreny - prvni bod se musi zopakovat.
+          body.push(body[0]);
+          return body;
+        }),
+      ),
+    },
+  });
 }
 
-const svgPlochy = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vyrez.sirka} ${vyrez.vyska}" aria-hidden="true" focusable="false">
-<!-- Plochy volebnich okrsku, vygenerovane skriptem nastroje/okrsky.mjs.
-     Jedna plocha = jedna volebni budova (nekolik okrsku muze volit na stejnem
-     miste). Odvozene z adres (CUZK / RUIAN), nejsou to uredni hranice.
-     Needitovat rucne. -->
-${skupiny.join('\n')}
-</svg>
-`;
+fs.writeFileSync(
+  CIL_PLOCHY_GEO,
+  JSON.stringify({ type: 'FeatureCollection', features: plochyGeo }),
+);
 
-fs.writeFileSync(CIL_PLOCHY, svgPlochy);
 
 // ---------------------------------------------------------------------------
 // 5. Zapis
@@ -654,5 +727,5 @@ fs.writeFileSync(CIL, JSON.stringify(vysledek));
 krok('Hotovo.');
 info(`${CIL}  (${Math.round(fs.statSync(CIL).size / 1024)} kB)`);
 info(`  adres: ${adresyKompaktne.length}, ulic: ${ulice.length}, okrsku: ${okrsky.length}`);
-info(`${CIL_PLOCHY}  (${Math.round(fs.statSync(CIL_PLOCHY).size / 1024)} kB)`);
-info(`  ploch: ${skupiny.length} (budov), bodu obrysu: ${celkemBodu}, barev: ${new Set(barvy.values()).size}`);
+info(`${CIL_PLOCHY_GEO}  (${Math.round(fs.statSync(CIL_PLOCHY_GEO).size / 1024)} kB)`);
+info(`  ploch: ${plochyGeo.length} (budov), bodu obrysu: ${celkemBodu}, barev: ${new Set(barvy.values()).size}`);

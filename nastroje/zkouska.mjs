@@ -198,10 +198,38 @@ try {
   await stranka.waitForTimeout(200);
   overit('28 jednotlivcu = neplatny', true, await jeNeplatny());
 
+  // --- Mapy ----------------------------------------------------------------
+  // Vsechny tri mapy na webu stoji na stejnem podkladu: vektorove dlazdice
+  // ulozene v repozitari. Nejdulezitejsi vlastnost je, ze jsou NASE — kdyby
+  // se nekdy stylu vratila adresa verejne sluzby, posilal by kazdy navstevnik
+  // svoji IP adresu na cizi server a padlo by pravidlo, kvuli kteremu web
+  // nepotrebuje cookie listu. Proto se u kazde mapy hlida provoz ven.
+  const cizi = [];
+  const chybyKonzole = [];
+  stranka.on('request', (pozadavek) => {
+    const kam = new URL(pozadavek.url());
+    // `blob:` je vlakno, ktere si knihovna vyrobi v prohlizeci, `data:` je
+    // obrazek zapsany primo v kodu. Ani jedno nikam nejde - siti jde jen
+    // http a https.
+    if (kam.protocol !== 'http:' && kam.protocol !== 'https:') return;
+    if (kam.host !== new URL(ADRESA).host) cizi.push(kam.host);
+  });
+  stranka.on('console', (zprava) => {
+    if (zprava.type() === 'error') chybyKonzole.push(zprava.text().slice(0, 120));
+  });
+
+  /** Poloha znacky na obrazovce. Mapu posouva knihovna, znacky jedou s ni. */
+  const polohaZnacky = (selektor) =>
+    stranka.$eval(selektor, (e) => e.style.transform || '');
+
   // --- Mapa zameru ---------------------------------------------------------
   await stranka.goto(`${ADRESA}mapa/`, { waitUntil: 'networkidle' });
-  await stranka.waitForTimeout(300);
-  // Klika se na bod, ktery stoji sam. Odznaky se uz nerozestrkavaji, takze
+  await stranka.waitForTimeout(2500);
+
+  overit('mapa zameru nic nestahuje z ciziho serveru', 0, cizi.length);
+  overit('mapa zameru nehlasi chybu', 0, chybyKonzole.length);
+
+  // Klika se na bod, ktery stoji sam. Odznaky se nerozestrkavaji, takze
   // v centru se prekryvaji a na zakryty odznak se kliknout neda - k tem
   // vede seznam vedle mapy.
   await stranka.click('.mapa-bod[data-bod="14"]');
@@ -221,61 +249,32 @@ try {
   await stranka.waitForTimeout(300);
   const skrytych = await stranka.locator('.mapa-bod[data-skryty]').count();
   overit('filtr mapy neco skryl', true, skrytych > 0 && skrytych < bodu);
+  await stranka.click('.mapa-filtry .filtr[data-tema=""]');
+  await stranka.waitForTimeout(300);
 
-  // Mapa se musi zvetsovat `viewBox`em. Se `transform: scale()` si prohlizec
-  // SVG jednou vykresli do bitmapy a tu pak natahuje — z priblizene mapy jsou
-  // kosticky. Stejna chyba uz tu byla dvakrat, u teto mapy i u "kde volit".
-  const vyrezPred = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
+  // Odznaky lezi nad mapou jako HTML a polohu jim nastavuje knihovna pres
+  // `transform`. Kdyby jim ji neco prepsalo — treba vlastni zvetseni pri
+  // najeti — odskocily by do rohu mapy. Uz se to jednou stalo.
+  await stranka.click('[data-zoom="reset"]');
+  await stranka.waitForTimeout(700);
+  const odznakPred = await polohaZnacky('.mapa-znacka[data-bod="1"]');
   await stranka.click('[data-zoom="dovnitr"]');
-  await stranka.waitForTimeout(400);
-  overit('priblizeni mapy zameru meni viewBox', true,
-    vyrezPred !== (await stranka.getAttribute('.mapa-plocha svg', 'viewBox')));
-  overit('mapa zameru se nezvetsuje pres transform', true,
-    !((await stranka.getAttribute('[data-mapa-vnitrek]', 'style')) ?? '').includes('scale'));
-
-  // Odznaky lezi nad mapou jako HTML, takze se pri priblizeni musi presunout
-  // samy — jinak by ukazovaly na uplne jine misto, nez ke kteremu patri.
-  const odznakPred = await stranka.getAttribute('.mapa-bod[data-bod="1"]', 'style');
-  await stranka.click('[data-zoom="dovnitr"]');
-  await stranka.waitForTimeout(400);
-  overit('odznaky se pri priblizeni presunou', true,
-    odznakPred !== (await stranka.getAttribute('.mapa-bod[data-bod="1"]', 'style')));
+  await stranka.waitForTimeout(900);
+  const odznakPo = await polohaZnacky('.mapa-znacka[data-bod="1"]');
+  overit('priblizeni mapy zameru odznaky presune', true, odznakPred !== odznakPo);
+  overit('odznak drzi polohu od mapy, ne vlastni', true, odznakPo.includes('translate'));
 
   // Vybrany bod musi zustat zvyrazneny i po odjeti mysi. Klik do mapy
   // odroluje na polozku v seznamu, mapa se pohne pod kurzorem a `mouseleave`
   // drive zvyrazneni hned zhaslo — clovek pak nevedel, co si vybral.
-  // Predchozi test nechal zapnuty filtr, ktery ostatni body skryva a odebira
-  // jim `pointer-events` — bez zruseni filtru by klik propadl do mapy pod nim.
-  // Klika se opet na bod 14, protoze v centru se odznaky prekryvaji.
-  await stranka.click('.mapa-filtry .filtr[data-tema=""]');
-  await stranka.waitForTimeout(300);
   await stranka.click('[data-zoom="reset"]');
-  await stranka.waitForTimeout(300);
+  await stranka.waitForTimeout(900);
   await stranka.click('.mapa-bod[data-bod="14"]');
-  await stranka.waitForTimeout(600);
+  await stranka.waitForTimeout(800);
   await stranka.mouse.move(5, 5);
   await stranka.waitForTimeout(400);
   overit('vybrany bod zustane zvyrazneny i po odjeti mysi', 1,
     await stranka.locator('.mapa-bod.je-zvyrazneny').count());
-
-  // Stipnuti dvema prsty musi priblizit mapu, ne celou stranku. Rozhoduje
-  // o tom `touch-action`: bez `pan-y` si gesto vezme prohlizec sam.
-  const dotyk = (sel) => stranka.$eval(sel, (e) => getComputedStyle(e).touchAction);
-  const oddalMapu = async () => {
-    const t = stranka.locator('[data-zoom="reset"]');
-    if (await t.isEnabled()) {
-      await t.click();
-      await stranka.waitForTimeout(300);
-    }
-  };
-
-  await oddalMapu();
-  overit('oddalena mapa zameru pusti stipnuti do skriptu', 'pan-y',
-    await dotyk('.mapa-plocha'));
-  await stranka.click('[data-zoom="dovnitr"]');
-  await stranka.waitForTimeout(300);
-  overit('priblizena mapa zameru posouva mapu, ne stranku', 'none',
-    await dotyk('.mapa-plocha'));
   overit('ostatni body pri vyberu ustoupi', true,
     (await stranka.getAttribute('.mapa-plocha', 'data-zvyraznuji')) !== null);
 
@@ -283,12 +282,23 @@ try {
   // Vyhledavac rika lidem, kam maji jit volit. Kdyby ukazoval spatne, poslali
   // bychom je do nespravne mistnosti — proto se kontroluje proti udajum
   // z uredni vyhlasky mesta.
+  cizi.length = 0;
+  chybyKonzole.length = 0;
   await stranka.goto(`${ADRESA}kde-volit/`, { waitUntil: 'networkidle' });
-  await stranka.waitForTimeout(500);
+  await stranka.waitForTimeout(2500);
+
+  overit('mapa kde volit nic nestahuje z ciziho serveru', 0, cizi.length);
+  overit('mapa kde volit nehlasi chybu', 0, chybyKonzole.length);
 
   // Plochy se sluci podle budovy, ne podle okrsku: nekolik okrsku voli
   // na stejnem miste a pro volice je to jedna oblast.
-  overit('mapa ma plochy budov', 15, await stranka.locator('.budova-plocha').count());
+  overit('mapa ma znacku u kazde budovy', 15,
+    await stranka.locator('[data-pin-budova]').count());
+
+  // Bez JavaScriptu mapa neni, takze stranka musi odpovedet i jinak.
+  // Seznam mistnosti je obycejne HTML uvnitr `<details>`.
+  overit('seznam mistnosti je v HTML', 15,
+    await stranka.locator('.vsechny-mistnosti li').count());
 
   const najdiAdresu = async (text) => {
     await stranka.fill('[data-vstup]', '');
@@ -296,7 +306,7 @@ try {
     await stranka.waitForTimeout(800);
     if (!(await stranka.locator('.navrhy li').count())) return null;
     await stranka.locator('.navrhy li').first().click();
-    await stranka.waitForTimeout(600);
+    await stranka.waitForTimeout(900);
     return (await stranka.textContent('.karta-misto')).trim();
   };
 
@@ -313,111 +323,39 @@ try {
   overit('Lhota voli v Sokole ve Lhote', true, (await najdiAdresu('Lhota 8') ?? '').includes('Sokol Lhota'));
 
   overit('nalezena adresa zvyrazni prave jednu oblast', 1,
-    await stranka.locator('.budova-plocha[data-vybrany]').count());
-  overit('nalezena adresa se ukaze na mape', true, await stranka.locator('.moje-adresa').isVisible());
+    await stranka.locator('[data-pin-budova][data-vybrany]').count());
+  overit('nalezena adresa se ukaze na mape', true, await stranka.locator('[data-moje]').isVisible());
   overit('do mapy se vypise cil', true, await stranka.locator('[data-popis-cile]').isVisible());
   overit('do mapy se vypise adresa', true, await stranka.locator('[data-popis-adresy]').isVisible());
-  overit('vede se spojnice', true,
-    ((await stranka.getAttribute('.spojnice path', 'd')) ?? '').length > 5);
+  overit('vede se spojnice', 'ano', await stranka.getAttribute('[data-mapa]', 'data-cesta'));
 
-  // Klik do mapy je druha cesta ke stejne odpovedi.
-  // Predchozi hledani adresy mapu priblizilo ke Lhote, takze se nejdriv vrati
-  // pohled na celou obec — jinak by hledana oblast lezela mimo ram.
+  // Klik do mapy je druha cesta ke stejne odpovedi. Znacky mistnosti musi
+  // byt klikaci: plochy oblasti se u sebe prekryvaji, takze klik vedle
+  // znacky casto vybere sousedni oblast.
   await stranka.click('[data-zoom="reset"]');
-  await stranka.waitForTimeout(400);
-  await stranka.locator('.mapa-plocha').scrollIntoViewIfNeeded();
-  await stranka.waitForTimeout(200);
+  await stranka.waitForTimeout(1200);
+  await stranka.click('.budova-pin[title*="Morávkova"]');
+  await stranka.waitForTimeout(800);
+  overit('klik na znacku mistnosti vybere jeji oblast', true,
+    (await stranka.textContent('.karta-misto')).includes('Morávkova'));
 
-  // Stred obalky nepravidelneho tvaru casto lezi mimo nej, takze se bod
-  // uvnitr najde pres isPointInFill a klika se na skutecne souradnice.
-  // Musi lezet i uvnitr ramu mapy: `isPointInFill` o orezani nevi a vratil by
-  // i bod, ktery je odrolovany nebo schovany za okrajem.
-  const bodUvnitr = await stranka.evaluate(() => {
-    const path = document.querySelector('.budova-plocha[data-okrsky~="20"] path');
-    if (!path) return null;
-    const ram = document.querySelector('.mapa-plocha').getBoundingClientRect();
-    const b = path.getBBox();
-    const ctm = path.getScreenCTM();
-    for (let i = 1; i < 40; i++) {
-      for (let j = 1; j < 40; j++) {
-        const x = b.x + (b.width * i) / 40;
-        const y = b.y + (b.height * j) / 40;
-        if (!path.isPointInFill(new DOMPoint(x, y))) continue;
-        const p = new DOMPoint(x, y).matrixTransform(ctm);
-        const uvnitrRamu =
-          p.x > ram.left + 4 && p.x < ram.right - 4 && p.y > ram.top + 4 && p.y < ram.bottom - 4;
-        if (uvnitrRamu) return { x: p.x, y: p.y };
-      }
-    }
-    return null;
+  // A klik do plochy taky — tam uz staci, ze vybere nejakou.
+  const stredMapy = await stranka.evaluate(() => {
+    const r = document.querySelector('[data-mapa]').getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   });
-  overit('nasel jsem bod uvnitr oblasti', true, !!bodUvnitr);
-  if (bodUvnitr) {
-    await stranka.mouse.click(bodUvnitr.x, bodUvnitr.y);
-    await stranka.waitForTimeout(600);
-    overit('klik do mapy vybere oblast', true,
-      (await stranka.textContent('.karta-misto')).includes('Morávkova'));
-  }
+  await stranka.mouse.click(stredMapy.x, stredMapy.y);
+  await stranka.waitForTimeout(800);
+  overit('klik do plochy vybere oblast', 1,
+    await stranka.locator('[data-pin-budova][data-vybrany]').count());
 
-  // Mapa musi jit zvetsit a viewBox se pri tom musi zmenit — kdyby se
-  // zvetsovalo pres transform, SVG by se rozpixelovalo.
-  const pred = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
+  // Mapa musi jit priblizit a znacky musi jet s ni.
+  const znackaPred = await polohaZnacky('[data-pin-budova="0"]');
   await stranka.click('[data-zoom="dovnitr"]');
-  await stranka.waitForTimeout(400);
-  const po = await stranka.getAttribute('.mapa-plocha svg', 'viewBox');
-  overit('priblizeni meni viewBox', true, pred !== po);
-  overit('mapa se nezvetsuje pres transform', '',
-    (await stranka.getAttribute('.mapa-plocha svg', 'style')) ?? '');
+  await stranka.waitForTimeout(900);
+  overit('priblizeni mapy kde volit presune znacky', true,
+    znackaPred !== (await polohaZnacky('[data-pin-budova="0"]')));
 
-  // Totez u mapy volebnich mistnosti.
-  await oddalMapu();
-  overit('oddalena mapa kde volit pusti stipnuti do skriptu', 'pan-y',
-    await stranka.$eval('.mapa-plocha', (e) => getComputedStyle(e).touchAction));
-  await stranka.click('[data-zoom="dovnitr"]');
-  await stranka.waitForTimeout(300);
-  overit('priblizena mapa kde volit posouva mapu, ne stranku', 'none',
-    await stranka.$eval('.mapa-plocha', (e) => getComputedStyle(e).touchAction));
-
-  // Nazvy mistnich casti se rozestupuji podle skutecneho prekryvu. Kdyby se
-  // to rozbilo, mapa se necha prelepit nazvy pres sebe a stane se necitelnou.
-  const popisky = async () =>
-    await stranka.evaluate(() => {
-      const ram = document.querySelector('.mapa-plocha').getBoundingClientRect();
-      return [...document.querySelectorAll('.popisek-casti')]
-        .filter((p) => !p.hidden)
-        .map((p) => {
-          const r = p.getBoundingClientRect();
-          return {
-            nazev: p.textContent,
-            x1: r.left, y1: r.top, x2: r.right, y2: r.bottom,
-            vRamu: r.left >= ram.left - 1 && r.right <= ram.right + 1 &&
-                   r.top >= ram.top - 1 && r.bottom <= ram.bottom + 1,
-          };
-        });
-    });
-
-  const priblizene = await popisky();
-  const kolize = priblizene.some((a, i) =>
-    priblizene.some((b, j) => j > i && a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1));
-  overit('nazvy casti se neprekryvaji', false, kolize);
-  overit('nazvy casti nevycuhuji z mapy', true, priblizene.every((p) => p.vRamu));
-
-  // Pri pohledu na celou obec se do stredu mesta vsechny nazvy nevejdou —
-  // nektere se schovaji. To je zamer, ne chyba, takze se to hlida.
-  //
-  // Pocitat, kolik nazvu je videt po priblizeni, by nefungovalo: priblizeni
-  // sice ve stredu udela misto, ale zaroven vytlaci okrajove casti z ramu,
-  // takze jich celkem byva vic pri oddaleni. Hlida se proto konkretni nazev.
-  await stranka.click('[data-zoom="reset"]');
-  await stranka.waitForTimeout(400);
-  const celkem = await stranka.locator('.popisek-casti').count();
-  overit('na celou obec se nektere nazvy schovaji', true, (await popisky()).length < celkem);
-
-  // Schovany nazev se ale musi dat odkryt, jinak by ta cast zustala bezejmenna.
-  // Brnenska 5 lezi ve Vyskove-Meste, jehoz nazev je pri oddaleni prekryty.
-  await najdiAdresu('Brněnská 5');
-  overit('priblizeni odkryje schovany nazev', true,
-    (await popisky()).some((p) => p.nazev === 'Vyškov-Město'));
 
   await stranka.fill('[data-vstup]', '');
   await stranka.fill('[data-vstup]', 'Neexistujici ulice 999');

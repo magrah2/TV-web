@@ -1,0 +1,13 @@
+# Windows si prepisuje konce radku a Git mu v tom pomaha. U souboru, ktere
+# nejsou text, by to znamenalo tise zmenene bajty - z dlazdice by byla kase
+# a mapa by se nevykreslila. Proto se vyjmenovavaji.
+*.pbf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.zip binary

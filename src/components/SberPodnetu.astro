@@ -28,9 +28,9 @@
  */
 
 import { KATEGORIE, BARVA_KATEGORIE, NEJDELSI_POPIS } from '../lib/podnety';
-import { VYREZ_OBCE } from '../lib/mapa-obce';
 import { odkaz } from '../lib/odkaz';
 import okrsky from '../../public/data/okrsky.json';
+import '../styles/mapa.css';
 
 const adresaApi = odkaz('/podnety.php');
 
@@ -69,7 +69,6 @@ const obydlene = (() => {
   class="sber"
   data-sber
   data-api={adresaApi}
-  data-vyrez={JSON.stringify(VYREZ_OBCE)}
   data-obydlene={JSON.stringify(obydlene)}
 >
   <div class="sber-lista">
@@ -452,25 +451,19 @@ const obydlene = (() => {
     }
   }
 
-  /* Uvést zdroj dlaždic musíme, ale na stánku nemá překážet. */
-  .sber-mapa .maplibregl-ctrl-attrib {
-    font-size: 10px;
-    background: rgb(255 255 255 / 0.75);
-  }
 </style>
 
 <script>
   import maplibre from 'maplibre-gl';
   import type { Marker } from 'maplibre-gl';
   import 'maplibre-gl/dist/maplibre-gl.css';
-  import { STYL_MAPY } from '../lib/styl-mapy';
+  import { vytvorMapu } from '../lib/mapa-zaklad';
 
   const koren = document.querySelector<HTMLElement>('[data-sber]');
   if (koren) spustSber(koren);
 
   function spustSber(koren: HTMLElement) {
     const ADRESA = koren.dataset.api!;
-    const VYREZ = JSON.parse(koren.dataset.vyrez!);
     const OBYDLENE = JSON.parse(koren.dataset.obydlene!);
     const KLIC_HESLA = 'tv-sber-heslo';
     const KLIC_MISTNI = 'tv-sber-body';
@@ -503,39 +496,20 @@ const obydlene = (() => {
     // --- Mapa -------------------------------------------------------------
 
     // Hranice se zadávají jako [západ, jih] a [východ, sever].
-    const HRANICE: [[number, number], [number, number]] = [
-      [VYREZ.zapad, VYREZ.jih],
-      [VYREZ.vychod, VYREZ.sever],
-    ];
     const OBYDLENE_HRANICE: [[number, number], [number, number]] = [
       [OBYDLENE.zapad, OBYDLENE.jih],
       [OBYDLENE.vychod, OBYDLENE.sever],
     ];
 
-    const mapa = new maplibre.Map({
-      container: prvekMapy,
-      style: STYL_MAPY as never,
-      center: [16.9989, 49.2773],
+    // Tentýž podklad jako mapa záměrů a mapa volebních okrsků. Liší se jediná
+    // věc: tady se ovládá jedním prstem. Na stánku je mapa to hlavní a obsluha
+    // do ní ťuká, takže zdvořilé „posuňte dvěma prsty" by jen překáželo.
+    const mapa = vytvorMapu({
+      prvek: prvekMapy,
+      stred: [16.9989, 49.2773],
       zoom: 14,
-      // Za hranice obce se nedá odjet. Bod mimo ni by server stejně nepřijal.
-      maxBounds: HRANICE,
-      minZoom: 10,
-      maxZoom: 19,
-      // Mapa se nenaklání ani neotáčí. Na stánku by to jen překáželo a bod
-      // by se do nakloněné mapy trefoval hůř.
-      pitchWithRotate: false,
-      dragRotate: false,
-      touchZoomRotate: true,
-      attributionControl: {
-        compact: true,
-        customAttribution: '© přispěvatelé OpenStreetMap · dlaždice OpenFreeMap',
-      },
+      opatrneOvladani: false,
     });
-    mapa.touchZoomRotate.disableRotation();
-
-    // Když je ve stylu chyba, knihovna vrstvu tiše zahodí a mapa zůstane
-    // prázdná. Tohle to aspoň napíše do konzole.
-    mapa.on('error', (udalost) => console.error('Mapa:', udalost.error?.message ?? udalost));
 
     // --- Značky -----------------------------------------------------------
 

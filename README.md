@@ -241,7 +241,7 @@ webu ještě dlouho po úpravě.
 
 Vzor v souboru míří na ten otisk před příponou, ne na složku `_astro/`,
 protože `FilesMatch` vidí jen jméno souboru, cestu k němu ne. Soubory
-z `public/` jako `mapa-vyskov.svg` ho tedy nesplňují — a je to tak správně,
+z `public/` jako dlaždice map ho tedy nesplňují — a je to tak správně,
 ty se jmenují pořád stejně a obsah se jim měnit může.
 
 Platí tu jedna zásada: **do souboru se nepřidává direktiva „pro jistotu"**.
@@ -326,8 +326,68 @@ takže když se výřez mapy někdy změní, body se posunou samy.
 Když bod omylem umístíte mimo výřez, sestavení se zastaví a napíše který —
 lepší, než aby bod potichu zmizel za okrajem.
 
-Podklad mapy je hotový soubor `public/mapa-vyskov.svg`. Přegenerovat se dá
-příkazem `node nastroje/mapa.mjs`, ale je to potřeba jen při změně výřezu.
+Podklad mapy jsou stažené dlaždice ve složce `public/dlazdice/` — víc o nich
+v kapitole [Podklad map](#podklad-map).
+
+---
+
+## Podklad map
+
+Na webu jsou tři mapy — záměry, volební okrsky a sběr podnětů na stánku —
+a **všechny tři stojí na stejném podkladu**. Dřív měla každá vlastní
+obarvení a rozjížděly se: na jedné byla řeka zelená, na druhé modrá.
+
+Podklad se skládá z **vektorových dlaždic**. Obrázkové dlaždice mají barvy
+zapečené dovnitř a sladit se dají jen filtrem přes celou mapu, který obarví
+i popisky. Vektorové posílají tvary a barvu jim určuje až **náš vlastní
+styl** v `src/lib/styl-mapy.ts` — každá třída silnic, voda, zeleň i domy
+mají barvu z našich tokenů.
+
+### Dlaždice si hostujeme sami
+
+Dlaždice pocházejí z [OpenFreeMap](https://openfreemap.org), ale web si je
+**za běhu odnikud nestahuje**. Jsou stažené jednou a uložené v repozitáři,
+stejně jako dřív hotové SVG. Kdyby se braly z veřejné služby, posílal by
+každý návštěvník svoji IP adresu na cizí server — a padlo by tím pravidlo,
+kvůli kterému web nepotřebuje cookie lištu.
+
+OpenFreeMap s tím přímo počítá: licence je MIT a self-hosting doporučují
+sami. Podmínka je uvedení zdroje, které mapa vykresluje v rohu — **to nesmí
+zmizet**.
+
+Je toho překvapivě málo, protože dlaždice končí na přiblížení 14; bližší
+pohled si prohlížeč dopočítá sám.
+
+| | |
+|---|---|
+| dlaždice (`public/dlazdice/`) | 141 souborů, 3,0 MB |
+| písma popisků (`public/pisma-mapy/`) | 6 souborů, 617 kB |
+| z toho jeden pohled na město | zhruba 4 dlaždice |
+
+Stáhnou se příkazem:
+
+```
+node nastroje/dlazdice.mjs
+```
+
+Je to **zamrzlý snímek světa**. Když na mapě chybí nová ulice, spusťte
+skript znovu a výsledek commitněte; datum posledního stažení je
+v `public/dlazdice/PUVOD.txt`. Výřez území je v `nastroje/vyrez-obce.mjs`
+a sdílí ho i generátor volebních okrsků.
+
+### Bez JavaScriptu
+
+Mapu skládá prohlížeč, takže bez skriptu se nevykreslí. Místo prázdného rámu
+se ukáže obrázek téže mapy a věta, kde najít totéž v textu — seznam záměrů
+i seznam volebních místností jsou obyčejné HTML a fungují dál.
+
+Ty obrázky se vyrábějí **vyfocením skutečné stránky**, takže se s mapou
+nemůžou rozejít. Používají se i jako náhledy na úvodní stránce:
+
+```
+npm run nahled          # v jednom okně
+node nastroje/nahledy-map.mjs
+```
 
 ---
 
@@ -362,21 +422,9 @@ Stránka **`/stanek/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
 vybrat mu oblast (osm programových plus „Ostatní") a napsat, co s tím místem
 je. Používá se na tabletu při kontaktní kampani.
 
-Jako jediná na webu si **stahuje mapu z cizího serveru**, ne náš vlastní
-podklad. Je to vědomá výjimka: s touhle mapou se pracuje, obsluha musí podle
-názvů ulic najít místo, které člověk u stánku ukáže. Náš podklad takový
-detail nemá a mít nemůže — jen budov je ve výřezu přes deset tisíc a SVG by
-narostlo na jednotky megabajtů. Počítá se s tím, že tablet bude online.
-
-Dlaždice jsou **vektorové** (OpenFreeMap, bez klíče a bez účtu). Není to
-detail: obrázkové dlaždice mají barvy zapečené dovnitř a sladit se dají jen
-filtrem přes celou mapu, který obarví i popisky. Vektorové posílají tvary
-a barvu jim určuje až **náš vlastní styl** v `src/lib/styl-mapy.ts` — každá
-třída silnic, voda, zeleň i domy mají barvu z našich tokenů, takže mapa
-vypadá stejně jako ostatní mapy na webu, jen je podrobná.
-
-Pole se schválně nekreslí. Zabírají skoro celý okolní kraj a natřená zeleně
-přebijí město, tedy to jediné, na co se člověk dívá.
+Mapa je táž jako na ostatních stránkách — viz [Podklad map](#podklad-map).
+Liší se jedinou věcí: ovládá se jedním prstem. Na stánku je mapa to hlavní
+a obsluha do ní ťuká, takže zdvořilé „posuňte dvěma prsty" by jen překáželo.
 
 **Nikde na ni nevede odkaz.** Není v navigaci ani v patičce, nepouští se do
 mapy webu a má `noindex`. Je to ale překážka, ne zámek: repozitář je veřejný,

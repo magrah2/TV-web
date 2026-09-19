@@ -83,22 +83,18 @@ když jsem si je vykreslil vedle sebe ve velkém i v cílové velikosti.
 2. **Bez JavaScriptu web funguje.** Medailonky otevírá CSS `:target`,
    odkazy jsou skutečné odkazy. Ovládání, které bez JS nefunguje (filtry),
    je v HTML `hidden` a odkrývá ho až skript — **žádná mrtvá tlačítka**.
-3. **Žádné požadavky ven.** Písmo je self-hosted, mapy jsou vlastní SVG.
+3. **Žádné požadavky ven, bez výjimky.** Písmo je self-hosted, mapové
+   dlaždice i písma popisků leží v repozitáři (`public/dlazdice/`,
+   `public/pisma-mapy/`) a stahuje je jednorázově `nastroje/dlazdice.mjs`.
    Web nesmí načítat nic z cizích serverů — je to důvod, proč nepotřebuje
    cookie lištu, a u strany s tímhle názvem to není detail.
 
-   **Jediná výjimka je `/stanek/`**, interní stránka pro sběr podnětů při
-   kontaktní kampani. Ta si stahuje vektorové dlaždice (OpenFreeMap),
-   protože se s ní pracuje: obsluha musí podle názvů ulic najít místo, které
-   člověk u stánku ukáže. Vlastní podklad takový detail nemá a mít nemůže —
-   jen budov je ve výřezu přes deset tisíc.
+   Hlídá to `npm run zkouska`: u obou veřejných map počítá, kolik požadavků
+   odešlo na jiný host, a čeká nulu. Kdyby se někdy do `styl-mapy.ts` vrátila
+   adresa veřejné služby, zkouška spadne.
 
-   Vzhled si ale určujeme sami: styl v `src/lib/styl-mapy.ts` bere barvy
-   z tokenů, takže i tahle mapa vypadá jako zbytek webu.
-
-   Výjimka platí jen pro tu jednu stránku: není veřejná, nevede na ni odkaz
-   a je chráněná heslem. **Na veřejné stránky se nic zvenčí přidávat nesmí**
-   a v patičce dál stojí, že web o nikom nesbírá data.
+   Uvedení zdrojů v rohu mapy je podmínka licence OpenStreetMap
+   i OpenMapTiles — **nesmí zmizet.**
 4. **Nic vymyšleného se nevydává za program.** Co jsem odhadl a tým to
    nepotvrdil, musí být viditelně označené jako návrh (`stav: navrh`,
    komentář `# NÁVRH` v datech).
@@ -158,10 +154,10 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   `display: block !important` nestačí. Proto má hlavička dva samostatné prvky:
   vypsané odkazy pro široký displej a `<details>` pro úzký. Kvůli tomuhle
   navigace na počítači jednou zmizela úplně.
-- **Body na mapě se ukládají jako `lat`/`lon`, ne jako procenta.** Procenta
-  platí jen pro jeden výřez; po oddálení mapy by se všechny rozjely.
-  Přepočet dělá `src/lib/mapa.ts` podle `mapa-vyrez.json`, který zapisuje
-  generátor — jeden zdroj pravdy.
+- **Body na mapě se ukládají jako `lat`/`lon`, nikdy v jednotkách mapy.**
+  Mapa se posouvá a přibližuje, takže souřadnice pevné k jednomu výřezu by
+  po prvním posunu ukazovaly jinam. Platí to i pro plochy okrsků — proto je
+  `nastroje/okrsky.mjs` vydává jako GeoJSON, ne jako cesty v SVG.
 - **Odznaky na mapě se nerozestrkávají a v centru se překrývají.** Je to
   záměr. Sedm záměrů leží v okolí náměstí do 400 metrů od sebe a odznak má
   na mapě města průměr skoro tři sta metrů — na tolik odznaků tam místo
@@ -170,16 +166,32 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   náměstí. Přesná poloha je důležitější než mezera mezi odznaky: kdo chce
   mít mezi nimi místo, přiblíží si mapu, a vybraný bod se stejně vytáhne
   dopředu (`z-index` u `.je-zvyrazneny`).
-- **Mapa se zvětšuje `viewBox`em, ne `transform: scale()`.** Se `scale()` si
-  prohlížeč SVG jednou vykreslí do bitmapy a tu pak natahuje — při přiblížení
-  z toho byly kostičky. Značky nad mapou jsou HTML a polohu si přepočítávají
-  podle `viewBox`u. Hlídá to `npm run zkouska`.
+- **Značka na mapě nesmí mít vlastní `transform`.** Polohu jí nastavuje
+  knihovna právě přes `transform`; cokoliv vlastního na témže prvku —
+  zvětšení při najetí, blikání — jí ho přepíše a značka odskočí do rohu mapy.
+  Proto je vnější prvek vždycky jen obal bez vzhledu a všechno se děje uvnitř
+  něj. Hlídá to `npm run zkouska`.
+- **Adresa dlaždic musí být úplná, i s doménou.** Nestahuje je stránka, ale
+  vlákno na pozadí, kterému je `/TV-web/…` k ničemu — skončí chybou „Failed
+  to parse URL". Skládá se prostým spojením řetězců, ne přes `new URL`: ten
+  by složené závorky v šabloně zakódoval na `%7B`.
+- **`maxBounds` musí být větší než obec.** Obec je skoro čtvercová, rám mapy
+  na širokém displeji ne — aby se celá vešla na výšku, musí mapa do šířky
+  ukázat skoro dvakrát tolik. Když hranice končila na katastru, mapa se na
+  takový pohled vůbec nedala nastavit a zůstala přiblížená na střed. Proto
+  se u oddálených zoomů stahuje i kus okolních polí.
 - **Plochy na mapě se dělí podle budov, ne podle okrsků.** Voliče nezajímá
   číslo okrsku, ale kam má jít; několik okrsků často volí na stejném místě.
   Slučuje se to už při rasterizaci, jinak by uvnitř jedné oblasti zůstaly
   zbytečné vnitřní hranice.
 - **Zelená na mapě „kde volit" je vyhrazená vybrané oblasti.** V paletě ploch
   proto zelená není — jinak by nešlo poznat, která oblast je ta vaše.
+  Barvy oblastí jsou v tokenech jako `--mapa-oblast-1` až `-6`; mapa je čte
+  přes `BARVY_OBLASTI`, protože plochy nekreslí CSS, ale knihovna.
+- **Klik na značku volební místnosti musí zastavit probublání.** Značka leží
+  uvnitř mapy, takže klik na ni doputuje i k ní a mapa si pak vybere oblast
+  pod kurzorem sama. Plochy se u sebe překrývají, takže klidně jinou, než ke
+  které značka patří.
 - **Z jednoho bodu obrysu může vycházet víc hran.** Stává se to tam, kde se
   dvě části téže oblasti dotýkají rohem. Když se držela jen jedna, smyčky se
   splácly dohromady a obrysem vedla přeložená čára napříč plochou.

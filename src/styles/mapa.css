@@ -1,0 +1,84 @@
+/*
+ * Společný vzhled prvků, které do mapy kreslí knihovna MapLibre.
+ *
+ * Mapy jsou na webu tři a všechny stojí na stejném podkladu. Tohle je jeho
+ * CSS část: uvedení zdrojů, nápověda k ovládání a logo knihovny. Kdyby si to
+ * každá mapa řešila po svém, rozešly by se — přesně to se stalo dřív, když
+ * měla každá vlastní obarvení a na jedné byla řeka zelená, na druhé modrá.
+ *
+ * Musí to být globální styl: prvky vyrábí knihovna až v prohlížeči, takže jim
+ * Astro nestihne dát značku rozsahu a scopované CSS by se jich nechytlo.
+ */
+
+/* ---------- Uvedení zdrojů ----------
+   Je to podmínka licence OpenStreetMap i OpenMapTiles — nesmí zmizet.
+   Sedí ale v rohu tmavé mapy, tak ať do ní aspoň zapadne. */
+
+.maplibregl-ctrl-attrib {
+  background: rgb(11 32 50 / 0.72) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: var(--radius-maly) 0 0 0;
+  font-size: 10px;
+}
+
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib a {
+  color: var(--na-noci-tlum);
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: var(--na-noci);
+}
+
+/* Tlačítko, kterým se zdroje rozbalí na úzkém displeji. */
+.maplibregl-ctrl-attrib-button {
+  background-color: rgb(11 32 50 / 0.72) !important;
+}
+
+/* Na telefonu se rozbalený text roztáhne přes celou šířku a druhý řádek
+   podteče tlačítka přiblížení v pravém rohu. Zdroje se proto zarazí dřív
+   a zalomí se do svého kouta. */
+@media (max-width: 640px) {
+  .maplibregl-ctrl-attrib {
+    max-width: 62%;
+  }
+}
+
+/* Logo knihovny nepatří k licenci a na malé mapě zabírá místo, které
+   potřebujeme na ovládání. */
+.maplibregl-ctrl-logo {
+  display: none !important;
+}
+
+/* ---------- Nápověda k ovládání ----------
+   Mihne se, když někdo zkusí mapu posunout jedním prstem nebo kolečkem bez
+   Ctrl — tedy typicky když kolem mapy projíždí stránku. Proto nesmí mapu
+   přikrýt: je to vysvětlení, ne clona. Knihovna ji vykresluje jako velký
+   bílý nápis přes celou plochu, což je na tmavé mapě rána do oka. */
+
+.maplibregl-cooperative-gesture-screen {
+  background: rgb(11 32 50 / 0.35);
+  font: inherit;
+}
+
+.maplibregl-cooperative-gesture-screen .maplibregl-desktop-message,
+.maplibregl-cooperative-gesture-screen .maplibregl-mobile-message {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgb(11 32 50 / 0.92);
+  color: var(--na-noci);
+  font-size: var(--text-maly);
+  font-weight: 600;
+}
+
+/* ---------- Značky ----------
+   Knihovna značce nastavuje `transform`, kterým ji drží na místě. Cokoliv
+   vlastního, co by na tomtéž prvku sáhlo na `transform` — zvětšení při
+   najetí, blikání — jí polohu přepíše a značka odskočí do rohu mapy.
+   Proto je vnější prvek vždycky jen obal bez vlastního vzhledu a všechno
+   ostatní se děje uvnitř něj. */
+
+.maplibregl-marker {
+  will-change: auto;
+}

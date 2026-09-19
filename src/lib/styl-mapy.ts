@@ -1,4 +1,6 @@
 import tokeny from '../styles/tokeny.css?raw';
+import { odkaz } from './odkaz';
+import dlazdice from './mapa-dlazdice.json';
 
 /**
  * Vlastní styl vektorové mapy pro sběr podnětů.
@@ -39,8 +41,65 @@ const BARVA = {
   popisekTlum: token('na-noci-tlum'),
 };
 
-const ZDROJ = 'https://tiles.openfreemap.org/planet';
-const PISMA = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
+/**
+ * Podklad si hostujeme sami.
+ *
+ * Dlaždice i písma popisků leží v repozitáři (`public/dlazdice`,
+ * `public/pisma-mapy`) a stahuje je jednorázově `nastroje/dlazdice.mjs`.
+ * Kdyby se bralo z verejne sluzby OpenFreeMap, posilal by kazdy navstevnik
+ * svoji IP adresu na cizi server — a padlo by tim pravidlo, kvuli kteremu
+ * web nepotrebuje cookie listu.
+ *
+ * Adresy musí projít `odkaz()`, protože draft běží v podsložce `/TV-web/`.
+ * Složené závorky si doplňuje MapLibre sám, `odkaz()` je nechává být.
+ */
+/**
+ * Adresa musí být úplná, i s doménou.
+ *
+ * Dlaždice si nestahuje stránka, ale vlákno na pozadí, které knihovna
+ * používá na jejich rozbalení. Tomu je adresa `/TV-web/…` k ničemu — nemá
+ * ji k čemu vztáhnout a skončí chybou „Failed to parse URL".
+ *
+ * Skládá se prostým spojením řetězců, ne přes `new URL`: ten by složené
+ * závorky v šabloně zakódoval na `%7B` a knihovna by do nich pak nedosadila
+ * čísla dlaždice.
+ */
+const doma = (cesta: string) =>
+  (typeof location === 'undefined' ? '' : location.origin) + odkaz(cesta);
+
+const DLAZDICE = doma('/dlazdice/{z}/{x}/{y}.pbf');
+const PISMA = doma('/pisma-mapy/{fontstack}/{range}.pbf');
+
+/**
+ * Rozsah stažených dlaždic a území, které pokrývají.
+ *
+ * Čte se z průvodky, kterou zapisuje `nastroje/dlazdice.mjs` — jeden zdroj
+ * pravdy. Kdyby se čísla opisovala sem, po změně výřezu by se to tiše
+ * rozešlo a mapa by na okraji zbělela.
+ *
+ * `nejvetsiZoom` neznamená, že se dál nejde přiblížit: bližší pohled si
+ * MapLibre dopočítá z dlaždic zoomu 14. `nejmensiZoom` strop je — pod ním
+ * už žádná data nemáme.
+ */
+export const DLAZDICE_POKRYVAJI = dlazdice;
+
+/**
+ * Uvedeni zdroje. Je to podminka licence obou projektu, nesmi zmizet.
+ * Vykresluje ho MapLibre v rohu mapy.
+ */
+export const ZDROJ_DAT =
+  '© přispěvatelé <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' +
+  ' · dlaždice <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>' +
+  ' © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a>';
+
+/**
+ * Barvy oblastí na mapě „kde volit" a barva té vybrané.
+ *
+ * Čte se odsud, protože plochy okrsků nekreslí CSS, ale mapa — a ta chce
+ * skutečnou hodnotu, ne `var(--…)`. Jeden zdroj pravdy zůstává v tokenech.
+ */
+export const BARVY_OBLASTI = [1, 2, 3, 4, 5, 6].map((i) => token('mapa-oblast-' + i));
+export const BARVA_VYBRANE_OBLASTI = token('zelena');
 
 /**
  * Šířka čáry, která roste s přiblížením.
@@ -103,7 +162,13 @@ export const STYL_MAPY = {
   version: 8,
   glyphs: PISMA,
   sources: {
-    openmaptiles: { type: 'vector', url: ZDROJ },
+    openmaptiles: {
+      type: 'vector',
+      tiles: [DLAZDICE],
+      minzoom: DLAZDICE_POKRYVAJI.nejmensiZoom,
+      maxzoom: DLAZDICE_POKRYVAJI.nejvetsiZoom,
+      attribution: ZDROJ_DAT,
+    },
   },
   layers: [
     { id: 'pozadi', type: 'background', paint: { 'background-color': BARVA.pozadi } },

@@ -26,4 +26,14 @@ export default defineConfig({
     // Portréty a fotky města zpracovává Astro samo do avif/webp
     responsiveStyles: true,
   },
+  vite: {
+    build: {
+      // Knihovna map (MapLibre) má přes 500 kB a Vite kvůli tomu hlásí
+      // varování. Je to vědomé rozhodnutí, ne přehlédnutí: mapa je vektorová
+      // a skládá ji prohlížeč. Načítá se jen na třech stránkách, které mapu
+      // mají, a sdílí se mezi nimi. Varování se tedy umlčí, ať je v sestavení
+      // vidět jen to, co je skutečně potřeba spravit.
+      chunkSizeWarningLimit: 900,
+    },
+  },
 });
