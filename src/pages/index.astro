@@ -203,7 +203,7 @@ const prvni = kandidati.slice(0, 6);
         </p>
       </div>
 
-      <a class="nahled-mapy" href={odkaz('/mapa/')} tabindex="-1" aria-hidden="true">
+      <a class="nahled-mapy" href={odkaz('/mapa/')} aria-label="Otevřít mapu záměrů">
         <Image src={nahledZameru} alt="" widths={[320, 480, 640]} sizes="(min-width: 60rem) 26rem, 90vw" />
       </a>
     </div>
@@ -244,7 +244,7 @@ const prvni = kandidati.slice(0, 6);
         </p>
       </div>
 
-      <a class="nahled-mapy" href={odkaz('/kde-volit/')} tabindex="-1" aria-hidden="true">
+      <a class="nahled-mapy" href={odkaz('/kde-volit/')} aria-label="Otevřít mapu volebních míst">
         <Image src={nahledOkrsku} alt="" widths={[320, 480, 640]} sizes="(min-width: 60rem) 26rem, 90vw" />
       </a>
     </div>
@@ -698,6 +698,9 @@ const prvni = kandidati.slice(0, 6);
     }
   }
 
+  /* Náhled je odkaz, ne ozdoba: na mobilu je to největší cíl v sekci.
+     Obrázek má prázdný `alt`, protože sám nic nesděluje — jméno odkazu
+     nese `aria-label`. Odkaz bez jména je pro čtečku slepá ulička. */
   .nahled-mapy {
     display: block;
     border-radius: var(--radius);
