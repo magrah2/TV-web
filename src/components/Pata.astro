@@ -57,17 +57,21 @@ const rok = new Date().getFullYear();
     margin-top: var(--mezera-sekce);
   }
 
-  /* Křivka je hrana bílého pozadí patičky, ne linka nad ní — má proto barvu
-     patičky a dosedá k ní bez mezery. Patička už nemá `border-top`: ta rovná
-     čára byla přesně to, co se s křivkou rozbíhalo a vypadalo rozbitě. */
+  /* Křivka je hrana pozadí patičky, ne linka nad ní — má proto barvu patičky
+     a dosedá k ní bez mezery. Patička nemá `border-top`: ta rovná čára byla
+     přesně to, co se s křivkou rozbíhalo a vypadalo rozbitě.
+
+     Patička drží tutéž barvu jako světlé sekce, takže křivka je skoro
+     neznatelná — dělá jen měkký přechod, ne řez přes stránku. */
   .pata-oddelovac :global(.krivka-oddelovac) {
     display: block;
     margin-bottom: -1px;
     color: var(--plocha);
+    opacity: 0.55;
   }
 
   .pata {
-    background: var(--plocha);
+    background: transparent;
   }
 
   .pata-vnitrek {
