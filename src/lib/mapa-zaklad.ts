@@ -57,12 +57,18 @@ export type VolbyMapy = {
   stred: [number, number];
   zoom: number;
   /**
-   * Zdvořilé ovládání: na dotyku je potřeba druhý prst, na počítači Ctrl.
+   * Na dotyku je potřeba druhý prst.
    *
-   * Patří na stránky, kde mapa leží uprostřed textu. Bez toho člověk na
+   * Patří na stránky, kde mapa leží uprostřed textu: bez toho člověk na
    * telefonu palcem projíždí stránku, trefí mapu a místo posunu stránky se
-   * mu přiblíží Vyškov. Na stánku se to naopak nehodí — tam je mapa to
-   * hlavní a obsluha do ní ťuká jedním prstem.
+   * mu přiblíží Vyškov. Tak to dělají i běžné mapy.
+   *
+   * **Na počítači to neplatí** — tam kolečko přibližuje rovnou, bez držení
+   * Ctrl. Knihovna umí jen obojí najednou, takže se rozhoduje podle toho,
+   * čím se na stránku sahá.
+   *
+   * Na stánku se nehodí ani jedno: tam je mapa to hlavní a obsluha do ní
+   * ťuká a posouvá ji jedním prstem.
    */
   opatrneOvladani?: boolean;
 };
@@ -91,7 +97,12 @@ export function vytvorMapu({ prvek, stred, zoom, opatrneOvladani = false }: Volb
     maxZoom: 18,
     pitchWithRotate: false,
     dragRotate: false,
-    cooperativeGestures: opatrneOvladani,
+    // Jen na dotykovém displeji. `(pointer: coarse)` znamená, že hlavní
+    // ukazovátko je prst, ne myš.
+    cooperativeGestures:
+      opatrneOvladani &&
+      typeof matchMedia !== 'undefined' &&
+      matchMedia('(pointer: coarse)').matches,
     // Zdroje patří do LEVÉHO dolního rohu. Vpravo dole mají všechny mapy
     // tlačítka přiblížení a knihovna by je uvedením zdrojů překryla.
     attributionControl: false,
@@ -110,6 +121,19 @@ export function vytvorMapu({ prvek, stred, zoom, opatrneOvladani = false }: Volb
     zdroje?.classList.remove('maplibregl-compact-show');
   });
   mapa.touchZoomRotate.disableRotation();
+
+  /*
+   * Překreslit po každé změně rozměru rámu.
+   *
+   * Knihovna sama sleduje jen změnu velikosti okna. Když se ale změří rám
+   * a ten pak vyroste z jiného důvodu — doskáče písmo, zmizí posuvník,
+   * přepočítá se `vh` —, plátno zůstane v původní výšce a u spodní hrany
+   * zeje tmavý pruh, ve kterém mapa není vykreslená. Vypadá to jako lišta
+   * přes mapu, ale je to prostě nedokreslené místo.
+   */
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => mapa.resize()).observe(prvek);
+  }
 
   // Když je ve stylu chyba, knihovna vrstvu tiše zahodí a mapa zůstane
   // prázdná, aniž by kdekoliv něco svítilo. Tohle to aspoň napíše do konzole.

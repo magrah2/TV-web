@@ -93,6 +93,14 @@
   --mapa-voda: #2b81bd;
   --mapa-potok: #3f96cf;
 
+  /* Pojmenované zelené areály — park, zoopark, zámecká zahrada, hřbitov.
+     O stupeň světlejší než les, aby šly poznat, ale schválně NE značková
+     zelená: ta je na mapě vyhrazená našim vlastním značkám a vybrané
+     volební oblasti. Dokud ji měly i hřbitovy, svítily z mapy jako by to
+     bylo to nejdůležitější, co ve Vyškově je. */
+  --mapa-areal: #3a7f56;
+  --mapa-areal-popis: #7cb495;
+
   /* Barvy oblastí na mapě „kde volit". Jedna barva = jedna volební budova;
      generátor je rozděluje tak, aby dvě sousední oblasti nikdy nedostaly
      stejnou. Zelená mezi nimi schválně není — ta je vyhrazená té oblasti,

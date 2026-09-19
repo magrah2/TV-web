@@ -408,7 +408,14 @@ node nastroje/okrsky.mjs
 ```
 
 Skript si sám ověří, že převod souřadnic sedí (porovná ho s adresními body
-z OpenStreetMap) a když ne, skončí chybou a nic nezapíše.
+z OpenStreetMap) a když ne, skončí chybou a nic nezapíše. Na konci navíc
+spočítá, kolik domů by na mapě mělo správnou barvu; pod 99,5 % se data
+nezapíšou vůbec.
+
+Hranice oblastí **obcházejí domy**. Kdyby se vedly jen podle toho, ke které
+adrese je blíž, procházely by domům přes střechu a na mapě by byla půlka domu
+jednou barvou a půlka druhou. Generátor si proto přečte obrysy domů z našich
+vlastních dlaždic a každý dům do plochy otiskne celý.
 
 ⚠️ **Před každými volbami se musí znovu projít `src/lib/volebni-mistnosti.ts`.**
 Volební místnosti se mezi volbami mění a v otevřených datech nejsou — tenhle

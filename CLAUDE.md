@@ -166,6 +166,15 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   náměstí. Přesná poloha je důležitější než mezera mezi odznaky: kdo chce
   mít mezi nimi místo, přiblíží si mapu, a vybraný bod se stejně vytáhne
   dopředu (`z-index` u `.je-zvyrazneny`).
+- **Mapa se musí překreslit po každé změně rozměru rámu.** Knihovna sama
+  sleduje jen změnu velikosti okna. Když rám vyroste z jiného důvodu, plátno
+  zůstane v původní výšce a u spodní hrany zeje tmavý pruh, ve kterém mapa
+  není vykreslená — vypadá to jako lišta přes mapu. Řeší to `ResizeObserver`
+  ve `vytvorMapu()`.
+- **Zdvořilé ovládání platí jen na dotyku.** Na telefonu se mapa posouvá
+  dvěma prsty, aby šlo palcem projet stránku. Na počítači ale kolečko
+  přibližuje rovnou, bez Ctrl — držet Ctrl nad mapou nikdo nechce. Knihovna
+  umí jen obojí najednou, takže se rozhoduje podle `(pointer: coarse)`.
 - **Značka na mapě nesmí mít vlastní `transform`.** Polohu jí nastavuje
   knihovna právě přes `transform`; cokoliv vlastního na témže prvku —
   zvětšení při najetí, blikání — jí ho přepíše a značka odskočí do rohu mapy.
@@ -184,6 +193,18 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   číslo okrsku, ale kam má jít; několik okrsků často volí na stejném místě.
   Slučuje se to už při rasterizaci, jinak by uvnitř jedné oblasti zůstaly
   zbytečné vnitřní hranice.
+- **Hranice oblasti nesmí vést přes dům.** Samotné hlasování sousedních adres
+  ji vede, kudy zrovna vyjde — a od chvíle, kdy mapa kreslí i domy, je na
+  první pohled vidět půlka domu jednou barvou a půlka druhou. Generátor proto
+  čte obrysy domů z našich vlastních dlaždic a každý dům do mřížky **otiskne
+  celý**, včetně buněk, kterých se jen dotkne. Kdyby se ptal jen na střed
+  buňky, běžný dům by se do žádného netrefil a hranice by mu pořád mohla vést
+  přes střechu.
+- **Značková zelená na mapě patří jen nám.** Vybraná volební oblast, odznaky
+  záměrů, body podnětů — nic jiného. Dokud ji měly i parky, hřbitovy
+  a Dinopark, svítily z mapy, jako by to bylo to nejdůležitější ve Vyškově.
+  Pojmenované zelené areály proto mají vlastní `--mapa-areal`, o stupeň
+  světlejší než les.
 - **Zelená na mapě „kde volit" je vyhrazená vybrané oblasti.** V paletě ploch
   proto zelená není — jinak by nešlo poznat, která oblast je ta vaše.
   Barvy oblastí jsou v tokenech jako `--mapa-oblast-1` až `-6`; mapa je čte

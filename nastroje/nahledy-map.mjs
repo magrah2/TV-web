@@ -35,6 +35,10 @@ const ADRESA = process.env.ADRESA ?? 'http://localhost:4321/TV-web/';
  * Nahled na uvodni strance je siroky nejvyse 560 bodu, takze dvojnasobek
  * staci i na displeje s vysokym rozlisenim. Zaroven je to rozmer, ve kterem
  * mapa vypada jako mapa - pri mensim by z popisku byla kase.
+ *
+ * Obe mapy maji ROVNAT rozmer, i kdyz na svych strankach vypadaji jinak.
+ * Mapa zameru stoji v uzsim sloupci vedle seznamu, takze bez tohohle by
+ * z ni byl nahled na vysku a vedle druheho by vypadal jako omyl.
  */
 const SIRKA = 1120;
 const VYSKA = 800;
@@ -70,7 +74,8 @@ const prohlizec = await spustProhlizec();
 try {
   for (const mapa of MAPY) {
     const stranka = await prohlizec.newPage({
-      viewport: { width: SIRKA, height: VYSKA + 400 },
+      // Okno je sirsi nez snimek, aby se ram mapy mel kam roztahnout.
+      viewport: { width: SIRKA + 320, height: VYSKA + 400 },
       // Bez toho by snimek mel rozliseni okna a popisky by byly rozmazane.
       deviceScaleFactor: 1,
     });
@@ -80,8 +85,22 @@ try {
     // Ram mapy se roztahne na plnou vysku snimku. Nahled ma ukazat mapu,
     // ne kus stranky kolem ni.
     await stranka.evaluate(
-      (vyska) => {
+      ({ sirka, vyska }) => {
         const ram = document.querySelector('.mapa-plocha');
+
+        // Mapa zameru stoji v mrizce vedle seznamu zameru. Bez tohohle by
+        // nahled dostal sirku toho sloupce, tedy jinou nez druha mapa.
+        const rozvrzeni = ram.closest('.mapa-rozvrzeni');
+        if (rozvrzeni) rozvrzeni.style.gridTemplateColumns = '1fr';
+        for (const seznam of document.querySelectorAll('.mapa-seznam')) {
+          seznam.style.display = 'none';
+        }
+        const obal = ram.parentElement;
+        obal.style.position = 'static';
+        obal.style.width = sirka + 'px';
+
+        ram.style.width = sirka + 'px';
+        ram.style.maxWidth = 'none';
         ram.style.height = vyska + 'px';
         ram.style.aspectRatio = 'auto';
         ram.style.borderRadius = '0';
@@ -98,7 +117,7 @@ try {
         }
         window.dispatchEvent(new Event('resize'));
       },
-      VYSKA,
+      { sirka: SIRKA, vyska: VYSKA },
     );
 
     // Mapa se po zmene rozmeru musi znovu usadit a dokreslit dlazdice.
@@ -108,8 +127,12 @@ try {
     await stranka.locator('.mapa-plocha').screenshot({ path: kam });
     await stranka.close();
 
-    const velikost = Math.round(fs.statSync(kam).size / 1024);
-    console.log('   ' + (mapa.nazev + '.png').padEnd(26) + SIRKA + ' x ' + VYSKA + '   ' + velikost + ' kB   (' + mapa.popis + ')');
+    // Rozmery se ctou ze samotneho souboru, ne z konstant. Kdyby se ram
+    // nepodarilo roztahnout, cisla by to prozradila.
+    const soubor = fs.readFileSync(kam);
+    const rozmer = soubor.readUInt32BE(16) + ' x ' + soubor.readUInt32BE(20);
+    const velikost = Math.round(soubor.length / 1024);
+    console.log('   ' + (mapa.nazev + '.png').padEnd(26) + rozmer.padEnd(12) + velikost + ' kB   (' + mapa.popis + ')');
   }
 } finally {
   await prohlizec.close();

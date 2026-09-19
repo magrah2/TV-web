@@ -21,6 +21,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { VectorTile } from '@mapbox/vector-tile';
+import Pbf from 'pbf';
 import { VYREZ, MERITKO, merkator } from './vyrez-obce.mjs';
 
 /** Vyrez i jeho prepocet ziji ve `vyrez-obce.mjs`, spolecne s generatorem
@@ -316,9 +318,13 @@ if (chybejici.length) {
   skonci(`Okrsky ${chybejici.join(', ')} nemaji ve ${MISTNOSTI_JSON} volebni mistnost.`);
 }
 
-const BUNKA = 2;      // jemnost mrizky v souradnicich mapy
+// Jemnost mrizky v souradnicich mapy. Jedna jednotka je asi deset metru,
+// takze bunka vyjde zhruba na sirku jednoho domu - jemneji uz nema smysl,
+// hranice stejne obchazi domy podle jejich obrysu.
+const BUNKA = 1;
 const DOSAH = 60;     // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
-const TOLERANCE = 1.6; // jak moc se smi obrys zjednodusit
+const TOLERANCE = 1.2; // jak moc se smi obrys zjednodusit
+const ZOOM_DLAZDIC = 14; // nejvetsi stazeny zoom, tam jsou obrysy domu
 
 const yJih = merkator(vyrez.jih);
 const naMapu = (lat, lon) => ({
@@ -414,26 +420,239 @@ const hodnota = (s, r) => (s < 0 || r < 0 || s >= sloupcu || r >= radkuM ? 0 : m
 // Primy test toho, co clovek na mape overuje: "je muj dum v te spravne barve?"
 // Kdyz se to rozejde, je neco spatne v rasterizaci a radeji to rekneme nahlas,
 // nez aby web ukazoval lidem cizi volebni mistnost.
-let sedi = 0;
-const rozchazi = new Map();
-for (const z of zaznamy) {
-  const b = naMapu(z.lat, z.lon);
-  const s = Math.floor(b.x / BUNKA);
-  const r = Math.floor(b.y / BUNKA);
-  const ocekavano = (okrsekNaBudovu.get(z.o) ?? 0);
-  if (hodnota(s, r) === ocekavano) sedi++;
-  else {
-    const k = ulice[z.u] || z.c;
-    rozchazi.set(k, (rozchazi.get(k) ?? 0) + 1);
+function zmerShodu(popis) {
+  let sedi = 0;
+  const rozchazi = new Map();
+  for (const z of zaznamy) {
+    const b = naMapu(z.lat, z.lon);
+    const s = Math.floor(b.x / BUNKA);
+    const r = Math.floor(b.y / BUNKA);
+    if (hodnota(s, r) === (okrsekNaBudovu.get(z.o) ?? 0)) sedi++;
+    else {
+      const k = ulice[z.u] || z.c;
+      rozchazi.set(k, (rozchazi.get(k) ?? 0) + 1);
+    }
+  }
+  const podil = (100 * sedi) / zaznamy.length;
+  info(`${popis}: ${sedi} z ${zaznamy.length} (${podil.toFixed(1)} %)`);
+  if (rozchazi.size) {
+    const nejhorsi = [...rozchazi].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    info('  rozchazi se: ' + nejhorsi.map(([u, n]) => `${u} (${n})`).join(', '));
+  }
+  return podil;
+}
+
+// Nejdriv jak dopadlo samotne hlasovani sousednich adres. Je to mira toho,
+// jak dobre se odhaduje prostor MEZI domy — tam zadny obrys nepomuze.
+zmerShodu('domu ve spravne barve po hlasovani');
+
+// --- Obrysy domu z nasich dlazdic -----------------------------------------
+//
+// Mrizka sama o sobe vede hranici oblasti tudy, kudy zrovna vyjde hlasovani
+// nejblizsich adres — a ta obcas prochazi PRESTRED domu. Na mape to je videt
+// na prvni pohled: pulka domu jedna barva, pulka druha. Obcas dopadne cely
+// dum spatne, protoze ho prehlasuji hustejsi sousedi za rohem.
+//
+// Obrysy domu mame v dlazdicich, ktere uz v repozitari lezi kvuli mape.
+// Kazdy dum se tedy dohleda, priradi se mu okrsek podle adres, ktere v nem
+// jsou, a do mrizky se OTISKNE cely. Hranice pak dum vzdycky obejde.
+
+/** Nacte obrysy domu ze vsech stazenych dlazdic nejvetsiho zoomu. */
+function nactiDomy() {
+  const korenDlazdic = 'public/dlazdice/' + ZOOM_DLAZDIC;
+  if (!fs.existsSync(korenDlazdic)) {
+    skonci('Chybi ' + korenDlazdic + '. Spustte nejdriv nastroje/dlazdice.mjs.');
+  }
+
+  const domy = [];
+  for (const sloupec of fs.readdirSync(korenDlazdic)) {
+    const x = Number(sloupec);
+    if (!Number.isFinite(x)) continue;
+    for (const soubor of fs.readdirSync(path.join(korenDlazdic, sloupec))) {
+      if (!soubor.endsWith('.pbf')) continue;
+      const y = Number(soubor.slice(0, -4));
+      const dlazdice = new VectorTile(
+        new Pbf(fs.readFileSync(path.join(korenDlazdic, sloupec, soubor))),
+      );
+      const vrstva = dlazdice.layers.building;
+      if (!vrstva) continue;
+
+      for (let i = 0; i < vrstva.length; i++) {
+        const tvar = vrstva.feature(i).toGeoJSON(x, y, ZOOM_DLAZDIC);
+        const kusy =
+          tvar.geometry.type === 'Polygon'
+            ? [tvar.geometry.coordinates]
+            : tvar.geometry.coordinates;
+        for (const kus of kusy) {
+          // Diry uvnitr domu nas nezajimaji, staci vnejsi obrys.
+          const obrys = kus[0].map(([lon, lat]) => {
+            const b = naMapu(lat, lon);
+            return [b.x, b.y];
+          });
+          if (obrys.length < 4) continue;
+          domy.push({ obrys, ram: ramObrysu(obrys), budova: 0 });
+        }
+      }
+    }
+  }
+  return domy;
+}
+
+function ramObrysu(obrys) {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const [x, y] of obrys) {
+    if (x < x1) x1 = x;
+    if (x > x2) x2 = x;
+    if (y < y1) y1 = y;
+    if (y > y2) y2 = y;
+  }
+  return { x1, y1, x2, y2 };
+}
+
+/** Lezi bod uvnitr obrysu? Klasicky paprsek doprava. */
+function vObrysu(x, y, obrys) {
+  let uvnitr = false;
+  for (let i = 0, j = obrys.length - 1; i < obrys.length; j = i++) {
+    const [xi, yi] = obrys[i];
+    const [xj, yj] = obrys[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) uvnitr = !uvnitr;
+  }
+  return uvnitr;
+}
+
+const domy = nactiDomy();
+
+// Prihradky pres ramy domu, aby se ke kazde adrese nehledalo mezi vsemi.
+const PRIHRADKA_DOMU = 20;
+const prihradkyDomu = new Map();
+for (const dum of domy) {
+  for (let px = Math.floor(dum.ram.x1 / PRIHRADKA_DOMU); px <= Math.floor(dum.ram.x2 / PRIHRADKA_DOMU); px++) {
+    for (let py = Math.floor(dum.ram.y1 / PRIHRADKA_DOMU); py <= Math.floor(dum.ram.y2 / PRIHRADKA_DOMU); py++) {
+      const klic = px + ':' + py;
+      if (!prihradkyDomu.has(klic)) prihradkyDomu.set(klic, []);
+      prihradkyDomu.get(klic).push(dum);
+    }
   }
 }
-const podil = (100 * sedi) / zaznamy.length;
-info(`domu ve spravne barve: ${sedi} z ${zaznamy.length} (${podil.toFixed(1)} %)`);
-if (rozchazi.size) {
-  const nejhorsi = [...rozchazi].sort((a, b) => b[1] - a[1]).slice(0, 6);
-  info('rozchazi se: ' + nejhorsi.map(([u, n]) => `${u} (${n})`).join(', '));
+
+/**
+ * Ke ktere adrese dum patri.
+ *
+ * Adresni bod z RUIAN nelezi vzdycky uvnitr obrysu z OpenStreetMap — obojí
+ * kresli nekdo jiny a par metru se to rozchazi. Proto se nejdriv zkousi
+ * obrys a teprve kdyz bod nikam nepadne, vezme se nejblizsi dum do ODSTUP.
+ */
+const ODSTUP_ADRESY = 1.2; // v jednotkach mapy, tedy asi 12 metru
+
+function domProAdresu(x, y) {
+  const okoli = new Set();
+  const px = Math.floor(x / PRIHRADKA_DOMU);
+  const py = Math.floor(y / PRIHRADKA_DOMU);
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (const dum of prihradkyDomu.get(px + dx + ':' + (py + dy)) ?? []) okoli.add(dum);
+    }
+  }
+  let nejblizsi = null;
+  let nejD = ODSTUP_ADRESY * ODSTUP_ADRESY;
+  for (const dum of okoli) {
+    if (x >= dum.ram.x1 && x <= dum.ram.x2 && y >= dum.ram.y1 && y <= dum.ram.y2) {
+      if (vObrysu(x, y, dum.obrys)) return dum;
+    }
+    // Vzdalenost k ramu staci - obrysy domu jsou skoro obdelniky.
+    const dx = Math.max(dum.ram.x1 - x, 0, x - dum.ram.x2);
+    const dy = Math.max(dum.ram.y1 - y, 0, y - dum.ram.y2);
+    const d = dx * dx + dy * dy;
+    if (d < nejD) {
+      nejD = d;
+      nejblizsi = dum;
+    }
+  }
+  return nejblizsi;
 }
-if (podil < 97) {
+
+// Kazdemu domu se priradi volebni budova podle adres, ktere v nem jsou.
+// Kdyz jich ma vic z ruznych okrsku (bytovy dum na rohu), rozhodne vetsina.
+const hlasyDomu = new Map();
+for (const z of zaznamy) {
+  const b = naMapu(z.lat, z.lon);
+  const dum = domProAdresu(b.x, b.y);
+  if (!dum) continue;
+  if (!hlasyDomu.has(dum)) hlasyDomu.set(dum, new Map());
+  const hlasy = hlasyDomu.get(dum);
+  const budova = okrsekNaBudovu.get(z.o) ?? 0;
+  hlasy.set(budova, (hlasy.get(budova) ?? 0) + 1);
+}
+
+let sAdresou = 0;
+for (const [dum, hlasy] of hlasyDomu) {
+  let vitez = 0;
+  let nejvic = 0;
+  for (const [budova, pocet] of hlasy) {
+    if (pocet > nejvic) {
+      nejvic = pocet;
+      vitez = budova;
+    }
+  }
+  dum.budova = vitez;
+  if (vitez) sAdresou++;
+}
+
+/** Otiskne obrysy domu do mrizky. Dum uz hranice oblasti nerozdeli. */
+function otiskniDomy() {
+  let bunek = 0;
+  for (const dum of domy) {
+    if (!dum.budova) continue;
+    const odS = Math.max(0, Math.floor(dum.ram.x1 / BUNKA));
+    const doS = Math.min(sloupcu - 1, Math.floor(dum.ram.x2 / BUNKA));
+    const odR = Math.max(0, Math.floor(dum.ram.y1 / BUNKA));
+    const doR = Math.min(radkuM - 1, Math.floor(dum.ram.y2 / BUNKA));
+
+    let trefeno = 0;
+    for (let s = odS; s <= doS; s++) {
+      for (let r = odR; r <= doR; r++) {
+        // Nestaci se ptat na stred bunky. Bezny dum je uzsi nez bunka, takze
+        // by se do zadneho stredu netrefil a hranice by mu porad mohla vest
+        // pres strechu. Otiskne se proto kazda bunka, ktere se dum aspon
+        // dotkne — hranice pak vede vedle domu, ne skrz nej.
+        const x = s * BUNKA;
+        const y = r * BUNKA;
+        const dotyka =
+          vObrysu(x + BUNKA / 2, y + BUNKA / 2, dum.obrys) ||
+          vObrysu(x, y, dum.obrys) ||
+          vObrysu(x + BUNKA, y, dum.obrys) ||
+          vObrysu(x, y + BUNKA, dum.obrys) ||
+          vObrysu(x + BUNKA, y + BUNKA, dum.obrys) ||
+          // Dum mensi nez bunka lezi celý uvnitr a zadny jeji roh netrefi.
+          (dum.ram.x1 >= x && dum.ram.x2 <= x + BUNKA &&
+            dum.ram.y1 >= y && dum.ram.y2 <= y + BUNKA);
+        if (!dotyka) continue;
+        mrizka[r * sloupcu + s] = dum.budova;
+        trefeno++;
+      }
+    }
+
+    // Maly dum se nemusi trefit do zadneho stredu bunky. Aby ani ten nezustal
+    // rozpuleny, otiskne se u nej aspon bunka, ve ktere lezi jeho stred.
+    if (!trefeno) {
+      const s = Math.min(sloupcu - 1, Math.max(0, Math.floor((dum.ram.x1 + dum.ram.x2) / 2 / BUNKA)));
+      const r = Math.min(radkuM - 1, Math.max(0, Math.floor((dum.ram.y1 + dum.ram.y2) / 2 / BUNKA)));
+      mrizka[r * sloupcu + s] = dum.budova;
+      trefeno = 1;
+    }
+    bunek += trefeno;
+  }
+  return bunek;
+}
+
+const otisknutych = otiskniDomy();
+info('domu z dlazdic: ' + domy.length + ', z toho s adresou: ' + sAdresou);
+info('  otisknuto bunek: ' + otisknutych);
+
+// A ted to, co uvidi lidi. Tohle uz je ostra podminka: kdyby nesedelo,
+// ukazovali bychom nekomu cizi volebni mistnost.
+const podil = zmerShodu('domu ve spravne barve na mape');
+if (podil < 99.5) {
   skonci(`Na mape by mel ${(100 - podil).toFixed(1)} % domu spatnou barvu. Data se nezapsala.`);
 }
 

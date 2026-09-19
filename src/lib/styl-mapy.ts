@@ -36,7 +36,8 @@ const BARVA = {
   silnice: token('mapa-silnice'),
   hlavni: token('mapa-silnice-hlavni'),
   zeleznice: token('mapa-zeleznice'),
-  zelenZnacky: token('zelena'),
+  areal: token('mapa-areal'),
+  arealPopis: token('mapa-areal-popis'),
   popisek: token('na-noci'),
   popisekTlum: token('na-noci-tlum'),
 };
@@ -190,9 +191,9 @@ export const STYL_MAPY = {
       type: 'fill',
       source: 'openmaptiles',
       'source-layer': 'park',
-      // Parky dostávají zelenou ze značky. Jsou malé, takže výraznější odstín
-      // je neutopí v ploše — a je na nich hned vidět, že jsou to parky.
-      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.8 },
+      // Světlejší zelená než les. Parky jsou malé a v tmavé ploše by se
+      // ztratily, ale značkovou zelenou dostat nesmí — viz `tokeny.css`.
+      paint: { 'fill-color': BARVA.areal, 'fill-opacity': 0.85 },
     },
     {
       // Zoo a zámecká zahrada. Leží v jiné zdrojové vrstvě než parky a bez
@@ -203,7 +204,9 @@ export const STYL_MAPY = {
       source: 'openmaptiles',
       'source-layer': 'landuse',
       filter: jeTrida('zoo', 'theme_park', 'cemetery'),
-      paint: { 'fill-color': BARVA.zelenZnacky, 'fill-opacity': 0.6 },
+      // Tatáž zelená jako parky. Dřív byla světlejší a hřbitovy s Dinoparkem
+      // pak z mapy svítily víc než všechno ostatní.
+      paint: { 'fill-color': BARVA.areal, 'fill-opacity': 0.85 },
     },
     {
       id: 'zastavba',
@@ -369,7 +372,7 @@ export const STYL_MAPY = {
         'text-offset': [0, 0.4],
       },
       paint: {
-        'text-color': BARVA.zelenZnacky,
+        'text-color': BARVA.arealPopis,
         'text-halo-color': BARVA.pozadi,
         'text-halo-width': 1.6,
       },
@@ -389,7 +392,7 @@ export const STYL_MAPY = {
         'text-max-width': 8,
       },
       paint: {
-        'text-color': BARVA.zelenZnacky,
+        'text-color': BARVA.arealPopis,
         'text-halo-color': BARVA.pozadi,
         'text-halo-width': 1.6,
       },
