@@ -36,31 +36,27 @@ const adresaApi = odkaz('/podnety.php');
 >
   <div class="sber-lista">
     <p class="sber-stav" data-stav>Načítám…</p>
-    <div class="sber-nastroje">
-      <button type="button" class="sber-tlacitko" data-prepnout-filtr aria-expanded="false">
-        Filtr
-      </button>
-      <button type="button" class="sber-tlacitko" data-stahnout>Stáhnout</button>
-    </div>
+    <button type="button" class="sber-tlacitko" data-stahnout>Stáhnout</button>
   </div>
 
-  <div class="sber-filtr" hidden data-filtr>
-    <label class="sber-prepinac sber-prepinac-vse">
-      <input type="checkbox" data-vse checked />
-      <span>Zobrazit body na mapě</span>
-    </label>
-
-    <div class="sber-kategorie">
-      {
-        KATEGORIE.map((kategorie) => (
-          <label class="sber-prepinac">
-            <input type="checkbox" data-kategorie={kategorie} checked />
-            <span class="sber-tecka" style={`--barva: ${BARVA_KATEGORIE[kategorie]}`} />
-            <span>{kategorie}</span>
-          </label>
-        ))
-      }
-    </div>
+  {/* Filtry jsou pořád vidět a přepínají se jedním ťuknutím. Vybere se vždy
+      jen jedna možnost: všechno, jedna oblast, nebo nic. Na stánku se přepíná
+      často a zaškrtávátka by u devíti oblastí znamenala devět ťuknutí. */}
+  <div class="sber-filtry" data-filtry>
+    <button type="button" class="sber-filtr je-aktivni" data-filtr="vse">Vše</button>
+    {
+      KATEGORIE.map((kategorie) => (
+        <button
+          type="button"
+          class="sber-filtr"
+          data-filtr={kategorie}
+          style={`--barva: ${BARVA_KATEGORIE[kategorie]}`}
+        >
+          {kategorie}
+        </button>
+      ))
+    }
+    <button type="button" class="sber-filtr sber-filtr-nic" data-filtr="nic">Skrýt vše</button>
   </div>
 
   <div class="sber-mapa" data-mapa>
@@ -161,16 +157,15 @@ const adresaApi = odkaz('/podnety.php');
     font-weight: 600;
   }
 
-  .sber-nastroje {
+  .sber-filtry {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
-  /* Cíle jsou velké schválně — ovládá se to prstem na stánku, často ve stoje
-     a v rukavici. Menší než 44 px se netrefuje. */
-  .sber-tlacitko {
+  .sber-filtr {
     min-height: 44px;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.9rem;
     border: 1px solid var(--linka);
     border-radius: 999px;
     background: var(--plocha);
@@ -178,53 +173,28 @@ const adresaApi = odkaz('/podnety.php');
     font: inherit;
     font-size: var(--text-maly);
     cursor: pointer;
+    transition: background var(--prechod), border-color var(--prechod),
+      color var(--prechod);
   }
 
-  .sber-tlacitko[aria-expanded='true'] {
-    border-color: var(--modra);
-    color: var(--modra-text);
+  @media (hover: hover) {
+    .sber-filtr:hover {
+      border-color: var(--linka-vyrazna);
+    }
   }
 
-  .sber-filtr {
-    padding: 0.9rem 1rem;
-    border: 1px solid var(--linka);
-    border-radius: var(--radius);
-    background: var(--plocha);
-  }
-
-  .sber-kategorie {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 0.35rem 1rem;
-    margin-top: 0.6rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--linka);
-  }
-
-  .sber-prepinac {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-height: 44px;
-    cursor: pointer;
-  }
-
-  .sber-prepinac-vse {
+  /* Vybraný filtr se vyplní barvou své oblasti — stejnou, jakou mají její
+     body na mapě, takže je hned vidět, co je zapnuté. */
+  .sber-filtr.je-aktivni {
+    background: var(--barva, var(--modra));
+    border-color: var(--barva, var(--modra));
+    color: #fff;
     font-weight: 600;
   }
 
-  .sber-prepinac input {
-    width: 1.15rem;
-    height: 1.15rem;
-    accent-color: var(--modra);
-  }
-
-  .sber-tecka {
-    width: 0.85rem;
-    height: 0.85rem;
-    flex: none;
-    border-radius: 999px;
-    background: var(--barva);
+  .sber-filtr-nic.je-aktivni {
+    background: var(--inkoust-tlum);
+    border-color: var(--inkoust-tlum);
   }
 
   /* ---------- Mapa ---------- */
@@ -529,8 +499,8 @@ const adresaApi = odkaz('/podnety.php');
     let novy: { x: number; y: number } | null = null;
     let vybranaKategorie = '';
     let vybranyBod: string | null = null;
-    const skryte = new Set<string>();
-    let bodyVidet = true;
+    /** `vse`, `nic`, nebo název jedné kategorie. */
+    let vybranyFiltr = 'vse';
 
     // --- Pohled na mapu ---------------------------------------------------
 
@@ -589,9 +559,9 @@ const adresaApi = odkaz('/podnety.php');
     function prekresliZnacky() {
       vrstvaZnacek.textContent = '';
 
-      if (bodyVidet) {
+      if (vybranyFiltr !== 'nic') {
         for (const bod of body) {
-          if (skryte.has(bod.kategorie)) continue;
+          if (vybranyFiltr !== 'vse' && bod.kategorie !== vybranyFiltr) continue;
           const { x, y } = naMapu(bod.lat, bod.lon);
           const znacka = document.createElement('button');
           znacka.type = 'button';
@@ -925,27 +895,20 @@ const adresaApi = odkaz('/podnety.php');
     });
 
     // --- Filtr ------------------------------------------------------------
+    //
+    // Vybraná je vždy právě jedna možnost: `vse`, `nic`, nebo jedna oblast.
+    // Přepíná se tím jedním ťuknutím, což je na stánku to podstatné.
+    const filtry = koren.querySelector<HTMLElement>('[data-filtry]')!;
 
-    const prepnoutFiltr = koren.querySelector<HTMLButtonElement>('[data-prepnout-filtr]')!;
-    prepnoutFiltr.addEventListener('click', () => {
-      const otevreno = panelFiltru.hidden;
-      panelFiltru.hidden = !otevreno;
-      prepnoutFiltr.setAttribute('aria-expanded', String(otevreno));
-    });
-
-    koren.querySelector<HTMLInputElement>('[data-vse]')!.addEventListener('change', (e) => {
-      bodyVidet = (e.target as HTMLInputElement).checked;
+    filtry.addEventListener('click', (e) => {
+      const tlacitko = (e.target as HTMLElement).closest<HTMLButtonElement>('.sber-filtr');
+      if (!tlacitko) return;
+      vybranyFiltr = tlacitko.dataset.filtr!;
+      for (const jine of filtry.querySelectorAll('.sber-filtr')) {
+        jine.classList.toggle('je-aktivni', jine === tlacitko);
+      }
       prekresliZnacky();
     });
-
-    for (const prepinac of koren.querySelectorAll<HTMLInputElement>('[data-kategorie][type="checkbox"]')) {
-      prepinac.addEventListener('change', () => {
-        const kategorie = prepinac.dataset.kategorie!;
-        if (prepinac.checked) skryte.delete(kategorie);
-        else skryte.add(kategorie);
-        prekresliZnacky();
-      });
-    }
 
     // --- Stažení ----------------------------------------------------------
 
@@ -965,10 +928,11 @@ const adresaApi = odkaz('/podnety.php');
       tlacitko.addEventListener('click', () => {
         const co = tlacitko.dataset.zoom;
         if (co === 'celek') {
-          pohled.w = nejvetsiSirka();
-          pohled.x = (ROZMER.sirka - pohled.w) / 2;
-          pohled.y = (ROZMER.vyska - pohled.w * pomer()) / 2;
-          vykresli();
+          // Střed pohledu je město, ne střed mapy. Výřez obce je z velké části
+          // pole a když se celý nevejde, oříznout se má ta prázdná půlka —
+          // jinak se oddálením ztratí zrovna to, na co se člověk dívá.
+          // Okraje dorovná `srovnej()`, takže se pohled nikdy nevysune ven.
+          naStred(STRED.x, STRED.y, nejvetsiSirka());
           return;
         }
         const r = mapa.getBoundingClientRect();
