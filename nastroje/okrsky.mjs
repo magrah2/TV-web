@@ -319,9 +319,10 @@ if (chybejici.length) {
 }
 
 // Jemnost mrizky v souradnicich mapy. Jedna jednotka je asi deset metru,
-// takze bunka vyjde zhruba na sirku jednoho domu - jemneji uz nema smysl,
-// hranice stejne obchazi domy podle jejich obrysu.
-const BUNKA = 1;
+// takze pulka je zhruba pet - polovina sirky bezneho domu. Hrubsi mrizka
+// znamena, ze se dva sousedni domy delí o tutez bunku a jeden z nich pak
+// dostane cizi barvu.
+const BUNKA = 0.5;
 // Jak daleko od domu jeste plocha saha. Jedna jednotka mapy je asi deset
 // metru, takze dvacet je zhruba dve ste. Driv to bylo sedesat, tedy pres
 // pul kilometru - plochy se pak roztahovaly hluboko do poli, kde nikdo
@@ -392,6 +393,11 @@ function budovaProBunku(x, y) {
 
   // Vaha 1/d^2, aby blizsi adresy rozhodovaly vyrazneji. Konstanta v jmenovateli
   // brani tomu, aby jedina adresa presne pod polickem prehlasila vsechny ostatni.
+  // Osamely dum v poli si kolem sebe nemá delat kruh pres pul kilometru.
+  // Kdyz jsou v dosahu jen jedna dve adresy, plati polovicni dosah - ve meste
+  // se to neprojevi, tam ma kazda bunka sousedu spoustu.
+  if (nejlepsi.length <= 2 && nejD > (DOSAH / 2) ** 2) return 0;
+
   const hlasy = new Map();
   for (const n of nejlepsi) {
     const vaha = 1 / (n.d + 9);
@@ -605,6 +611,8 @@ for (const [dum, hlasy] of hlasyDomu) {
 /** Otiskne obrysy domu do mrizky. Dum uz hranice oblasti nerozdeli. */
 function otiskniDomy() {
   let bunek = 0;
+  // Dvojice (bunka, budova), ktere se otisknou az uplne nakonec.
+  const nesporne = [];
   for (const dum of domy) {
     if (!dum.budova) continue;
     const odS = Math.max(0, Math.floor(dum.ram.x1 / BUNKA));
@@ -636,6 +644,28 @@ function otiskniDomy() {
       }
     }
 
+    // Druhy pruchod: bunky, jejichz STRED lezi uvnitr domu. Tyhle patri domu
+    // nesporne - obrysy domu se neprekryvaji, takze stred bunky muze byt
+    // uvnitr nejvys jednoho z nich. Otiskuji se az ted a uz je nic neprepise;
+    // bez toho si sousedni dum, ktery prisel na radu pozdeji, obcas vzal
+    // jedinou bunku toho maleho vedle a cely dum pak mel cizi barvu.
+    let nespornych = 0;
+    for (let s = odS; s <= doS; s++) {
+      for (let r = odR; r <= doR; r++) {
+        if (!vObrysu(s * BUNKA + BUNKA / 2, r * BUNKA + BUNKA / 2, dum.obrys)) continue;
+        nesporne.push(r * sloupcu + s, dum.budova);
+        nespornych++;
+      }
+    }
+    // Drobna stavba se nemusi trefit ani do jednoho stredu bunky. Pak si
+    // aspon narokuje tu, ve ktere lezi jeji vlastni stred - jinak by ji
+    // soused prepsal a cely dum by mel cizi barvu.
+    if (!nespornych) {
+      const s = Math.min(sloupcu - 1, Math.max(0, Math.floor((dum.ram.x1 + dum.ram.x2) / 2 / BUNKA)));
+      const r = Math.min(radkuM - 1, Math.max(0, Math.floor((dum.ram.y1 + dum.ram.y2) / 2 / BUNKA)));
+      nesporne.push(r * sloupcu + s, dum.budova);
+    }
+
     // Maly dum se nemusi trefit do zadneho stredu bunky. Aby ani ten nezustal
     // rozpuleny, otiskne se u nej aspon bunka, ve ktere lezi jeho stred.
     if (!trefeno) {
@@ -646,6 +676,8 @@ function otiskniDomy() {
     }
     bunek += trefeno;
   }
+
+  for (let i = 0; i < nesporne.length; i += 2) mrizka[nesporne[i]] = nesporne[i + 1];
   return bunek;
 }
 
@@ -1041,11 +1073,26 @@ function zjednodusHranice(podleOblasti) {
     const klic = 'O' + smerem.map(klicBodu).join(';');
     let hotovy = hotoveUseky.get(klic);
     if (!hotovy) {
+      // U malych smycek se tolerance zkrati podle jejich velikosti. Jinak se
+      // osamely dum uvnitr cizi oblasti - ctverecek o par metrech - zjednodusi
+      // na nic a z mapy zmizi uplne. Presne to se stavalo drobnym stavbam.
+      let x1 = Infinity;
+      let y1 = Infinity;
+      let x2 = -Infinity;
+      let y2 = -Infinity;
+      for (const [x, y] of smerem) {
+        if (x < x1) x1 = x;
+        if (x > x2) x2 = x;
+        if (y < y1) y1 = y;
+        if (y > y2) y2 = y;
+      }
+      const tolerance = Math.min(TOLERANCE, Math.max(x2 - x1, y2 - y1) / 4);
+
       // Zjednodusuje se jako otevrena cara s pripojenym zacatkem na konci,
       // aby zustala uzavrena.
-      const otevrena = zjednodus([...smerem, smerem[0]], TOLERANCE);
+      const otevrena = zjednodus([...smerem, smerem[0]], tolerance);
       otevrena.pop();
-      hotovy = zaoblej(otevrena, true);
+      hotovy = otevrena.length >= 3 ? zaoblej(otevrena, true) : smerem.slice();
       hotoveUseky.set(klic, hotovy);
     }
     if (hotovy.length < 3) return null;

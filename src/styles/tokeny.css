@@ -111,13 +111,20 @@
   /* Barvy oblastí na mapě „kde volit". Jedna barva = jedna volební budova;
      generátor je rozděluje tak, aby dvě sousední oblasti nikdy nedostaly
      stejnou. Zelená mezi nimi schválně není — ta je vyhrazená té oblasti,
-     kterou si člověk vybral, a jinak by nešlo poznat, která je jeho. */
-  --mapa-oblast-1: #2f7fd0;
-  --mapa-oblast-2: #d29a3a;
-  --mapa-oblast-3: #8a7fd0;
-  --mapa-oblast-4: #29a8b8;
-  --mapa-oblast-5: #c4708f;
-  --mapa-oblast-6: #7b93b8;
+     kterou si člověk vybral, a jinak by nešlo poznat, která je jeho.
+
+     Odstíny jsou světlé a syté schválně: plochy leží na tmavé mapě a kreslí
+     se průsvitně, takže středně tmavá barva v podkladu zmizí.
+
+     A modrá tu není vůbec. Mapa je sama modrá — pozadí, voda i silnice —,
+     takže modrá plocha v ní zanikne, ať je jakkoliv světlá. Vyzkoušeno.
+     Tyrkysová projde, ta je dost do zelena, aby se od vody odlišila. */
+  --mapa-oblast-1: #f2795c;
+  --mapa-oblast-2: #e8a83c;
+  --mapa-oblast-3: #a08ff0;
+  --mapa-oblast-4: #2ec6d8;
+  --mapa-oblast-5: #e07ba2;
+  --mapa-oblast-6: #c2a38a;
 
   --varovani: #b3261e;     /* neplatný lístek, chybové stavy */
   --navrh: #a05a00;        /* označení „návrh — k ověření" */

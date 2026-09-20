@@ -211,6 +211,25 @@ const proSkript = {
         Plochy jsou odvozené z adres, nejsou to úřední hranice.
       </p>
 
+      <div class="kdy">
+        <h3>Kdy se volí</h3>
+        <ul>
+          {
+            VOLEBNI_DNY.map((d) => (
+              <li>
+                <strong>{d.den}</strong> {d.datum}
+                <span class="kdy-cas">{d.od}–{d.do}</span>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="kdy-pozn">
+          Ve stejném termínu se volí i do {SOUBEZNE_VOLBY.nazev}. Dostanete tedy dvě sady
+          lístků — druhé kolo senátních voleb je {SOUBEZNE_VOLBY.druheKoloOd} a {SOUBEZNE_VOLBY.druheKoloDo}.
+        </p>
+      </div>
+
+
       {/* Seznam funguje i bez JavaScriptu, kde mapa ani vyhledávač nejedou.
           Hodí se ale i jinak: kdo svoji místnost zná jménem, najde ji tu
           rychleji než klikáním do mapy. */}
@@ -230,24 +249,6 @@ const proSkript = {
           }
         </ol>
       </details>
-
-      <div class="kdy">
-        <h3>Kdy se volí</h3>
-        <ul>
-          {
-            VOLEBNI_DNY.map((d) => (
-              <li>
-                <strong>{d.den}</strong> {d.datum}
-                <span class="kdy-cas">{d.od}–{d.do}</span>
-              </li>
-            ))
-          }
-        </ul>
-        <p class="kdy-pozn">
-          Ve stejném termínu se volí i do {SOUBEZNE_VOLBY.nazev}. Dostanete tedy dvě sady
-          lístků — druhé kolo senátních voleb je {SOUBEZNE_VOLBY.druheKoloOd} a {SOUBEZNE_VOLBY.druheKoloDo}.
-        </p>
-      </div>
     </div>
   </div>
 </section>
@@ -661,8 +662,10 @@ const proSkript = {
      mapa ani vyhledávač nefungují. Hodí se ale i jinak: kdo svoji místnost
      zná jménem, najde ji rychleji v seznamu než klikáním do mapy. */
 
+  /* Žádné odsazení shora: vedle sebe musí obě krabice začínat na stejném
+     řádku. Mezeru mezi nimi dělá `gap` mřížky, a když se dostanou pod sebe
+     (úzký displej), taky. */
   .vsechny-mistnosti {
-    margin-top: clamp(1.25rem, 3vw, 1.75rem);
     border: 1px solid var(--linka-na-noci);
     border-radius: var(--radius-maly);
   }
@@ -706,8 +709,16 @@ const proSkript = {
   @media (min-width: 820px) {
     .pod-mapou {
       grid-template-columns: 1.4fr 1fr;
+      /* Zarovnání nahoru, ne na výšku řádku. Díky tomu rozbalení seznamu
+         místností nikam neposune to, co stojí vedle. */
       align-items: start;
       gap: 2rem;
+    }
+
+    /* Poznámka o zdrojích se vztahuje k mapě nad ní, takže jde přes celou
+       šířku. Pod ní pak stojí vedle sebe „kdy se volí" a seznam místností. */
+    .mapa-zdroj {
+      grid-column: 1 / -1;
     }
   }
 
@@ -872,9 +883,7 @@ const proSkript = {
               barvyOblasti[0],
             ],
             // Průsvitně, aby pod barvou zůstaly vidět ulice a zástavba.
-            // Víc už ne: plochy leží i nad poli a lesy a při vyšší sytosti
-            // se s jejich zelení mísí do khaki.
-            'fill-opacity': 0.26,
+            'fill-opacity': 0.34,
           },
         },
         podUlice,
