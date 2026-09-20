@@ -87,6 +87,28 @@ a zelené z loga a na mapě je nešlo rozlišit. Paleta je širší, ale sdílen
 mapa záměrů i mapa okrsků berou ze stejné sady. Modrá v paletě okrsků není
 vůbec — mapa je sama modrá a plocha v ní zanikne.
 
+**Modrý pruh přes půlku mapy v Chromu.** Vlekl se od nasazení vektorové mapy.
+Objevil se, když mapa vyjela nad horní okraj okna, a zůstal. Jen Chrome,
+v Brave ne, jen na počítači, na všech třech mapách.
+
+Příčina: **lepivá hlavička byla dokonale neprůhledná**. Taková lišta je pro
+prohlížeč clona — co je pod ní, nemusí kreslit. Nad plátnem WebGL si ale
+Chrome vynechávanou část odečítal od špatného konce: kolik mapy zakryla
+hlavička nahoře, tolik jí zmizelo u spodní hrany. Hlavička má proto teď
+pozadí s půl promilem průhlednosti a clonou pro prohlížeč není.
+
+Hledalo se to dlouho a špatně, protože všechno ukazovalo na mapu. Postupně se
+vyloučil podklad stránky, velikost plátna, ztráta kontextu WebGL, chybějící
+dlaždice, zaoblený ořez rámu i `preserveDrawingBuffer`. Rozhodly dvě věci:
+**výpis obsahu plátna přes `toDataURL` vedle živé mapy** (mapa na něm byla
+celá — takže plátno obsah má a nezobrazuje ho prohlížeč) a **změření pruhu
+při dvou polohách rolování** (rostl 1 : 1 s odrolováním, tedy překlopená osa).
+
+Pokusy, které nic neopravily, jsou vrácené: `preserveDrawingBuffer` (byl
+zapnutý právě proti tomuhle pruhu, takže zůstal vypnutý), `overflow: clip`
+místo `hidden`, `will-change` a `translateZ(0)` na plátně i na mapě,
+a `background-attachment: fixed` místo `body::before`.
+
 **Drobnosti:** vybraný bod se schovával pod sousedy (`c13d9eb`), uvedení
 zdrojů bylo černé na tmavé mapě (`aecdc71`, `ff145a9`), horní lišta
 prosvítala (`9b7e993`).
@@ -108,21 +130,6 @@ prosvítala (`9b7e993`).
 
 ## Co zůstává otevřené
 
-- **Modrý pruh přes půlku mapy v Chromu.** Objeví se, když mapa vyjede nad
-  horní okraj okna, a zůstane. Jen Chrome, v Brave ne, i v anonymním okně,
-  na všech třech mapách, jen na počítači. Přišlo to s vektorovou mapou.
-
-  **Co už je vyloučené:** `backdrop-filter` (odstraněn), `triggerRepaint()`
-  při rolování, `preserveDrawingBuffer: true` (je zapnuté, nepomohlo),
-  podklad stránky `body::before` s vlastní kompozitní vrstvou (odstraněn,
-  pruh zůstal).
-
-  Nedaří se to reprodukovat automatem — Playwright si před snímkem vynutí
-  překreslení a chyba tím zmizí. Výpis vrstev přes `LayerTree` ukázal, že
-  plátno mapy je samostatná vrstva uvnitř rámu s `overflow: hidden`
-  a `border-radius`; další na řadě je tenhle zaoblený ořez a `overflow-x:
-  hidden` na `body`. **Chybí měření z prohlížeče, kde je pruh vidět:**
-  jakou barvu pruh má a jestli se změní, když se rámu mapy přebarví pozadí.
 - **Ostrá doména běží na starším sestavení.** Draft na GitHub Pages se
   nasazuje sám, naostro se pouští ručně: Actions → „Naostro na FTP" →
   Run workflow.

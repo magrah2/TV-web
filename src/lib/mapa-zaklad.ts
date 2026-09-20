@@ -108,19 +108,13 @@ export function vytvorMapu({ prvek, stred, zoom, opatrneOvladani = false }: Volb
     attributionControl: false,
     locale: HLASKY,
     /*
-     * Obsah plátna musí přežít vykreslení.
+     * `preserveDrawingBuffer` tu SCHVÁLNĚ NENÍ.
      *
-     * Mapa kreslí přes WebGL a ten po vykreslení plátno standardně zahazuje —
-     * prohlížeč si totiž hotový obrázek odloží stranou a nepotřebuje ho znovu.
-     * Jenže na počítači si plátno drží jako samostatnou vrstvu na grafické
-     * kartě, a když vrstva vyjede nad horní okraj okna, občas si o obrázek
-     * řekne znovu. Tehdy uvidí prázdno a místo mapy zůstane svítit barva
-     * pozadí — vypadá to, jako by mapu něco překrylo, a samo to nezmizí.
-     *
-     * Se starou mapou to nastat nemohlo, ta byla kreslená jako SVG. Na telefonu
-     * se to nestává, tam prohlížeč vrstvy skládá jinak.
+     * Bylo tu zapnuté jako pokus o opravu modrého pruhu přes půlku mapy.
+     * Nepomohlo — příčina byla jinde (neprůhledná lepivá hlavička, viz
+     * `Hlavicka.astro`). Drží to navíc kopii plátna v paměti grafické karty,
+     * takže není důvod ho nechávat zapnuté.
      */
-    preserveDrawingBuffer: true,
   });
   mapa.addControl(new maplibre.AttributionControl({ compact: true }), 'bottom-left');
 

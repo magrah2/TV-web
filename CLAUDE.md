@@ -172,17 +172,21 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   zůstane v původní výšce a u spodní hrany zeje tmavý pruh, ve kterém mapa
   není vykreslená — vypadá to jako lišta přes mapu. Řeší to `ResizeObserver`
   ve `vytvorMapu()`.
-- **Podklad stránky nemá dělat vlastní kompozitní vrstvu.** Býval to
-  `body::before` s `position: fixed` a `z-index: -1`; takový prvek si
-  prohlížeč odloží do samostatné vrstvy přes celé okno, která musí zůstat pod
-  veškerým obsahem — a vedle plátna mapy je to zbytečné riziko. Teď ho nese
-  `background-attachment: fixed` na kořenovém prvku: vypadá stejně, ale kreslí
-  se rovnou na plátno stránky. **Pozor, tohle NEBYLA příčina modrého pruhu
-  přes mapu** — ten přetrval. Je to jen úklid, ne oprava.
-- **Kompozitní vrstvy se dají vypsat přes CDP doménu `LayerTree`.** U chyb,
-  kdy něco „překryje" mapu, je to jediný použitelný pohled: snímek
-  z Playwrightu tuhle třídu chyb zamete, protože si před fotkou vynutí
-  překreslení, a chyba zmizí právě tím.
+- **Lepivá hlavička nesmí být dokonale neprůhledná.** Má proto pozadí
+  `color-mix(… var(--papir) 99.5%, transparent)` — půl promile průhlednosti,
+  okem nerozeznatelné. Dokonale neprůhledná lišta je pro prohlížeč **clona**:
+  co je pod ní, nemusí kreslit. Nad plátnem mapy (WebGL) si ale Chrome tu
+  vynechávanou část odečítal od špatného konce — kolik mapy zakryla hlavička
+  nahoře, tolik jí zmizelo u **spodní** hrany. Vznikl z toho modrý pruh přes
+  půlku mapy, který rostl přesně o tolik, o kolik se odrolovalo. Stálo to
+  několik hodin hledání, protože všechno ukazovalo na mapu — a vadilo to, co
+  mapu **překrývá**.
+- **Když něco „překryje" mapu, nejdřív si vypiš obsah plátna vedle ní.**
+  Stačí `platno.toDataURL()` do `<img>` připíchnutého do rohu okna. Když je
+  na obrázku mapa celá a na stránce pruh, plátno obsah má a nezobrazuje ho
+  prohlížeč — a hledá se ve skládání vrstev, ne v mapě. Tahle jedna zkouška
+  rozhodne dřív než jakékoliv měření rozměrů. Snímky z Playwrightu tuhle
+  třídu chyb naopak zametou: před fotkou si vynutí překreslení a chyba zmizí.
 - **Zdvořilé ovládání platí jen na dotyku.** Na telefonu se mapa posouvá
   dvěma prsty, aby šlo palcem projet stránku. Na počítači ale kolečko
   přibližuje rovnou, bez Ctrl — držet Ctrl nad mapou nikdo nechce. Knihovna

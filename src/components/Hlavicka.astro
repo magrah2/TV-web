@@ -93,7 +93,15 @@ const jeAktivni = (cil: string) => zdeCesta.endsWith(cil.replace(/\/+$/, ''));
        pod sebou, což vypadalo hezky nad textem — jenže nad tmavou mapou nebo
        nad fotkou přes ni prosvítalo tolik, že se odkazy ztrácely. Lišta,
        která je čitelná jen někdy, je horší než lišta bez efektu. */
-    background: var(--papir);
+    /* Půl promile průhlednosti. Okem nerozeznatelné, a je to schválně.
+
+       Dokonale neprůhledná lišta je pro prohlížeč clona: co je pod ní, nemusí
+       kreslit. Jenže nad plátnem mapy si tu vynechávanou část odečítal od
+       špatného konce — kolik mapy zakryla hlavička nahoře, tolik jí zmizelo
+       u SPODNÍ hrany. Odtud modrý pruh přes půlku mapy, který rostl přesně
+       o tolik, o kolik se odrolovalo. Půl promile stačí, aby lišta clonou
+       nebyla a nic se nevynechávalo. */
+    background: color-mix(in srgb, var(--papir) 99.5%, transparent);
     border-bottom: 1px solid var(--linka);
   }
 
