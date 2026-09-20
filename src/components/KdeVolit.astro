@@ -391,8 +391,11 @@ const proSkript = {
   /* ---------- Karta s výsledkem ---------- */
 
   .karta {
-    min-height: 100%;
-    padding: 1rem 1.2rem;
+    /* Vysoká podle obsahu, ne podle sloupce vedle. Dokud se nic nevyhledá,
+       je v ní jediná věta — natažená na výšku vyhledávače v ní zela prázdnota.
+       Spodní hranou si sedne k řádku s adresou, ne k popisku nad ním. */
+    align-self: end;
+    padding: 0.85rem 1.1rem;
     background: rgb(255 255 255 / 0.05);
     border: 1px solid var(--linka-na-noci);
     border-radius: var(--radius);
