@@ -271,6 +271,15 @@ const proSkript = {
     display: grid;
     gap: 1rem;
     align-items: start;
+    /* Výška popisku nad polem pro adresu. O tolik se musí posunout i karta
+       vedle, aby obě krabice začínaly na stejném řádku — jinak jedna visí
+       výš než druhá a je to na první pohled vidět. Řádkování je proto
+       u popisku zapsané natvrdo, ať se výpočet nemá o co rozejít. */
+    --vyska-popisku: calc(var(--text-drobny) * 1.65 + 0.4rem);
+    /* A výška samotného pole, aby karta vedle nebyla o kus nižší. Odvozuje
+       se ze stejných hodnot, jaké pole skutečně má: řádkování, odsazení
+       nahoře i dole a rámeček. */
+    --vyska-pole: calc(var(--text-velky) * 1.65 + 1.6rem + 2px);
     margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
     margin-bottom: 1rem;
   }
@@ -279,6 +288,12 @@ const proSkript = {
     .kde-ovladaci {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 1.5rem;
+    }
+
+    /* Vedle sebe začínají obě krabice na stejném řádku. Pod sebou (na úzkém
+       displeji) by odsazení dělalo jen zbytečnou mezeru. */
+    .karta {
+      margin-top: var(--vyska-popisku);
     }
   }
 
@@ -294,6 +309,7 @@ const proSkript = {
 
   .hledani-popisek {
     display: block;
+    line-height: 1.65;
     margin-bottom: 0.4rem;
     font-size: var(--text-drobny);
     font-weight: 600;
@@ -391,10 +407,12 @@ const proSkript = {
   /* ---------- Karta s výsledkem ---------- */
 
   .karta {
-    /* Vysoká podle obsahu, ne podle sloupce vedle. Dokud se nic nevyhledá,
-       je v ní jediná věta — natažená na výšku vyhledávače v ní zela prázdnota.
-       Spodní hranou si sedne k řádku s adresou, ne k popisku nad ním. */
-    align-self: end;
+    /* Vysoká podle obsahu, ne podle sloupce vedle — natažená na výšku
+       vyhledávače v ní pod jedinou větou zela prázdnota. Nejmíň ale jako
+       pole pro adresu, ať to vedle sebe vypadá jako dvojice. */
+    display: grid;
+    align-content: center;
+    min-height: var(--vyska-pole);
     padding: 0.85rem 1.1rem;
     background: rgb(255 255 255 / 0.05);
     border: 1px solid var(--linka-na-noci);

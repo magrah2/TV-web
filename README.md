@@ -451,10 +451,15 @@ adrese je blíž, procházely by domům přes střechu a na mapě by byla půlka
 jednou barvou a půlka druhou. Generátor si proto přečte obrysy domů z našich
 vlastních dlaždic a každý dům do plochy otiskne celý.
 
-Hranice jsou **rovné a schodovité**, ne zaoblené. Je to záměr: každá oblast se
-počítá zvlášť, takže kdyby se obrys jakkoliv ohýbal, sousední oblasti by se
-rozvedly a mezi plochami by vznikly mezery a překryvy. Rovná čára je méně
-efektní, ale dvě sousední oblasti na ní sedí přesně.
+Hranice se narovnávají **po společných úsecích**, ne po jednotlivých
+oblastech. Kdyby se každá plocha zjednodušila sama za sebe, společná hranice
+dvou sousedů by se u každé z nich ohnula jinam a mezi plochami by vznikly
+mezery a překryvy. Takhle se úsek narovná jednou a obě oblasti na něm sedí
+přesně.
+
+Narovnání má pojistku: **nikdy neprotne dům**. V polích proto udělá dlouhou
+rovnou čáru, mezi domy si nechá tolik detailu, kolik je potřeba. Rohy se
+nakonec jemně zaoblí — malým poloměrem, v měřítku rohu bloku.
 
 ⚠️ **Před každými volbami se musí znovu projít `src/lib/volebni-mistnosti.ts`.**
 Volební místnosti se mezi volbami mění a v otevřených datech nejsou — tenhle

@@ -213,13 +213,17 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   uvnitř mapy, takže klik na ni doputuje i k ní a mapa si pak vybere oblast
   pod kurzorem sama. Plochy se u sebe překrývají, takže klidně jinou, než ke
   které značka patří.
-- **Obrysy oblastí se nevyhlazují ani nezjednodušují.** Každá oblast se
-  zpracovává zvlášť, takže jakákoliv změna tvaru dvě sousední rozvede:
-  společná hranice se u každé z nich ohne jinam a mezi plochami vzniknou
-  mezery a překryvy. Přesně to se na mapě dělo, dokud se obrysy prokládaly
-  křivkou. Zůstalo jen slučování bodů uprostřed rovných úseků, které je
-  **beze ztráty** — čára vede přesně tudy co předtím, jen se popíše méně
-  body. Rovné schodovité hranice jsou méně efektní, ale sedí.
+- **Obrysy se narovnávají po SPOLEČNÝCH ÚSECÍCH, ne po oblastech.** Když se
+  každá oblast zjednoduší sama za sebe, společná hranice dvou sousedů se
+  u každé z nich ohne jinam — a mezi plochami zeje mezera nebo se překrývají.
+  Přesně to se na mapě dělo. Úsek je kus čáry, po kterém spolu sousedí tytéž
+  dvě oblasti; končí tam, kde se hranice větví. Narovná se **právě jednou**
+  a obě oblasti dostanou tentýž výsledek, jedna ho jen prochází pozpátku.
+- **Narovnání ani zaoblení nesmí proseknout dům.** Hranice obchází domy,
+  protože každý se do mřížky otiskne celý — jenže rovná čára si zkrátí cestu
+  a povede rovnou přes střechu. Hlídá to `prosekneDum()`: roh, který by dům
+  protnul, zůstane ostrý. Díky té pojistce může být narovnání smělé (v polích
+  dlouhá rovná čára) a přitom mezi domy zůstane detail.
 - **Z jednoho bodu obrysu může vycházet víc hran.** Stává se to tam, kde se
   dvě části téže oblasti dotýkají rohem. Když se držela jen jedna, smyčky se
   splácly dohromady a obrysem vedla přeložená čára napříč plochou.
