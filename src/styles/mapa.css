@@ -20,6 +20,8 @@
    licenci, dost vedle. */
 .maplibregl-ctrl-attrib {
   background: var(--mapa-lista) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius-maly) 0 0 0;
   font-size: 11px;
 }
@@ -94,9 +96,6 @@
    přikrýt: je to vysvětlení, ne clona. Knihovna ji vykresluje jako velký
    bílý nápis přes celou plochu, což je na tmavé mapě rána do oka. */
 
-/* Bez rozostření pozadí. Nad plátnem mapy (WebGL) umí `backdrop-filter`
-   v prohlížeči při rolování rozmazat i kus plochy okolo — z lišty se pak
-   na okamžik stane modrý pruh přes mapu. Lišta je dost krycí i bez toho. */
 .maplibregl-cooperative-gesture-screen {
   background: var(--mapa-zavoj);
   font: inherit;
