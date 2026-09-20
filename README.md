@@ -53,6 +53,14 @@ Fotky se do frontmatteru nepíšou vůbec — viz další oddíl.
 
 ---
 
+## Kde co hledat
+
+Většina dat na webu není psaná ručně — vyrábějí je skripty a výsledek se
+commituje. Přehled, **který soubor smíte upravit a který se přepíše**, je
+v [DENIK.md](DENIK.md). Je tam i zápis toho, co se kdy měnilo a proč.
+
+---
+
 ## Jak přidat fotky
 
 Fotky z fotoaparátu mají v původní velikosti klidně několik MB každá a do

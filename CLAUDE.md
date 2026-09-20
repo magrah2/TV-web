@@ -4,6 +4,7 @@ Volební web sdružení **Transparentní Vyškov** pro komunální volby
 **9.–10. října 2026**. Statický web postavený v Astru, nasazovaný na GitHub Pages.
 
 Návod pro tým je v [README.md](README.md) — tenhle soubor je pro práci na kódu.
+Čím se co vyrábí a co se kdy měnilo, je v [DENIK.md](DENIK.md).
 
 ---
 
