@@ -118,13 +118,16 @@
 
      A modrá tu není vůbec. Mapa je sama modrá — pozadí, voda i silnice —,
      takže modrá plocha v ní zanikne, ať je jakkoliv světlá. Vyzkoušeno.
-     Tyrkysová projde, ta je dost do zelena, aby se od vody odlišila. */
-  --mapa-oblast-1: #f2795c;
+     Tyrkysová projde, ta je dost do zelena, aby se od vody odlišila.
+
+     Zelená a limetková tu nejsou taky — první je vyhrazená vybrané oblasti
+     a obě splývají s lesy. Červená se zkoušela a na mapě vypadala špatně. */
+  --mapa-oblast-1: #e0679f;
   --mapa-oblast-2: #e8a83c;
   --mapa-oblast-3: #a08ff0;
   --mapa-oblast-4: #2ec6d8;
-  --mapa-oblast-5: #e07ba2;
-  --mapa-oblast-6: #c2a38a;
+  --mapa-oblast-5: #c2a38a;
+  --mapa-oblast-6: #b9a99b;
 
   --varovani: #b3261e;     /* neplatný lístek, chybové stavy */
   --navrh: #a05a00;        /* označení „návrh — k ověření" */

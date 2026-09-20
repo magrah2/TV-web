@@ -48,6 +48,11 @@ const MAPY = [
     nazev: 'nahled-mapa-zameru',
     adresa: 'mapa/',
     popis: 'mapa zameru',
+    // Mapa zameru se sama nastavi tak, aby se veslo vsech patnact bodu
+    // i s rezervou. Na nahledu velikosti palce je pak mesto maly flicek,
+    // takze se jeste kousek priblizi. Cislo je otoceni kolecka - min nez
+    // jeden stupen priblizeni, aby krajni body nevypadly z obrazu.
+    priblizit: 430,
   },
   {
     nazev: 'nahled-mapa-okrsku',
@@ -121,7 +126,19 @@ try {
     );
 
     // Mapa se po zmene rozmeru musi znovu usadit a dokreslit dlazdice.
-    await stranka.waitForTimeout(4000);
+    await stranka.waitForTimeout(3000);
+
+    if (mapa.priblizit) {
+      // Kolecko musi prijit NAD mapu, jinak se jen posune stranka. Stred
+      // ramu se proto zmeri, nedopocitava se z rozmeru snimku.
+      const stred = await stranka.evaluate(() => {
+        const r = document.querySelector('.mapa-plocha').getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      await stranka.mouse.move(stred.x, stred.y);
+      await stranka.mouse.wheel(0, -mapa.priblizit);
+      await stranka.waitForTimeout(2500);
+    }
 
     const kam = path.join(KOREN, 'src/assets', mapa.nazev + '.png');
     await stranka.locator('.mapa-plocha').screenshot({ path: kam });
