@@ -172,6 +172,18 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   zůstane v původní výšce a u spodní hrany zeje tmavý pruh, ve kterém mapa
   není vykreslená — vypadá to jako lišta přes mapu. Řeší to `ResizeObserver`
   ve `vytvorMapu()`.
+- **Přes celé okno nesmí ležet nic, co si vynutí vlastní kompozitní vrstvu.**
+  Podklad stránky býval `body::before` s `position: fixed` a `z-index: -1`.
+  Takový prvek si prohlížeč odloží do samostatné vrstvy přes celé okno, která
+  musí zůstat pod veškerým obsahem. Dokud byly mapy statické SVG, nebylo s čím
+  ji poměřovat — jakmile mapu kreslí WebGL, vznikne vedle ní druhá vrstva
+  a Chrome obě překrývající se vrstvy, každou s jiným chováním při rolování,
+  občas složil ve špatném pořadí: modrý podklad se vykreslil **nad** mapou
+  a zůstal tam. Proto podklad nese `background-attachment: fixed` na kořenovém
+  prvku — vypadá stejně, ale kreslí se rovnou na plátno stránky a žádnou
+  vrstvu navíc nevyrábí. Že jich na mapě zbylo jen nezbytné minimum, se ověří
+  přes CDP doménu `LayerTree`; snímek z Playwrightu tuhle třídu chyb zamete,
+  protože si před fotkou vynutí překreslení.
 - **Zdvořilé ovládání platí jen na dotyku.** Na telefonu se mapa posouvá
   dvěma prsty, aby šlo palcem projet stránku. Na počítači ale kolečko
   přibližuje rovnou, bez Ctrl — držet Ctrl nad mapou nikdo nechce. Knihovna

@@ -14,11 +14,54 @@ html {
   scroll-behavior: smooth;
   /* Aby odkaz na kotvu neschoval nadpis pod lepivou hlavičkou */
   scroll-padding-top: 5.5rem;
+
+  /* --- Podklad stránky ---------------------------------------------------
+     Velmi jemný nádech značkových barev. Leží pod obsahem a je připíchnutý
+     k oknu, takže se při rolování nehýbe a stránka nepůsobí jako list papíru
+     na prázdném stole.
+
+     Je to systém, ne ozdoba: platí na každé stránce stejně. Dřív tu místo
+     toho levitovala jedna velká zelená stopa jen na úvodní stránce —
+     působila náhodně a navíc tutéž stopu nese logo vedle claimu.
+
+     Jen modrá, a jen jedna skvrna. Zelená protiváha v druhém rohu vypadala
+     jako skvrna, ne jako podklad — zelená má na webu svoje místo (řeka na
+     mapě, tečka za claimem, linka pod odkazem), na ploše ji netřeba.
+
+     Skvrna musí být větší než okno a mít těžiště za jeho rohem. Když byla
+     menší, končila kousek pod hlavičkou a zbytek stránky zůstal úplně
+     plochý — tedy k nerozeznání od obyčejné jednobarevné plochy.
+
+     Sytost je schválně na hranici viditelnosti. Kdyby byla vyšší, ubírala
+     by kontrast textu, který na ní leží.
+
+     PROČ JAKO POZADÍ KOŘENE, A NE PŘES `body::before`:
+     Dřív to byl `body::before` s `position: fixed` a `z-index: -1`. Takový
+     prvek si Chrome odloží do vlastní kompozitní vrstvy přes celé okno,
+     která musí zůstat POD veškerým obsahem. Dokud byly mapy statické SVG,
+     nebylo s čím ji poměřovat. Jakmile mapu kreslí WebGL, vznikne vedle ní
+     druhá kompozitní vrstva — a Chrome obě překrývající se vrstvy, každou
+     s jiným chováním při rolování, občas složí ve špatném pořadí. Modrý
+     podklad se pak vykreslí NAD mapou a zůstane tam, dokud něco nevynutí
+     překreslení. Přesně to byl „modrý pruh přes půlku mapy".
+
+     Pozadí kořenového prvku se `background-attachment: fixed` vypadá úplně
+     stejně, ale žádnou vrstvu navíc nevyrábí — kreslí se rovnou na plátno
+     stránky, takže se nemá co s čím prohodit. */
+  background-color: var(--papir);
+  background-image: radial-gradient(
+    135% 115% at -10% -12%,
+    color-mix(in srgb, var(--modra) 25%, transparent),
+    transparent 74%
+  );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 body {
   margin: 0;
-  background: var(--papir);
+  /* Pozadí schválně nemá — nese ho kořenový prvek (viz výše). Kdyby ho mělo
+     i `body`, překrylo by tu skvrnu na celé výšce obsahu. */
   color: var(--inkoust);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: var(--text-zakladni);
@@ -30,37 +73,6 @@ body {
   /* Vodorovné přetečení nesmí nikdy vzniknout — dekorativní prvky
      přesahují přes okraj a bez tohohle by web šel posouvat do stran. */
   overflow-x: hidden;
-}
-
-/* --- Podklad stránky -----------------------------------------------------
-   Velmi jemný nádech značkových barev. Leží pod obsahem a je připíchnutý
-   k oknu, takže se při rolování nehýbe a stránka nepůsobí jako list papíru
-   na prázdném stole.
-
-   Je to systém, ne ozdoba: platí na každé stránce stejně. Dřív tu místo toho
-   levitovala jedna velká zelená stopa jen na úvodní stránce — působila
-   náhodně a navíc tutéž stopu nese logo vedle claimu.
-
-   Sytost je schválně na hranici viditelnosti. Kdyby byla vyšší, ubírala by
-   kontrast textu, který na ní leží. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  /* Jen modrá, a jen jedna skvrna. Zelená protiváha v druhém rohu vypadala
-     jako skvrna, ne jako podklad — zelená má na webu svoje místo (řeka na
-     mapě, tečka za claimem, linka pod odkazem), na ploše ji netřeba.
-
-     Skvrna musí být větší než okno a mít těžiště za jeho rohem. Když byla
-     menší, končila kousek pod hlavičkou a zbytek stránky zůstal úplně plochý —
-     tedy k nerozeznání od obyčejné jednobarevné plochy. */
-  background: radial-gradient(
-    135% 115% at -10% -12%,
-    color-mix(in srgb, var(--modra) 25%, transparent),
-    transparent 74%
-  );
 }
 
 /* --- Nadpisy -------------------------------------------------------------

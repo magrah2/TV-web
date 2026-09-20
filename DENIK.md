@@ -87,6 +87,24 @@ a zelené z loga a na mapě je nešlo rozlišit. Paleta je širší, ale sdílen
 mapa záměrů i mapa okrsků berou ze stejné sady. Modrá v paletě okrsků není
 vůbec — mapa je sama modrá a plocha v ní zanikne.
 
+**Modrý pruh přes půlku mapy v Chromu.** Objevoval se, když mapa vyjela nad
+horní okraj okna, a zůstal tam. Jen Chrome, v Brave ne, i v anonymním okně,
+na všech třech mapách, jen na počítači. Nešlo to reprodukovat snímkováním —
+automatický prohlížeč si před fotkou vynutí překreslení, což přesně tuhle
+třídu chyb zamete.
+
+Našlo se to až výpisem **kompozitních vrstev** přes CDP doménu `LayerTree`:
+podklad stránky (`body::before`, `position: fixed`, `z-index: -1`) měl vlastní
+vrstvu přes celé okno, která musela zůstat pod obsahem. Dokud byly mapy
+statické SVG, nebylo s čím ji poměřovat; s plátnem WebGL vznikla vedle ní
+druhá vrstva a Chrome je občas složil obráceně. Modrý podklad se vykreslil nad
+mapou a zůstal, dokud něco nevynutilo překreslení.
+
+Podklad proto nese `background-attachment: fixed` na kořenovém prvku — vypadá
+stejně, ale kreslí se rovnou na plátno stránky. Vrstev na mapě ubylo z 26 na
+24, na úvodní stránce zbylo 6 a rolování zůstalo hladké (medián snímku 8,3 ms,
+95. percentil 8,4 ms).
+
 **Drobnosti:** vybraný bod se schovával pod sousedy (`c13d9eb`), uvedení
 zdrojů bylo černé na tmavé mapě (`aecdc71`, `ff145a9`), horní lišta
 prosvítala (`9b7e993`).
@@ -108,12 +126,6 @@ prosvítala (`9b7e993`).
 
 ## Co zůstává otevřené
 
-- **Modrý pruh přes mapu v Chromu.** Objeví se, když mapa vyjede nad horní
-  okraj okna, a zůstane. Jen Chrome, v Brave ne, i v anonymním okně. Přišlo
-  to s vektorovou mapou. Zkusilo se `preserveDrawingBuffer` — nepomohlo.
-  Nepodařilo se to reprodukovat ani snímkováním přímo z kompozitoru
-  (automatický prohlížeč si před snímkem vynutí překreslení, což přesně tuhle
-  třídu chyb zamete). **Další krok: snímek obrazovky od někoho, kdo to vidí.**
 - **Ostrá doména běží na starším sestavení.** Draft na GitHub Pages se
   nasazuje sám, naostro se pouští ručně: Actions → „Naostro na FTP" →
   Run workflow.
