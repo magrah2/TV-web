@@ -322,8 +322,12 @@ if (chybejici.length) {
 // takze bunka vyjde zhruba na sirku jednoho domu - jemneji uz nema smysl,
 // hranice stejne obchazi domy podle jejich obrysu.
 const BUNKA = 1;
-const DOSAH = 60;     // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
-const TOLERANCE = 1.2; // jak moc se smi obrys zjednodusit
+// Jak daleko od domu jeste plocha saha. Jedna jednotka mapy je asi deset
+// metru, takze dvacet je zhruba dve ste. Driv to bylo sedesat, tedy pres
+// pul kilometru - plochy se pak roztahovaly hluboko do poli, kde nikdo
+// nebydli. Presah tam byt ma, at oblast nekonci na prahu krajniho domu,
+// ale ne takovy.
+const DOSAH = 20;
 const ZOOM_DLAZDIC = 14; // nejvetsi stazeny zoom, tam jsou obrysy domu
 
 const yJih = merkator(vyrez.jih);
@@ -746,30 +750,39 @@ function obrysy(cil) {
   return smycky;
 }
 
-/** Douglas–Peucker: ze schodu udela primky a rohy. */
-function zjednodus(body, tolerance) {
-  if (body.length < 3) return body;
-  const vzdalenostOdUsecky = (p, a, b) => {
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const delka = dx * dx + dy * dy;
-    if (!delka) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / delka;
-    t = Math.max(0, Math.min(1, t));
-    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-  };
-  const rekurze = (od, do_) => {
-    let nejD = 0;
-    let nejI = -1;
-    for (let i = od + 1; i < do_; i++) {
-      const d = vzdalenostOdUsecky(body[i], body[od], body[do_]);
-      if (d > nejD) { nejD = d; nejI = i; }
-    }
-    if (nejD > tolerance) return [...rekurze(od, nejI), ...rekurze(nejI, do_).slice(1)];
-    return [body[od], body[do_]];
-  };
-  return rekurze(0, body.length - 1);
+/**
+ * Vyhodi body, ktere lezi uprostred rovneho useku.
+ *
+ * Vytrasovany obrys jde po hranach bunek, takze je plny zbytecnych bodu -
+ * kazda rovna cast ma bod na kazdem kroku mrizky. Slouceni je BEZE ZTRATY:
+ * cara vede presne tudy co predtim, jen se popise mene body.
+ *
+ * A prave proto se obrysy nijak jinak nezjednodusuji ani nevyhlazuji.
+ * Kazda oblast se zpracovava zvlast, takze jakakoliv zmena tvaru by dve
+ * sousedni oblasti rozvedla: spolecna hranice by se u kazde z nich ohnula
+ * jinam a mezi plochami by vznikly mezery a prekryvy. Presne to se na mape
+ * delo. Rovne schodovite hranice jsou mene efektni, ale sedi.
+ */
+function slucRovne(body) {
+  const b = body.slice();
+  // Trasovani vraci smycku, ktera konci tam, kde zacala.
+  if (b.length > 1 && b[0][0] === b[b.length - 1][0] && b[0][1] === b[b.length - 1][1]) b.pop();
+  const n = b.length;
+  if (n < 3) return null;
+
+  const vysledek = [];
+  for (let i = 0; i < n; i++) {
+    const pred = b[(i - 1 + n) % n];
+    const ted = b[i];
+    const po = b[(i + 1) % n];
+    // Vektorovy soucin nulovy = tri body v rade.
+    const vRade =
+      (ted[0] - pred[0]) * (po[1] - ted[1]) === (ted[1] - pred[1]) * (po[0] - ted[0]);
+    if (!vRade) vysledek.push(ted);
+  }
+  return vysledek.length >= 3 ? vysledek : null;
 }
+
 
 /** Sousedi okrsku — pro obarveni tak, aby dva sousedni nemely stejnou barvu. */
 const cisla = budovy.map((_, i) => i + 1);
@@ -796,44 +809,6 @@ for (const o of [...cisla].sort((p, q) => (sousede.get(q)?.size ?? 0) - (sousede
   let barva = 0;
   while (obsazene.has(barva) && barva < POCET_BAREV - 1) barva++;
   barvy.set(o, barva);
-}
-
-/**
- * Prolozi vytrasovany obrys hladkou krivkou a rozlozi ji na body.
- *
- * Obrys vytrasovany z mrizky ma na sikmych usecich schody. Douglas-Peucker
- * z nich udela lomenou caru, ale porad jsou videt zuby. Kvadraticke krivky
- * vedene STREDY hran, kde vrcholy slouzi jako ridici body, zuby zaobli.
- *
- * Mapa zna jen lomene cary, takze se krivka hned zase naseka na usecky.
- * Vzorkuje se po tretinach: pri zjednoduseni obrysu je krok kolem patnacti
- * metru, takze tri body na krivku staci a zuby videt nejsou.
- */
-const VZORKU_NA_KRIVKU = 3;
-
-function vyhladNaBody(body) {
-  const b = body.slice();
-  if (b.length > 1 && b[0][0] === b[b.length - 1][0] && b[0][1] === b[b.length - 1][1]) b.pop();
-  const n = b.length;
-  if (n < 3) return null;
-
-  const stred = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-  const kridlo = [stred(b[0], b[1])];
-
-  for (let i = 1; i <= n; i++) {
-    const zacatek = stred(b[(i - 1) % n], b[i % n]);
-    const ridici = b[i % n];
-    const konec = stred(b[i % n], b[(i + 1) % n]);
-    for (let k = 1; k <= VZORKU_NA_KRIVKU; k++) {
-      const t = k / VZORKU_NA_KRIVKU;
-      const u = 1 - t;
-      kridlo.push([
-        u * u * zacatek[0] + 2 * u * t * ridici[0] + t * t * konec[0],
-        u * u * zacatek[1] + 2 * u * t * ridici[1] + t * t * konec[1],
-      ]);
-    }
-  }
-  return kridlo;
 }
 
 /** Opacny smer k `merkator` - z polohy na mape zpatky na zemepisne souradnice. */
@@ -872,9 +847,7 @@ const plochyGeo = [];
 let celkemBodu = 0;
 
 for (const o of cisla) {
-  const smycky = obrysy(o)
-    .map((smycka) => zjednodus(smycka, TOLERANCE))
-    .filter((s) => s.length > 3);
+  const smycky = obrysy(o).map(slucRovne).filter(Boolean);
   if (!smycky.length) continue;
   for (const s of smycky) celkemBodu += s.length;
 
@@ -884,7 +857,7 @@ for (const o of cisla) {
   // takze vnitrni smycka se toci opacne nez vnejsi. V SVG to resi pravidlo
   // `nonzero` samo, GeoJSON ale chce diry vyjmenovane u toho prstence, do
   // ktereho patri - jinak by se vnitrni dvory vyplnily barvou.
-  const kridla = smycky.map(vyhladNaBody).filter(Boolean);
+  const kridla = smycky;
   const vnejsi = kridla.filter((k) => plochaSmycky(k) > 0);
   const diry = kridla.filter((k) => plochaSmycky(k) <= 0);
 
