@@ -15,12 +15,20 @@
  *
  * Vysledky (obojí se commituje, web uz nikam nesaha):
  *   public/data/okrsky.json   adresy pro vyhledavac
- *   public/mapa-okrsky.svg    plochy okrsku jako skutecne vektorove obrysy
+ *   public/data/okrsky-plochy.json   plochy okrsku pro mapu na webu
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { VectorTile } from '@mapbox/vector-tile';
+import Pbf from 'pbf';
+import { VYREZ, MERITKO, merkator } from './vyrez-obce.mjs';
+
+/** Vyrez i jeho prepocet ziji ve `vyrez-obce.mjs`, spolecne s generatorem
+    dlazdic. Kdyby si je kazdy skript drzel sam, plochy okrsku by po zmene
+    vyrezu sedely jinam nez mapa pod nimi. */
+const vyrez = VYREZ;
 
 const KOD_OBCE = '592889'; // Vyskov
 const ZDROJ = `https://services.cuzk.gov.cz/sestavy/VO/${KOD_OBCE}.zip`;
@@ -28,10 +36,16 @@ const DOCASNE = 'nastroje/.okrsky';
 // Data lezi v public/, ne v src/: maji skoro 200 kB a nacita je jen jedna
 // stranka. Vlozena do HTML by zbytecne zvetsila kazdou jinou.
 const CIL = 'public/data/okrsky.json';
-const CIL_PLOCHY = 'public/mapa-okrsky.svg';
+/**
+ * Plochy volebnich oblasti pro mapu na webu.
+ *
+ * Zemepisne souradnice, ne jednotky mapy: mapa se da posouvat a priblizovat,
+ * takze tvary pevne k jednomu vyrezu by byly k nicemu. Vykresluje je MapLibre
+ * jako vlastni vrstvu nad dlazdicemi.
+ */
+const CIL_PLOCHY_GEO = 'public/data/okrsky-plochy.json';
 // Sirsi mapa cele obce — okrsky 24 a 25 (Rychtarov, Lhota) lezi mimo
 // tesny vyrez mesta a na te uzsi mape by je nikdo nenasel.
-const VYREZ_JSON = 'src/lib/mapa-vyrez-obec.json';
 const MISTNOSTI_JSON = 'src/lib/volebni-mistnosti.json';
 const NEJVETSI_ODCHYLKA = 5; // metru; nad tim prevod povazujeme za chybny
 
@@ -277,8 +291,6 @@ const adresyKompaktne = zaznamy
 // Je to priblizeni, ne uredni hranice — na mape ale ukaze presne to, co clovek
 // potrebuje videt: kde konci "muj" okrsek.
 
-if (!fs.existsSync(VYREZ_JSON)) skonci(`Chybi ${VYREZ_JSON}. Spustte nejdriv nastroje/mapa.mjs.`);
-const vyrez = JSON.parse(fs.readFileSync(VYREZ_JSON, 'utf8'));
 
 // Plochy se kresli po BUDOVACH, ne po okrscich. Volice nezajima cislo okrsku,
 // ale do ktere budovy ma jit — a kdyz nekolik okrsku voli na stejnem miste,
@@ -306,13 +318,20 @@ if (chybejici.length) {
   skonci(`Okrsky ${chybejici.join(', ')} nemaji ve ${MISTNOSTI_JSON} volebni mistnost.`);
 }
 
-const BUNKA = 2;      // jemnost mrizky v souradnicich mapy
-const DOSAH = 60;     // dal nez tohle uz adresu za "nejblizsi" nepovazujeme
-const TOLERANCE = 1.6; // jak moc se smi obrys zjednodusit
+// Jemnost mrizky v souradnicich mapy. Jedna jednotka je asi deset metru,
+// takze pulka je zhruba pet - polovina sirky bezneho domu. Hrubsi mrizka
+// znamena, ze se dva sousedni domy delí o tutez bunku a jeden z nich pak
+// dostane cizi barvu.
+const BUNKA = 0.5;
+// Jak daleko od domu jeste plocha saha. Jedna jednotka mapy je asi deset
+// metru, takze dvacet je zhruba dve ste. Driv to bylo sedesat, tedy pres
+// pul kilometru - plochy se pak roztahovaly hluboko do poli, kde nikdo
+// nebydli. Presah tam byt ma, at oblast nekonci na prahu krajniho domu,
+// ale ne takovy.
+const DOSAH = 20;
+const ZOOM_DLAZDIC = 14; // nejvetsi stazeny zoom, tam jsou obrysy domu
 
-const merkator = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 180 / 2));
 const yJih = merkator(vyrez.jih);
-const MERITKO = vyrez.sirka / (vyrez.vychod - vyrez.zapad);
 const naMapu = (lat, lon) => ({
   x: (lon - vyrez.zapad) * MERITKO,
   y: vyrez.vyska - (merkator(lat) - yJih) * (180 / Math.PI) * MERITKO,
@@ -374,6 +393,11 @@ function budovaProBunku(x, y) {
 
   // Vaha 1/d^2, aby blizsi adresy rozhodovaly vyrazneji. Konstanta v jmenovateli
   // brani tomu, aby jedina adresa presne pod polickem prehlasila vsechny ostatni.
+  // Osamely dum v poli si kolem sebe nemá delat kruh pres pul kilometru.
+  // Kdyz jsou v dosahu jen jedna dve adresy, plati polovicni dosah - ve meste
+  // se to neprojevi, tam ma kazda bunka sousedu spoustu.
+  if (nejlepsi.length <= 2 && nejD > (DOSAH / 2) ** 2) return 0;
+
   const hlasy = new Map();
   for (const n of nejlepsi) {
     const vaha = 1 / (n.d + 9);
@@ -406,26 +430,265 @@ const hodnota = (s, r) => (s < 0 || r < 0 || s >= sloupcu || r >= radkuM ? 0 : m
 // Primy test toho, co clovek na mape overuje: "je muj dum v te spravne barve?"
 // Kdyz se to rozejde, je neco spatne v rasterizaci a radeji to rekneme nahlas,
 // nez aby web ukazoval lidem cizi volebni mistnost.
-let sedi = 0;
-const rozchazi = new Map();
-for (const z of zaznamy) {
-  const b = naMapu(z.lat, z.lon);
-  const s = Math.floor(b.x / BUNKA);
-  const r = Math.floor(b.y / BUNKA);
-  const ocekavano = (okrsekNaBudovu.get(z.o) ?? 0);
-  if (hodnota(s, r) === ocekavano) sedi++;
-  else {
-    const k = ulice[z.u] || z.c;
-    rozchazi.set(k, (rozchazi.get(k) ?? 0) + 1);
+function zmerShodu(popis) {
+  let sedi = 0;
+  const rozchazi = new Map();
+  for (const z of zaznamy) {
+    const b = naMapu(z.lat, z.lon);
+    const s = Math.floor(b.x / BUNKA);
+    const r = Math.floor(b.y / BUNKA);
+    if (hodnota(s, r) === (okrsekNaBudovu.get(z.o) ?? 0)) sedi++;
+    else {
+      const k = ulice[z.u] || z.c;
+      rozchazi.set(k, (rozchazi.get(k) ?? 0) + 1);
+    }
+  }
+  const podil = (100 * sedi) / zaznamy.length;
+  info(`${popis}: ${sedi} z ${zaznamy.length} (${podil.toFixed(1)} %)`);
+  if (rozchazi.size) {
+    const nejhorsi = [...rozchazi].sort((a, b) => b[1] - a[1]).slice(0, 6);
+    info('  rozchazi se: ' + nejhorsi.map(([u, n]) => `${u} (${n})`).join(', '));
+  }
+  return podil;
+}
+
+// Nejdriv jak dopadlo samotne hlasovani sousednich adres. Je to mira toho,
+// jak dobre se odhaduje prostor MEZI domy — tam zadny obrys nepomuze.
+zmerShodu('domu ve spravne barve po hlasovani');
+
+// --- Obrysy domu z nasich dlazdic -----------------------------------------
+//
+// Mrizka sama o sobe vede hranici oblasti tudy, kudy zrovna vyjde hlasovani
+// nejblizsich adres — a ta obcas prochazi PRESTRED domu. Na mape to je videt
+// na prvni pohled: pulka domu jedna barva, pulka druha. Obcas dopadne cely
+// dum spatne, protoze ho prehlasuji hustejsi sousedi za rohem.
+//
+// Obrysy domu mame v dlazdicich, ktere uz v repozitari lezi kvuli mape.
+// Kazdy dum se tedy dohleda, priradi se mu okrsek podle adres, ktere v nem
+// jsou, a do mrizky se OTISKNE cely. Hranice pak dum vzdycky obejde.
+
+/** Nacte obrysy domu ze vsech stazenych dlazdic nejvetsiho zoomu. */
+function nactiDomy() {
+  const korenDlazdic = 'public/dlazdice/' + ZOOM_DLAZDIC;
+  if (!fs.existsSync(korenDlazdic)) {
+    skonci('Chybi ' + korenDlazdic + '. Spustte nejdriv nastroje/dlazdice.mjs.');
+  }
+
+  const domy = [];
+  for (const sloupec of fs.readdirSync(korenDlazdic)) {
+    const x = Number(sloupec);
+    if (!Number.isFinite(x)) continue;
+    for (const soubor of fs.readdirSync(path.join(korenDlazdic, sloupec))) {
+      if (!soubor.endsWith('.pbf')) continue;
+      const y = Number(soubor.slice(0, -4));
+      const dlazdice = new VectorTile(
+        new Pbf(fs.readFileSync(path.join(korenDlazdic, sloupec, soubor))),
+      );
+      const vrstva = dlazdice.layers.building;
+      if (!vrstva) continue;
+
+      for (let i = 0; i < vrstva.length; i++) {
+        const tvar = vrstva.feature(i).toGeoJSON(x, y, ZOOM_DLAZDIC);
+        const kusy =
+          tvar.geometry.type === 'Polygon'
+            ? [tvar.geometry.coordinates]
+            : tvar.geometry.coordinates;
+        for (const kus of kusy) {
+          // Diry uvnitr domu nas nezajimaji, staci vnejsi obrys.
+          const obrys = kus[0].map(([lon, lat]) => {
+            const b = naMapu(lat, lon);
+            return [b.x, b.y];
+          });
+          if (obrys.length < 4) continue;
+          domy.push({ obrys, ram: ramObrysu(obrys), budova: 0 });
+        }
+      }
+    }
+  }
+  return domy;
+}
+
+function ramObrysu(obrys) {
+  let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+  for (const [x, y] of obrys) {
+    if (x < x1) x1 = x;
+    if (x > x2) x2 = x;
+    if (y < y1) y1 = y;
+    if (y > y2) y2 = y;
+  }
+  return { x1, y1, x2, y2 };
+}
+
+/** Lezi bod uvnitr obrysu? Klasicky paprsek doprava. */
+function vObrysu(x, y, obrys) {
+  let uvnitr = false;
+  for (let i = 0, j = obrys.length - 1; i < obrys.length; j = i++) {
+    const [xi, yi] = obrys[i];
+    const [xj, yj] = obrys[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) uvnitr = !uvnitr;
+  }
+  return uvnitr;
+}
+
+const domy = nactiDomy();
+
+// Prihradky pres ramy domu, aby se ke kazde adrese nehledalo mezi vsemi.
+const PRIHRADKA_DOMU = 20;
+const prihradkyDomu = new Map();
+for (const dum of domy) {
+  for (let px = Math.floor(dum.ram.x1 / PRIHRADKA_DOMU); px <= Math.floor(dum.ram.x2 / PRIHRADKA_DOMU); px++) {
+    for (let py = Math.floor(dum.ram.y1 / PRIHRADKA_DOMU); py <= Math.floor(dum.ram.y2 / PRIHRADKA_DOMU); py++) {
+      const klic = px + ':' + py;
+      if (!prihradkyDomu.has(klic)) prihradkyDomu.set(klic, []);
+      prihradkyDomu.get(klic).push(dum);
+    }
   }
 }
-const podil = (100 * sedi) / zaznamy.length;
-info(`domu ve spravne barve: ${sedi} z ${zaznamy.length} (${podil.toFixed(1)} %)`);
-if (rozchazi.size) {
-  const nejhorsi = [...rozchazi].sort((a, b) => b[1] - a[1]).slice(0, 6);
-  info('rozchazi se: ' + nejhorsi.map(([u, n]) => `${u} (${n})`).join(', '));
+
+/**
+ * Ke ktere adrese dum patri.
+ *
+ * Adresni bod z RUIAN nelezi vzdycky uvnitr obrysu z OpenStreetMap — obojí
+ * kresli nekdo jiny a par metru se to rozchazi. Proto se nejdriv zkousi
+ * obrys a teprve kdyz bod nikam nepadne, vezme se nejblizsi dum do ODSTUP.
+ */
+const ODSTUP_ADRESY = 1.2; // v jednotkach mapy, tedy asi 12 metru
+
+function domProAdresu(x, y) {
+  const okoli = new Set();
+  const px = Math.floor(x / PRIHRADKA_DOMU);
+  const py = Math.floor(y / PRIHRADKA_DOMU);
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (const dum of prihradkyDomu.get(px + dx + ':' + (py + dy)) ?? []) okoli.add(dum);
+    }
+  }
+  let nejblizsi = null;
+  let nejD = ODSTUP_ADRESY * ODSTUP_ADRESY;
+  for (const dum of okoli) {
+    if (x >= dum.ram.x1 && x <= dum.ram.x2 && y >= dum.ram.y1 && y <= dum.ram.y2) {
+      if (vObrysu(x, y, dum.obrys)) return dum;
+    }
+    // Vzdalenost k ramu staci - obrysy domu jsou skoro obdelniky.
+    const dx = Math.max(dum.ram.x1 - x, 0, x - dum.ram.x2);
+    const dy = Math.max(dum.ram.y1 - y, 0, y - dum.ram.y2);
+    const d = dx * dx + dy * dy;
+    if (d < nejD) {
+      nejD = d;
+      nejblizsi = dum;
+    }
+  }
+  return nejblizsi;
 }
-if (podil < 97) {
+
+// Kazdemu domu se priradi volebni budova podle adres, ktere v nem jsou.
+// Kdyz jich ma vic z ruznych okrsku (bytovy dum na rohu), rozhodne vetsina.
+const hlasyDomu = new Map();
+for (const z of zaznamy) {
+  const b = naMapu(z.lat, z.lon);
+  const dum = domProAdresu(b.x, b.y);
+  if (!dum) continue;
+  if (!hlasyDomu.has(dum)) hlasyDomu.set(dum, new Map());
+  const hlasy = hlasyDomu.get(dum);
+  const budova = okrsekNaBudovu.get(z.o) ?? 0;
+  hlasy.set(budova, (hlasy.get(budova) ?? 0) + 1);
+}
+
+let sAdresou = 0;
+for (const [dum, hlasy] of hlasyDomu) {
+  let vitez = 0;
+  let nejvic = 0;
+  for (const [budova, pocet] of hlasy) {
+    if (pocet > nejvic) {
+      nejvic = pocet;
+      vitez = budova;
+    }
+  }
+  dum.budova = vitez;
+  if (vitez) sAdresou++;
+}
+
+/** Otiskne obrysy domu do mrizky. Dum uz hranice oblasti nerozdeli. */
+function otiskniDomy() {
+  let bunek = 0;
+  // Dvojice (bunka, budova), ktere se otisknou az uplne nakonec.
+  const nesporne = [];
+  for (const dum of domy) {
+    if (!dum.budova) continue;
+    const odS = Math.max(0, Math.floor(dum.ram.x1 / BUNKA));
+    const doS = Math.min(sloupcu - 1, Math.floor(dum.ram.x2 / BUNKA));
+    const odR = Math.max(0, Math.floor(dum.ram.y1 / BUNKA));
+    const doR = Math.min(radkuM - 1, Math.floor(dum.ram.y2 / BUNKA));
+
+    let trefeno = 0;
+    for (let s = odS; s <= doS; s++) {
+      for (let r = odR; r <= doR; r++) {
+        // Nestaci se ptat na stred bunky. Bezny dum je uzsi nez bunka, takze
+        // by se do zadneho stredu netrefil a hranice by mu porad mohla vest
+        // pres strechu. Otiskne se proto kazda bunka, ktere se dum aspon
+        // dotkne — hranice pak vede vedle domu, ne skrz nej.
+        const x = s * BUNKA;
+        const y = r * BUNKA;
+        const dotyka =
+          vObrysu(x + BUNKA / 2, y + BUNKA / 2, dum.obrys) ||
+          vObrysu(x, y, dum.obrys) ||
+          vObrysu(x + BUNKA, y, dum.obrys) ||
+          vObrysu(x, y + BUNKA, dum.obrys) ||
+          vObrysu(x + BUNKA, y + BUNKA, dum.obrys) ||
+          // Dum mensi nez bunka lezi celý uvnitr a zadny jeji roh netrefi.
+          (dum.ram.x1 >= x && dum.ram.x2 <= x + BUNKA &&
+            dum.ram.y1 >= y && dum.ram.y2 <= y + BUNKA);
+        if (!dotyka) continue;
+        mrizka[r * sloupcu + s] = dum.budova;
+        trefeno++;
+      }
+    }
+
+    // Druhy pruchod: bunky, jejichz STRED lezi uvnitr domu. Tyhle patri domu
+    // nesporne - obrysy domu se neprekryvaji, takze stred bunky muze byt
+    // uvnitr nejvys jednoho z nich. Otiskuji se az ted a uz je nic neprepise;
+    // bez toho si sousedni dum, ktery prisel na radu pozdeji, obcas vzal
+    // jedinou bunku toho maleho vedle a cely dum pak mel cizi barvu.
+    let nespornych = 0;
+    for (let s = odS; s <= doS; s++) {
+      for (let r = odR; r <= doR; r++) {
+        if (!vObrysu(s * BUNKA + BUNKA / 2, r * BUNKA + BUNKA / 2, dum.obrys)) continue;
+        nesporne.push(r * sloupcu + s, dum.budova);
+        nespornych++;
+      }
+    }
+    // Drobna stavba se nemusi trefit ani do jednoho stredu bunky. Pak si
+    // aspon narokuje tu, ve ktere lezi jeji vlastni stred - jinak by ji
+    // soused prepsal a cely dum by mel cizi barvu.
+    if (!nespornych) {
+      const s = Math.min(sloupcu - 1, Math.max(0, Math.floor((dum.ram.x1 + dum.ram.x2) / 2 / BUNKA)));
+      const r = Math.min(radkuM - 1, Math.max(0, Math.floor((dum.ram.y1 + dum.ram.y2) / 2 / BUNKA)));
+      nesporne.push(r * sloupcu + s, dum.budova);
+    }
+
+    // Maly dum se nemusi trefit do zadneho stredu bunky. Aby ani ten nezustal
+    // rozpuleny, otiskne se u nej aspon bunka, ve ktere lezi jeho stred.
+    if (!trefeno) {
+      const s = Math.min(sloupcu - 1, Math.max(0, Math.floor((dum.ram.x1 + dum.ram.x2) / 2 / BUNKA)));
+      const r = Math.min(radkuM - 1, Math.max(0, Math.floor((dum.ram.y1 + dum.ram.y2) / 2 / BUNKA)));
+      mrizka[r * sloupcu + s] = dum.budova;
+      trefeno = 1;
+    }
+    bunek += trefeno;
+  }
+
+  for (let i = 0; i < nesporne.length; i += 2) mrizka[nesporne[i]] = nesporne[i + 1];
+  return bunek;
+}
+
+const otisknutych = otiskniDomy();
+info('domu z dlazdic: ' + domy.length + ', z toho s adresou: ' + sAdresou);
+info('  otisknuto bunek: ' + otisknutych);
+
+// A ted to, co uvidi lidi. Tohle uz je ostra podminka: kdyby nesedelo,
+// ukazovali bychom nekomu cizi volebni mistnost.
+const podil = zmerShodu('domu ve spravne barve na mape');
+if (podil < 99.5) {
   skonci(`Na mape by mel ${(100 - podil).toFixed(1)} % domu spatnou barvu. Data se nezapsala.`);
 }
 
@@ -519,31 +782,6 @@ function obrysy(cil) {
   return smycky;
 }
 
-/** Douglas–Peucker: ze schodu udela primky a rohy. */
-function zjednodus(body, tolerance) {
-  if (body.length < 3) return body;
-  const vzdalenostOdUsecky = (p, a, b) => {
-    const dx = b[0] - a[0];
-    const dy = b[1] - a[1];
-    const delka = dx * dx + dy * dy;
-    if (!delka) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / delka;
-    t = Math.max(0, Math.min(1, t));
-    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-  };
-  const rekurze = (od, do_) => {
-    let nejD = 0;
-    let nejI = -1;
-    for (let i = od + 1; i < do_; i++) {
-      const d = vzdalenostOdUsecky(body[i], body[od], body[do_]);
-      if (d > nejD) { nejD = d; nejI = i; }
-    }
-    if (nejD > tolerance) return [...rekurze(od, nejI), ...rekurze(nejI, do_).slice(1)];
-    return [body[od], body[do_]];
-  };
-  return rekurze(0, body.length - 1);
-}
-
 /** Sousedi okrsku — pro obarveni tak, aby dva sousedni nemely stejnou barvu. */
 const cisla = budovy.map((_, i) => i + 1);
 const sousede = new Map(cisla.map((c) => [c, new Set()]));
@@ -572,61 +810,432 @@ for (const o of [...cisla].sort((p, q) => (sousede.get(q)?.size ?? 0) - (sousede
 }
 
 /**
- * Prolozi mnohouhelnik hladkou krivkou.
+ * Jak moc se smi hranice narovnat. Jednotka mapy je asi deset metru.
  *
- * Obrys vytrasovany z mrizky ma na sikmych usecich schody. Douglas-Peucker
- * z nich udela lomenou caru, ale porad jsou videt zuby. Kvadraticke krivky
- * vedene STREDY hran, kde vrcholy slouzi jako ridici body, zuby zaobli
- * a pritom nepridaji ani jeden bod navic.
+ * Vic uz zacne odrezavat rohy bloku domu, min nechava schody z mrizky.
  */
-function vyhlad(body) {
-  // Trasovani vraci smycku, ktera konci tam, kde zacala.
-  const b = body.slice();
-  if (b.length > 1 && b[0][0] === b[b.length - 1][0] && b[0][1] === b[b.length - 1][1]) b.pop();
-  const n = b.length;
-  if (n < 3) return null;
+const TOLERANCE = 2.0;
 
-  const zaokrouhli = ([x, y]) => `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
-  const stred = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+/** Protinaji se dve usecky? Dotyk koncem se za protnuti nepovazuje. */
+function useckySeProtinaji(a, b, c, d) {
+  const smer = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  const s1 = smer(a, b, c);
+  const s2 = smer(a, b, d);
+  const s3 = smer(c, d, a);
+  const s4 = smer(c, d, b);
+  return s1 !== s2 && s3 !== s4 && s1 !== 0 && s2 !== 0 && s3 !== 0 && s4 !== 0;
+}
 
-  let d = 'M' + zaokrouhli(stred(b[0], b[1]));
-  for (let i = 1; i <= n; i++) {
-    const vrchol = b[i % n];
-    const dalsi = b[(i + 1) % n];
-    d += 'Q' + zaokrouhli(vrchol) + ' ' + zaokrouhli(stred(vrchol, dalsi));
+/**
+ * Prosekla by narovnana cara nejaky dum?
+ *
+ * Tohle je pojistka, bez ktere narovnani skodi vic, nez pomaha. Hranice
+ * oblasti obchazi domy, protoze kazdy dum je do mrizky otisknuty cely —
+ * jenze narovnani si zkratilo cestu a vedlo caru rovnou pres strechu.
+ * Na mape pak byla pulka domu jednou barvou a pulka druhou, presne to,
+ * co se opravovalo.
+ *
+ * Diky teto pojistce muze byt narovnani smele: v polich udela dlouhou rovnou
+ * caru, mezi domy si nechá tolik detailu, kolik je potreba.
+ */
+function prosekneDum(a, b) {
+  const x1 = Math.min(a[0], b[0]);
+  const x2 = Math.max(a[0], b[0]);
+  const y1 = Math.min(a[1], b[1]);
+  const y2 = Math.max(a[1], b[1]);
+
+  const okoli = new Set();
+  for (let px = Math.floor(x1 / PRIHRADKA_DOMU); px <= Math.floor(x2 / PRIHRADKA_DOMU); px++) {
+    for (let py = Math.floor(y1 / PRIHRADKA_DOMU); py <= Math.floor(y2 / PRIHRADKA_DOMU); py++) {
+      for (const dum of prihradkyDomu.get(px + ':' + py) ?? []) okoli.add(dum);
+    }
   }
-  return d + 'Z';
+
+  for (const dum of okoli) {
+    if (x2 < dum.ram.x1 || x1 > dum.ram.x2 || y2 < dum.ram.y1 || y1 > dum.ram.y2) continue;
+    const o = dum.obrys;
+    for (let i = 0, j = o.length - 1; i < o.length; j = i++) {
+      if (useckySeProtinaji(a, b, o[j], o[i])) return true;
+    }
+  }
+  return false;
 }
 
-const skupiny = [];
+/** Douglas-Peucker: ze schodu udela rovne cary, vcetne sikmych. */
+function zjednodus(body, tolerance) {
+  if (body.length < 3) return body;
+  const vzdalenostOdUsecky = (p, a, b) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const delka = dx * dx + dy * dy;
+    if (!delka) return Math.hypot(p[0] - a[0], p[1] - a[1]);
+    let t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / delka;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
+  };
+
+  const drzet = new Uint8Array(body.length);
+  drzet[0] = 1;
+  drzet[body.length - 1] = 1;
+  const fronta = [[0, body.length - 1]];
+
+  while (fronta.length) {
+    const [od, do_] = fronta.pop();
+    let nejI = -1;
+    let nejD = tolerance;
+    for (let i = od + 1; i < do_; i++) {
+      const d = vzdalenostOdUsecky(body[i], body[od], body[do_]);
+      if (d > nejD) {
+        nejD = d;
+        nejI = i;
+      }
+    }
+    // Rovna cara sice sedi v toleranci, ale vede pres dum? Pak se stejne
+    // musi rozdelit - jinak by dum zustal napul v jedne a napul v druhe
+    // oblasti.
+    if (nejI < 0) {
+      if (!prosekneDum(body[od], body[do_])) continue;
+      if (do_ - od < 2) continue;
+      nejI = (od + do_) >> 1;
+    }
+    drzet[nejI] = 1;
+    fronta.push([od, nejI], [nejI, do_]);
+  }
+
+  return body.filter((_, i) => drzet[i]);
+}
+
+/**
+ * Zaobleni rohu. Polomer je v jednotkach mapy, jedna je asi deset metru.
+ *
+ * Schvalne maly: zaobluje se v meritku rohu bloku, ne pres pul mesta.
+ * Kdyz se drive obrys proklada hladkou krivkou po cele delce, tvary se
+ * rozteklyy a prestaly sedet na ulice.
+ */
+const POLOMER = 1.1;
+const VZORKU_ROHU = 2;
+
+/**
+ * Srazi ostre rohy kratkym obloukem.
+ *
+ * Krajni body se nechavaji byt - tam usek navazuje na sousedni a musi na nej
+ * sednout presne. Roh, u ktereho by oblouk protnul dum, zustane ostry:
+ * radeji hranaty tvar nez dum napul v jedne a napul v druhe oblasti.
+ */
+function zaoblej(body, uzavrena) {
+  const n = body.length;
+  if (n < 3) return body;
+
+  const vysledek = [];
+  if (!uzavrena) vysledek.push(body[0]);
+
+  const odI = uzavrena ? 0 : 1;
+  const doI = uzavrena ? n - 1 : n - 2;
+
+  for (let i = odI; i <= doI; i++) {
+    const v = body[i];
+    const a = body[(i - 1 + n) % n];
+    const c = body[(i + 1) % n];
+
+    const da = Math.hypot(a[0] - v[0], a[1] - v[1]);
+    const dc = Math.hypot(c[0] - v[0], c[1] - v[1]);
+    if (!da || !dc) {
+      vysledek.push(v);
+      continue;
+    }
+    // Oblouk nesmi ukousnout vic nez polovinu sousedni usecky, jinak by se
+    // dva sousedni rohy prekryly.
+    const ta = Math.min(POLOMER / da, 0.5);
+    const tc = Math.min(POLOMER / dc, 0.5);
+    const p1 = [v[0] + (a[0] - v[0]) * ta, v[1] + (a[1] - v[1]) * ta];
+    const p2 = [v[0] + (c[0] - v[0]) * tc, v[1] + (c[1] - v[1]) * tc];
+
+    if (prosekneDum(p1, p2)) {
+      vysledek.push(v);
+      continue;
+    }
+
+    vysledek.push(p1);
+    for (let k = 1; k < VZORKU_ROHU; k++) {
+      const t = k / VZORKU_ROHU;
+      const u = 1 - t;
+      vysledek.push([
+        u * u * p1[0] + 2 * u * t * v[0] + t * t * p2[0],
+        u * u * p1[1] + 2 * u * t * v[1] + t * t * p2[1],
+      ]);
+    }
+    vysledek.push(p2);
+  }
+
+  if (!uzavrena) vysledek.push(body[n - 1]);
+  return vysledek;
+}
+
+const klicBodu = (p) => p[0] + ',' + p[1];
+
+/** Hodnota mrizky v miste, zadanem v souradnicich mapy. */
+const hodnotaVBode = (x, y) => hodnota(Math.floor(x / BUNKA), Math.floor(y / BUNKA));
+
+/**
+ * Dvojice oblasti, ktere hrana oddeluje - zapsana vzdy stejne.
+ *
+ * Obrysy jsou vedene tak, ze uvnitr oblasti je vpravo od smeru chuze.
+ * Sousedni oblast je tedy vlevo. Zapis nezavisi na tom, ze ktere strany se
+ * hrana prave prochazi, takze obe sousedni oblasti dostanou tentyz klic.
+ */
+function parHrany(p, q) {
+  const dx = Math.sign(q[0] - p[0]);
+  const dy = Math.sign(q[1] - p[1]);
+  const sx = (p[0] + q[0]) / 2;
+  const sy = (p[1] + q[1]) / 2;
+  const a = hodnotaVBode(sx - (dy * BUNKA) / 2, sy + (dx * BUNKA) / 2);
+  const b = hodnotaVBode(sx + (dy * BUNKA) / 2, sy - (dx * BUNKA) / 2);
+  return a < b ? a + ':' + b : b + ':' + a;
+}
+
+/**
+ * Narovna hranice vsech oblasti tak, aby zustaly slepene.
+ *
+ * Tohle je jadro veci. Kdyz se kazda oblast zjednodusi sama za sebe, spolecna
+ * hranice dvou sousedu se u kazdeho z nich ohne jinam - a na mape pak mezi
+ * plochami zeje mezera nebo se prekryvaji. Presne to se dreve delo.
+ *
+ * Proto se nezjednodusuji oblasti, ale USEKY hranice. Usek je kus cary, po
+ * kterem spolu sousedi tytez dve oblasti; konci tam, kde se hranice vetvi
+ * nebo kde zacina sousedit s nekym jinym. Kazdy usek se narovna prave jednou
+ * a obe oblasti, ktere se o nej deli, dostanou tentyz vysledek - jedna ho
+ * jen prochazi pozpatku. Slepene tedy zustanou i po narovnani.
+ */
+function zjednodusHranice(podleOblasti) {
+  // --- Kde se hranice vetvi ---------------------------------------------
+  const hranyUzlu = new Map(); // uzel -> hrany, ktere z nej vychazeji
+  const paryUzlu = new Map(); // uzel -> dvojice oblasti, ktere se v nem potkavaji
+
+  for (const smycky of podleOblasti.values()) {
+    for (const smycka of smycky) {
+      const n = smycka.length;
+      for (let i = 0; i < n; i++) {
+        const p = smycka[i];
+        const q = smycka[(i + 1) % n];
+        const kp = klicBodu(p);
+        const kq = klicBodu(q);
+        const hrana = kp < kq ? kp + '|' + kq : kq + '|' + kp;
+        const par = parHrany(p, q);
+        for (const k of [kp, kq]) {
+          if (!hranyUzlu.has(k)) {
+            hranyUzlu.set(k, new Set());
+            paryUzlu.set(k, new Set());
+          }
+          hranyUzlu.get(k).add(hrana);
+          paryUzlu.get(k).add(par);
+        }
+      }
+    }
+  }
+
+  const jeKrizovatka = (k) => hranyUzlu.get(k).size !== 2 || paryUzlu.get(k).size !== 1;
+
+  // --- Kazdy usek se narovna prave jednou --------------------------------
+  const hotoveUseky = new Map();
+
+  /** Narovna usek a zapamatuje si ho. Opacny smer dostane tentyz tvar. */
+  function usek(body) {
+    const tam = klicBodu(body[0]) <= klicBodu(body[body.length - 1]);
+    const smerem = tam ? body : body.slice().reverse();
+    const klic = smerem.map(klicBodu).join(';');
+
+    let hotovy = hotoveUseky.get(klic);
+    if (!hotovy) {
+      hotovy = zaoblej(zjednodus(smerem, TOLERANCE), false);
+      hotoveUseky.set(klic, hotovy);
+    }
+    return tam ? hotovy : hotovy.slice().reverse();
+  }
+
+  /**
+   * Smycka, na ktere neni zadna krizovatka - treba osamely dum uvnitr cizi
+   * oblasti. Nema kde zacit, takze se zacatek i smer urci podle nejmensiho
+   * bodu; obe sousedni oblasti tak dojdou ke stejnemu tvaru.
+   */
+  function celaSmycka(smycka) {
+    const n = smycka.length;
+    let nej = 0;
+    for (let i = 1; i < n; i++) if (klicBodu(smycka[i]) < klicBodu(smycka[nej])) nej = i;
+
+    const vpred = [];
+    for (let i = 0; i < n; i++) vpred.push(smycka[(nej + i) % n]);
+    const vzad = [vpred[0]];
+    for (let i = n - 1; i >= 1; i--) vzad.push(vpred[i]);
+
+    const tam = klicBodu(vpred[1] ?? vpred[0]) <= klicBodu(vzad[1] ?? vzad[0]);
+    const smerem = tam ? vpred : vzad;
+
+    const klic = 'O' + smerem.map(klicBodu).join(';');
+    let hotovy = hotoveUseky.get(klic);
+    if (!hotovy) {
+      // U malych smycek se tolerance zkrati podle jejich velikosti. Jinak se
+      // osamely dum uvnitr cizi oblasti - ctverecek o par metrech - zjednodusi
+      // na nic a z mapy zmizi uplne. Presne to se stavalo drobnym stavbam.
+      let x1 = Infinity;
+      let y1 = Infinity;
+      let x2 = -Infinity;
+      let y2 = -Infinity;
+      for (const [x, y] of smerem) {
+        if (x < x1) x1 = x;
+        if (x > x2) x2 = x;
+        if (y < y1) y1 = y;
+        if (y > y2) y2 = y;
+      }
+      const tolerance = Math.min(TOLERANCE, Math.max(x2 - x1, y2 - y1) / 4);
+
+      // Zjednodusuje se jako otevrena cara s pripojenym zacatkem na konci,
+      // aby zustala uzavrena.
+      const otevrena = zjednodus([...smerem, smerem[0]], tolerance);
+      otevrena.pop();
+      hotovy = otevrena.length >= 3 ? zaoblej(otevrena, true) : smerem.slice();
+      hotoveUseky.set(klic, hotovy);
+    }
+    if (hotovy.length < 3) return null;
+
+    // Vratit ve smeru, ve kterem smycka prisla - na smeru zavisi, jestli je
+    // to vnejsi obrys, nebo dira.
+    const vysledek = tam ? hotovy.slice() : [hotovy[0], ...hotovy.slice(1).reverse()];
+    return vysledek;
+  }
+
+  // --- Slozeni smycek zpatky ---------------------------------------------
+  const vysledek = new Map();
+
+  for (const [oblast, smycky] of podleOblasti) {
+    const narovnane = [];
+
+    for (const smycka of smycky) {
+      const n = smycka.length;
+      const krizovatky = [];
+      for (let i = 0; i < n; i++) if (jeKrizovatka(klicBodu(smycka[i]))) krizovatky.push(i);
+
+      if (!krizovatky.length) {
+        const cela = celaSmycka(smycka);
+        if (cela) narovnane.push(cela);
+        continue;
+      }
+
+      const body = [];
+      for (let k = 0; k < krizovatky.length; k++) {
+        const od = krizovatky[k];
+        const do_ = krizovatky[(k + 1) % krizovatky.length];
+        const kus = [smycka[od]];
+        let i = od;
+        do {
+          i = (i + 1) % n;
+          kus.push(smycka[i]);
+        } while (i !== do_);
+
+        const narovnany = usek(kus);
+        // Prvni bod uz v seznamu je jako konec predchoziho useku.
+        for (let j = k === 0 ? 0 : 1; j < narovnany.length; j++) body.push(narovnany[j]);
+      }
+      // Posledni bod je tentyz jako prvni - smycka se uzavira sama.
+      if (body.length > 1 && klicBodu(body[0]) === klicBodu(body[body.length - 1])) body.pop();
+      if (body.length >= 3) narovnane.push(body);
+    }
+
+    if (narovnane.length) vysledek.set(oblast, narovnane);
+  }
+
+  return vysledek;
+}
+
+/** Opacny smer k `merkator` - z polohy na mape zpatky na zemepisne souradnice. */
+const zMerkatoru = (y) => 2 * Math.atan(Math.exp(y)) - Math.PI / 2;
+
+/** Bod mapy -> [delka, sirka]. Pet desetinnych mist je zhruba metr. */
+function naZemekouli([x, y]) {
+  const lon = vyrez.zapad + x / MERITKO;
+  const lat = (zMerkatoru(yJih + ((vyrez.vyska - y) / MERITKO) * (Math.PI / 180)) * 180) / Math.PI;
+  return [Math.round(lon * 1e5) / 1e5, Math.round(lat * 1e5) / 1e5];
+}
+
+/** Plocha se znamenkem. Vnitrni smycka se toci opacne nez vnejsi. */
+function plochaSmycky(body) {
+  let dvojnasobek = 0;
+  for (let i = 0; i < body.length; i++) {
+    const [x1, y1] = body[i];
+    const [x2, y2] = body[(i + 1) % body.length];
+    dvojnasobek += x1 * y2 - x2 * y1;
+  }
+  return dvojnasobek / 2;
+}
+
+/** Lezi bod uvnitr smycky? Klasicky paprsek doprava. */
+function uvnitrSmycky([x, y], smycka) {
+  let uvnitr = false;
+  for (let i = 0, j = smycka.length - 1; i < smycka.length; j = i++) {
+    const [xi, yi] = smycka[i];
+    const [xj, yj] = smycka[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) uvnitr = !uvnitr;
+  }
+  return uvnitr;
+}
+
+const plochyGeo = [];
 let celkemBodu = 0;
+
+// Obrysy vsech oblasti najednou. Narovnani potrebuje videt sousedy, jinak by
+// se spolecna hranice u kazde z nich ohnula jinam.
+const suroveObrysy = new Map();
 for (const o of cisla) {
-  const cesty = obrysy(o)
-    .map((smycka) => zjednodus(smycka, TOLERANCE))
-    .filter((s) => s.length > 3)
-    .map((s) => {
-      celkemBodu += s.length;
-      return vyhlad(s);
-    })
-    .filter(Boolean);
-  if (!cesty.length) continue;
+  const s = obrysy(o);
+  if (s.length) suroveObrysy.set(o, s);
+}
+const narovnaneObrysy = zjednodusHranice(suroveObrysy);
+
+for (const o of cisla) {
+  const smycky = narovnaneObrysy.get(o);
+  if (!smycky || !smycky.length) continue;
+  for (const s of smycky) celkemBodu += s.length;
+
   const b = budovy[o - 1];
-  skupiny.push(
-    `  <g class="budova-plocha" data-budova="${o - 1}" data-okrsky="${b.okrsky.join(' ')}" data-barva="${barvy.get(o)}">\n` +
-      `    <path d="${cesty.join('')}"/>\n  </g>`,
-  );
+
+  // Diry. Obrysy jsou vedene tak, ze uvnitr oblasti je vpravo od smeru chuze,
+  // takze vnitrni smycka se toci opacne nez vnejsi. V SVG to resi pravidlo
+  // `nonzero` samo, GeoJSON ale chce diry vyjmenovane u toho prstence, do
+  // ktereho patri - jinak by se vnitrni dvory vyplnily barvou.
+  const kridla = smycky;
+  const vnejsi = kridla.filter((k) => plochaSmycky(k) > 0);
+  const diry = kridla.filter((k) => plochaSmycky(k) <= 0);
+
+  const mnohouhelniky = vnejsi.map((k) => [k]);
+  for (const dira of diry) {
+    const kam = mnohouhelniky.find((m) => uvnitrSmycky(dira[0], m[0]));
+    // Dira, ktera nelezi v zadnem prstenci teze oblasti, je chyba trasovani.
+    // Zahodit ji je mensi zlo nez ji pripsat nahodne plose.
+    if (kam) kam.push(dira);
+  }
+  if (!mnohouhelniky.length) continue;
+
+  plochyGeo.push({
+    type: 'Feature',
+    properties: { budova: o - 1, okrsky: b.okrsky.join(' '), barva: barvy.get(o) },
+    geometry: {
+      type: 'MultiPolygon',
+      coordinates: mnohouhelniky.map((m) =>
+        m.map((prstenec) => {
+          const body = prstenec.map(naZemekouli);
+          // GeoJSON chce prstenec uzavreny - prvni bod se musi zopakovat.
+          body.push(body[0]);
+          return body;
+        }),
+      ),
+    },
+  });
 }
 
-const svgPlochy = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vyrez.sirka} ${vyrez.vyska}" aria-hidden="true" focusable="false">
-<!-- Plochy volebnich okrsku, vygenerovane skriptem nastroje/okrsky.mjs.
-     Jedna plocha = jedna volebni budova (nekolik okrsku muze volit na stejnem
-     miste). Odvozene z adres (CUZK / RUIAN), nejsou to uredni hranice.
-     Needitovat rucne. -->
-${skupiny.join('\n')}
-</svg>
-`;
+fs.writeFileSync(
+  CIL_PLOCHY_GEO,
+  JSON.stringify({ type: 'FeatureCollection', features: plochyGeo }),
+);
 
-fs.writeFileSync(CIL_PLOCHY, svgPlochy);
 
 // ---------------------------------------------------------------------------
 // 5. Zapis
@@ -654,5 +1263,5 @@ fs.writeFileSync(CIL, JSON.stringify(vysledek));
 krok('Hotovo.');
 info(`${CIL}  (${Math.round(fs.statSync(CIL).size / 1024)} kB)`);
 info(`  adres: ${adresyKompaktne.length}, ulic: ${ulice.length}, okrsku: ${okrsky.length}`);
-info(`${CIL_PLOCHY}  (${Math.round(fs.statSync(CIL_PLOCHY).size / 1024)} kB)`);
-info(`  ploch: ${skupiny.length} (budov), bodu obrysu: ${celkemBodu}, barev: ${new Set(barvy.values()).size}`);
+info(`${CIL_PLOCHY_GEO}  (${Math.round(fs.statSync(CIL_PLOCHY_GEO).size / 1024)} kB)`);
+info(`  ploch: ${plochyGeo.length} (budov), bodu obrysu: ${celkemBodu}, barev: ${new Set(barvy.values()).size}`);

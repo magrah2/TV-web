@@ -18,7 +18,7 @@ import { odkaz } from '../lib/odkaz';
 const POLOZKY = [
   { text: 'Program', cil: '/program/' },
   { text: 'Mapa', cil: '/mapa/' },
-  { text: 'Kandidáti', cil: '/lide/' },
+  { text: 'Kandidáti', cil: '/kandidati/' },
   { text: 'Jak volit', cil: '/jak-volit/' },
   { text: 'Kde volit', cil: '/kde-volit/' },
   { text: 'Kontakt', cil: '/kontakt/' },
@@ -89,12 +89,20 @@ const jeAktivni = (cil: string) => zdeCesta.endsWith(cil.replace(/\/+$/, ''));
     position: sticky;
     top: 0;
     z-index: 40;
-    background: rgb(241 245 248 / 0.86);
+    /* Neprůhledná schválně. Dřív hlavička prosvítala a rozostřovala obsah
+       pod sebou, což vypadalo hezky nad textem — jenže nad tmavou mapou nebo
+       nad fotkou přes ni prosvítalo tolik, že se odkazy ztrácely. Lišta,
+       která je čitelná jen někdy, je horší než lišta bez efektu. */
+    /* Půl promile průhlednosti. Okem nerozeznatelné, a je to schválně.
+
+       Dokonale neprůhledná lišta je pro prohlížeč clona: co je pod ní, nemusí
+       kreslit. Jenže nad plátnem mapy si tu vynechávanou část odečítal od
+       špatného konce — kolik mapy zakryla hlavička nahoře, tolik jí zmizelo
+       u SPODNÍ hrany. Odtud modrý pruh přes půlku mapy, který rostl přesně
+       o tolik, o kolik se odrolovalo. Půl promile stačí, aby lišta clonou
+       nebyla a nic se nevynechávalo. */
+    background: color-mix(in srgb, var(--papir) 99.5%, transparent);
     border-bottom: 1px solid var(--linka);
-    /* Rozostřený podklad — text pod hlavičkou prosvítá, ale neruší.
-       Je to ten koncept vrstvení, jen v malém. */
-    backdrop-filter: blur(12px) saturate(1.4);
-    -webkit-backdrop-filter: blur(12px) saturate(1.4);
   }
 
   .hlavicka-vnitrek {

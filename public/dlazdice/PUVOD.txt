@@ -1,0 +1,17 @@
+Vektorove dlazdice a pisma pro mapy na webu
+===========================================
+
+Needitovat rucne. Vyrabi to skript:
+
+    node nastroje/dlazdice.mjs
+
+Zdroj:  https://tiles.openfreemap.org/planet/20260913_164504_pt/{z}/{x}/{y}.pbf
+Zoom:   11 az 14
+Vyrez:  49.2542 - 49.3388 sirky, 16.8995 - 17.0327 delky
+Kdy:    2026-09-19
+
+Je to zamrzly snimek. Kdyz na mape chybi neco noveho, spustte skript znovu.
+
+Data (c) prispevatele OpenStreetMap, licence ODbL.
+Dlazdice (c) OpenMapTiles, sluzba OpenFreeMap (MIT).
+Uvedeni zdroje v rohu mapy je podminka licence - nesmi zmizet.

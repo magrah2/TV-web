@@ -7,6 +7,7 @@
 import Hlavicka from '../components/Hlavicka.astro';
 import Pata from '../components/Pata.astro';
 import { odkaz } from '../lib/odkaz';
+import { nahledSdileni } from '../lib/nahled-sdileni';
 import '../styles/tokeny.css';
 import '../styles/zaklad.css';
 
@@ -38,6 +39,15 @@ const jeDraft = Astro.site?.hostname !== 'transparentnivyskov.cz';
 const skryvatPredVyhledavaci = jeDraft || neindexovat;
 
 const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
+
+/**
+ * Obrázek pro sdílení. Musí to být úplná adresa i s doménou — sociální sítě
+ * si stránku stahují u sebe a adresa `/nahledy/…` by jim nic neřekla.
+ */
+const nahled = new URL(
+  odkaz('/nahledy/' + nahledSdileni(Astro.url.pathname) + '.png'),
+  Astro.site,
+).href;
 ---
 
 <!doctype html>
@@ -58,7 +68,14 @@ const kanonicka = new URL(Astro.url.pathname, Astro.site).href;
     <meta property="og:title" content={celyTitulek} />
     <meta property="og:description" content={popis} />
     <meta property="og:url" content={kanonicka} />
+    <meta property="og:image" content={nahled} />
+    {/* Rozměry se uvádějí schválně: síť pak umí ukázat velký náhled hned,
+        místo aby čekala, než si obrázek sama stáhne a změří. */}
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={celyTitulek} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={nahled} />
 
     <meta name="theme-color" content="#f1f5f8" />
 

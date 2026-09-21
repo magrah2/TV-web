@@ -145,7 +145,11 @@ ol {
   color: var(--na-noci);
 }
 
-.pas-noc a {
+/* Tlačítka se vynechávají schválně: barvu si nesou sama a na obou pozadích
+   má být stejná. Bez `:not` tohle pravidlo přebilo bílý text modrého
+   tlačítka — má vyšší specifičnost než `.tlacitko-hlavni` — a na tmavém pásu
+   z něj dělalo namodralý text na modrém pozadí. */
+.pas-noc a:not(.tlacitko) {
   color: #8fc4ec;
 }
 

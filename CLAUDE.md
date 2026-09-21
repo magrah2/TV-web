@@ -4,6 +4,7 @@ Volební web sdružení **Transparentní Vyškov** pro komunální volby
 **9.–10. října 2026**. Statický web postavený v Astru, nasazovaný na GitHub Pages.
 
 Návod pro tým je v [README.md](README.md) — tenhle soubor je pro práci na kódu.
+Čím se co vyrábí a co se kdy měnilo, je v [DENIK.md](DENIK.md).
 
 ---
 
@@ -83,9 +84,18 @@ když jsem si je vykreslil vedle sebe ve velkém i v cílové velikosti.
 2. **Bez JavaScriptu web funguje.** Medailonky otevírá CSS `:target`,
    odkazy jsou skutečné odkazy. Ovládání, které bez JS nefunguje (filtry),
    je v HTML `hidden` a odkrývá ho až skript — **žádná mrtvá tlačítka**.
-3. **Žádné požadavky ven.** Písmo je self-hosted, mapa bude vlastní SVG.
+3. **Žádné požadavky ven, bez výjimky.** Písmo je self-hosted, mapové
+   dlaždice i písma popisků leží v repozitáři (`public/dlazdice/`,
+   `public/pisma-mapy/`) a stahuje je jednorázově `nastroje/dlazdice.mjs`.
    Web nesmí načítat nic z cizích serverů — je to důvod, proč nepotřebuje
    cookie lištu, a u strany s tímhle názvem to není detail.
+
+   Hlídá to `npm run zkouska`: u obou veřejných map počítá, kolik požadavků
+   odešlo na jiný host, a čeká nulu. Kdyby se někdy do `styl-mapy.ts` vrátila
+   adresa veřejné služby, zkouška spadne.
+
+   Uvedení zdrojů v rohu mapy je podmínka licence OpenStreetMap
+   i OpenMapTiles — **nesmí zmizet.**
 4. **Nic vymyšleného se nevydává za program.** Co jsem odhadl a tým to
    nepotvrdil, musí být viditelně označené jako návrh (`stav: navrh`,
    komentář `# NÁVRH` v datech).
@@ -103,7 +113,7 @@ nevyplněný řádek v šabloně by shodil build.
 ## Odkazy jen přes `odkaz()`
 
 Draft běží v podsložce `/TV-web/`, ostrý web bude v kořeni domény. Odkazy
-psané natvrdo by po přepnutí vedly vedle. Vždy `odkaz('/lide/')`
+psané natvrdo by po přepnutí vedly vedle. Vždy `odkaz('/kandidati/')`
 z `src/lib/odkaz.ts`.
 
 ---
@@ -145,10 +155,10 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   `display: block !important` nestačí. Proto má hlavička dva samostatné prvky:
   vypsané odkazy pro široký displej a `<details>` pro úzký. Kvůli tomuhle
   navigace na počítači jednou zmizela úplně.
-- **Body na mapě se ukládají jako `lat`/`lon`, ne jako procenta.** Procenta
-  platí jen pro jeden výřez; po oddálení mapy by se všechny rozjely.
-  Přepočet dělá `src/lib/mapa.ts` podle `mapa-vyrez.json`, který zapisuje
-  generátor — jeden zdroj pravdy.
+- **Body na mapě se ukládají jako `lat`/`lon`, nikdy v jednotkách mapy.**
+  Mapa se posouvá a přibližuje, takže souřadnice pevné k jednomu výřezu by
+  po prvním posunu ukazovaly jinam. Platí to i pro plochy okrsků — proto je
+  `nastroje/okrsky.mjs` vydává jako GeoJSON, ne jako cesty v SVG.
 - **Odznaky na mapě se nerozestrkávají a v centru se překrývají.** Je to
   záměr. Sedm záměrů leží v okolí náměstí do 400 metrů od sebe a odznak má
   na mapě města průměr skoro tři sta metrů — na tolik odznaků tam místo
@@ -157,22 +167,90 @@ Testuje se i **s vypnutým JavaScriptem** a **na šířce 390 px**.
   náměstí. Přesná poloha je důležitější než mezera mezi odznaky: kdo chce
   mít mezi nimi místo, přiblíží si mapu, a vybraný bod se stejně vytáhne
   dopředu (`z-index` u `.je-zvyrazneny`).
-- **Mapa se zvětšuje `viewBox`em, ne `transform: scale()`.** Se `scale()` si
-  prohlížeč SVG jednou vykreslí do bitmapy a tu pak natahuje — při přiblížení
-  z toho byly kostičky. Značky nad mapou jsou HTML a polohu si přepočítávají
-  podle `viewBox`u. Hlídá to `npm run zkouska`.
+- **Mapa se musí překreslit po každé změně rozměru rámu.** Knihovna sama
+  sleduje jen změnu velikosti okna. Když rám vyroste z jiného důvodu, plátno
+  zůstane v původní výšce a u spodní hrany zeje tmavý pruh, ve kterém mapa
+  není vykreslená — vypadá to jako lišta přes mapu. Řeší to `ResizeObserver`
+  ve `vytvorMapu()`.
+- **Lepivá hlavička nesmí být dokonale neprůhledná.** Má proto pozadí
+  `color-mix(… var(--papir) 99.5%, transparent)` — půl promile průhlednosti,
+  okem nerozeznatelné. Dokonale neprůhledná lišta je pro prohlížeč **clona**:
+  co je pod ní, nemusí kreslit. Nad plátnem mapy (WebGL) si ale Chrome tu
+  vynechávanou část odečítal od špatného konce — kolik mapy zakryla hlavička
+  nahoře, tolik jí zmizelo u **spodní** hrany. Vznikl z toho modrý pruh přes
+  půlku mapy, který rostl přesně o tolik, o kolik se odrolovalo. Stálo to
+  několik hodin hledání, protože všechno ukazovalo na mapu — a vadilo to, co
+  mapu **překrývá**.
+- **Když něco „překryje" mapu, nejdřív si vypiš obsah plátna vedle ní.**
+  Stačí `platno.toDataURL()` do `<img>` připíchnutého do rohu okna. Když je
+  na obrázku mapa celá a na stránce pruh, plátno obsah má a nezobrazuje ho
+  prohlížeč — a hledá se ve skládání vrstev, ne v mapě. Tahle jedna zkouška
+  rozhodne dřív než jakékoliv měření rozměrů. Snímky z Playwrightu tuhle
+  třídu chyb naopak zametou: před fotkou si vynutí překreslení a chyba zmizí.
+- **Zdvořilé ovládání platí jen na dotyku.** Na telefonu se mapa posouvá
+  dvěma prsty, aby šlo palcem projet stránku. Na počítači ale kolečko
+  přibližuje rovnou, bez Ctrl — držet Ctrl nad mapou nikdo nechce. Knihovna
+  umí jen obojí najednou, takže se rozhoduje podle `(pointer: coarse)`.
+- **Značka na mapě nesmí mít vlastní `transform`.** Polohu jí nastavuje
+  knihovna právě přes `transform`; cokoliv vlastního na témže prvku —
+  zvětšení při najetí, blikání — jí ho přepíše a značka odskočí do rohu mapy.
+  Proto je vnější prvek vždycky jen obal bez vzhledu a všechno se děje uvnitř
+  něj. Hlídá to `npm run zkouska`.
+- **Adresa dlaždic musí být úplná, i s doménou.** Nestahuje je stránka, ale
+  vlákno na pozadí, kterému je `/TV-web/…` k ničemu — skončí chybou „Failed
+  to parse URL". Skládá se prostým spojením řetězců, ne přes `new URL`: ten
+  by složené závorky v šabloně zakódoval na `%7B`.
+- **`maxBounds` musí být větší než obec.** Obec je skoro čtvercová, rám mapy
+  na širokém displeji ne — aby se celá vešla na výšku, musí mapa do šířky
+  ukázat skoro dvakrát tolik. Když hranice končila na katastru, mapa se na
+  takový pohled vůbec nedala nastavit a zůstala přiblížená na střed. Proto
+  se u oddálených zoomů stahuje i kus okolních polí.
 - **Plochy na mapě se dělí podle budov, ne podle okrsků.** Voliče nezajímá
   číslo okrsku, ale kam má jít; několik okrsků často volí na stejném místě.
   Slučuje se to už při rasterizaci, jinak by uvnitř jedné oblasti zůstaly
   zbytečné vnitřní hranice.
+- **Hranice oblasti nesmí vést přes dům.** Samotné hlasování sousedních adres
+  ji vede, kudy zrovna vyjde — a od chvíle, kdy mapa kreslí i domy, je na
+  první pohled vidět půlka domu jednou barvou a půlka druhou. Generátor proto
+  čte obrysy domů z našich vlastních dlaždic a každý dům do mřížky **otiskne
+  celý**, včetně buněk, kterých se jen dotkne. Kdyby se ptal jen na střed
+  buňky, běžný dům by se do žádného netrefil a hranice by mu pořád mohla vést
+  přes střechu.
+- **Značková zelená na mapě patří jen nám.** Vybraná volební oblast, odznaky
+  záměrů, body podnětů — nic jiného. Dokud ji měly i parky, hřbitovy
+  a Dinopark, svítily z mapy, jako by to bylo to nejdůležitější ve Vyškově.
+  Pojmenované zelené areály proto mají vlastní `--mapa-areal`, o stupeň
+  světlejší než les.
 - **Zelená na mapě „kde volit" je vyhrazená vybrané oblasti.** V paletě ploch
   proto zelená není — jinak by nešlo poznat, která oblast je ta vaše.
+  Barvy oblastí jsou v tokenech jako `--mapa-oblast-1` až `-6`; mapa je čte
+  přes `BARVY_OBLASTI`, protože plochy nekreslí CSS, ale knihovna.
+- **Klik na značku volební místnosti musí zastavit probublání.** Značka leží
+  uvnitř mapy, takže klik na ni doputuje i k ní a mapa si pak vybere oblast
+  pod kurzorem sama. Plochy se u sebe překrývají, takže klidně jinou, než ke
+  které značka patří.
+- **Obrysy se narovnávají po SPOLEČNÝCH ÚSECÍCH, ne po oblastech.** Když se
+  každá oblast zjednoduší sama za sebe, společná hranice dvou sousedů se
+  u každé z nich ohne jinam — a mezi plochami zeje mezera nebo se překrývají.
+  Přesně to se na mapě dělo. Úsek je kus čáry, po kterém spolu sousedí tytéž
+  dvě oblasti; končí tam, kde se hranice větví. Narovná se **právě jednou**
+  a obě oblasti dostanou tentýž výsledek, jedna ho jen prochází pozpátku.
+- **Narovnání ani zaoblení nesmí proseknout dům.** Hranice obchází domy,
+  protože každý se do mřížky otiskne celý — jenže rovná čára si zkrátí cestu
+  a povede rovnou přes střechu. Hlídá to `prosekneDum()`: roh, který by dům
+  protnul, zůstane ostrý. Díky té pojistce může být narovnání smělé (v polích
+  dlouhá rovná čára) a přitom mezi domy zůstane detail.
 - **Z jednoho bodu obrysu může vycházet víc hran.** Stává se to tam, kde se
   dvě části téže oblasti dotýkají rohem. Když se držela jen jedna, smyčky se
   splácly dohromady a obrysem vedla přeložená čára napříč plochou.
 - **Adresa volební místnosti se hledá nejdřív podle čísla orientačního.**
   Vyhláška píše čísla tak, jak jsou na domech. Stejné číslo existuje i v řadě
   popisných, takže bez toho pořadí trefí „Slovanská 111" dům o 200 m vedle.
+- **Náhled pro sdílení musí být úplná adresa i s doménou.** Sociální síť si
+  stránku stahuje u sebe, takže `/nahledy/mapa.png` by jí nic neřeklo.
+  A z cesty se před hledáním karty musí odstranit `BASE_URL` — na draftu by
+  se jinak první částí cesty stalo `TV-web` a všechny stránky by dostaly
+  výchozí kartu.
 - **Písma patří do `src/`, ne do `public/`.** Odkaz `url('/pisma/…')` v CSS
   by na draftu mířil vedle, protože ten běží v podsložce `/TV-web/`.
   Relativní cesta ze `src/` si nechá adresu dopočítat od Astra. Adresy pro

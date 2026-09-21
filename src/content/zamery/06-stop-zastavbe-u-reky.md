@@ -1,8 +1,8 @@
 ---
 nazev: Stop zástavbě u řeky
 tema: Bydlení
-lat: 49.28201
-lon: 16.99411
+lat: 49.28120
+lon: 16.99610
 stav: overeno
 ---
 

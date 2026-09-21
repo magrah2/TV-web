@@ -2,9 +2,9 @@
 /**
  * Karta kandidáta v mřížce.
  *
- * Odkazuje na kotvu medailonku na stránce /lide/. Díky tomu funguje
+ * Odkazuje na kotvu medailonku na stránce /kandidati/. Díky tomu funguje
  * i bez JavaScriptu: adresa s kotvou otevře medailonek přes CSS `:target`.
- * Skript na stránce /lide/ pak klik převezme a otevře překryv bez odskočení.
+ * Skript na stránce /kandidati/ pak klik převezme a otevře překryv bez odskočení.
  */
 
 import Portret from './Portret.astro';
@@ -20,7 +20,7 @@ interface Props {
 
 const { poradi, jmeno, vek, povolani, foto } = Astro.props;
 
-const cil = `${odkaz('/lide/')}#medailonek-${poradi}`;
+const cil = `${odkaz('/kandidati/')}#medailonek-${poradi}`;
 ---
 
 <article class="karta-kandidata" data-poradi={poradi}>

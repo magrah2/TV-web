@@ -53,6 +53,14 @@ Fotky se do frontmatteru nepíšou vůbec — viz další oddíl.
 
 ---
 
+## Kde co hledat
+
+Většina dat na webu není psaná ručně — vyrábějí je skripty a výsledek se
+commituje. Přehled, **který soubor smíte upravit a který se přepíše**, je
+v [DENIK.md](DENIK.md). Je tam i zápis toho, co se kdy měnilo a proč.
+
+---
+
 ## Jak přidat fotky
 
 Fotky z fotoaparátu mají v původní velikosti klidně několik MB každá a do
@@ -63,14 +71,21 @@ gitu nepatří — jinak by si je při každém stažení repozitáře musel st�
    a uložte do `fotky-original/` — třeba fotka Vojtěcha Lišky
    (`20-vojtech-liska.md`) je `fotky-original/20-vojtech-liska.jpg`.
    Tahle složka se do gitu neukládá (viz `.gitignore`).
-2. Spusťte `npm run zmensit-fotky`. Skript zmenší všechny fotky ze
-   `fotky-original/` na rozumnou velikost a uloží je do
-   `src/assets/portrety/` — tuhle složku už web skutečně používá a
-   commituje se.
+2. **Víc není potřeba.** Zmenšení se pustí samo, jakmile si web pustíte
+   (`npm run nahled`) nebo ho sestavíte. Výsledek jde do
+   `src/assets/portrety/` — tuhle složku už web skutečně používá
+   a commituje se.
+
+   Zmenšuje se jen to nové; hotové fotky se přeskakují. Ručně to jde
+   spustit příkazem `npm run zmensit-fotky`, ale normálně netřeba.
 
 Odtud si web sám vyrobí zmenšeniny pro různé displeje, převede je do
 moderních formátů a doplní ořezy — nic dalšího se nemusí nastavovat. Dokud
 fotka chybí, ukáže se zástupná silueta.
+
+> Dřív se krok 2 musel spouštět ručně a dalo se na něj zapomenout — fotka
+> ležela v `fotky-original/` a na webu pořád svítila silueta. Proto se to
+> teď děje samo.
 
 ---
 
@@ -198,29 +213,31 @@ v záznamu běhu maskuje hvězdičkami, takže by v diagnostickém výpisu nebyl
 vidět, kam se vlastně nahrálo. Jako secret to funguje taky, jen se hůř
 hledají chyby.
 
-Formulář má proto tři přepínače a stojí za to je projít v tomhle pořadí:
+Formulář má proto jeden přepínač, **„Jen zkušební soubor"**. Nahraje jediný
+neškodný textový soubor a vypíše obsah složky, takže ověří přístupy i adresář,
+aniž by na web sáhl. Ten soubor pak jde kdykoliv smazat FTP klientem. Vyplatí
+se ho pustit vždycky, když se mění `FTP_ADRESAR` — je to jediná kontrola, že
+míří tam, kam má.
 
-1. **Jen zkušební soubor** — nahraje jediný neškodný textový soubor a vypíše
-   obsah složky. Ověří přístupy i adresář, aniž by se na web sáhlo. Ten
-   soubor pak jde kdykoliv smazat FTP klientem.
-2. **Jen nanečisto** — vypíše, co by se nahrálo a smazalo, ale nic nezmění.
-3. Bez přepínačů — ostré nahrání. Poprvé k tomu bude potřeba i **Povolit
-   i velký úklid**, protože se běh sám zastaví, když by mazal víc než sto
-   souborů.
+Bez přepínače se web nahraje naostro.
 
-Proti chybě v adresáři je pojistka: běh si nejdřív nanečisto spočítá, kolik
-souborů by smazal, a když jich je sto a víc, zastaví se a vypíše je. Při
-prvním nahrání přes starý WordPress to nastane — je to v pořádku, jen se
-musí seznam zkontrolovat a spustit znovu se zaškrtnutým **„Povolit i velký
-úklid"**.
+### Kolik se toho na server připojuje
 
-Ve shrnutí běhu se rozlišuje **smazat**, **přepsat** a **přeskočit**. Smaže
-se jen to, co na serveru je a ve webu už není; přepsání je nová verze téhož
-souboru, která hned zase vznikne pod stejným jménem, a to číslo bývá vysoké
-a nic zlého neznamená. Přeskočené jsou obrázky a styly, které se nezměnily —
-poznají se podle otisku v názvu a nepřenášejí se znovu. Počítá se to porovnáním seznamu souborů na serveru se seznamem
-souborů ve webu, ne čtením hlášek — dokud se počítaly hlášky, hlásila
-pojistka smazání celého webu i tehdy, když se nemazalo nic.
+Nasazení otevře na FTP **jediné přihlášení**. Není to kosmetika: hosting
+povoluje málo souběžných přihlášení a každé další je zdroj chyb typu
+„Timeout — reconnecting".
+
+Dřív se připojovalo třikrát. Napřed pojistka, která nanečisto spočítala,
+kolik souborů by zrcadlení smazalo, a nad sto se zastavila. Pak samotné
+nahrání. A nakonec kontrola, jestli na serveru leží `.htaccess`.
+
+Obojí navíc je pryč. Pojistka padala častěji, než chránila — procházela celý
+web přes FTP jen kvůli jednomu číslu — a kontrola `.htaccess` odpověděla na
+svoji otázku jednou provždy (viz níže) a dál už jen zabírala spojení.
+
+**Co to znamená:** proti chybě v `FTP_ADRESAR` už nestojí žádná automatická
+brzda. Kdyby mířil jinam než na web, zrcadlení tam smaže, co do webu nepatří.
+Proto ta zkouška zkušebním souborem před každou změnou té hodnoty.
 
 ### Nastavení serveru je součástí webu
 
@@ -239,7 +256,7 @@ webu ještě dlouho po úpravě.
 
 Vzor v souboru míří na ten otisk před příponou, ne na složku `_astro/`,
 protože `FilesMatch` vidí jen jméno souboru, cestu k němu ne. Soubory
-z `public/` jako `mapa-vyskov.svg` ho tedy nesplňují — a je to tak správně,
+z `public/` jako dlaždice map ho tedy nesplňují — a je to tak správně,
 ty se jmenují pořád stejně a obsah se jim měnit může.
 
 Platí tu jedna zásada: **do souboru se nepřidává direktiva „pro jistotu"**.
@@ -324,8 +341,95 @@ takže když se výřez mapy někdy změní, body se posunou samy.
 Když bod omylem umístíte mimo výřez, sestavení se zastaví a napíše který —
 lepší, než aby bod potichu zmizel za okrajem.
 
-Podklad mapy je hotový soubor `public/mapa-vyskov.svg`. Přegenerovat se dá
-příkazem `node nastroje/mapa.mjs`, ale je to potřeba jen při změně výřezu.
+Podklad mapy jsou stažené dlaždice ve složce `public/dlazdice/` — víc o nich
+v kapitole [Podklad map](#podklad-map).
+
+---
+
+## Podklad map
+
+Na webu jsou tři mapy — záměry, volební okrsky a sběr podnětů na stánku —
+a **všechny tři stojí na stejném podkladu**. Dřív měla každá vlastní
+obarvení a rozjížděly se: na jedné byla řeka zelená, na druhé modrá.
+
+Podklad se skládá z **vektorových dlaždic**. Obrázkové dlaždice mají barvy
+zapečené dovnitř a sladit se dají jen filtrem přes celou mapu, který obarví
+i popisky. Vektorové posílají tvary a barvu jim určuje až **náš vlastní
+styl** v `src/lib/styl-mapy.ts` — každá třída silnic, voda, zeleň i domy
+mají barvu z našich tokenů.
+
+### Dlaždice si hostujeme sami
+
+Dlaždice pocházejí z [OpenFreeMap](https://openfreemap.org), ale web si je
+**za běhu odnikud nestahuje**. Jsou stažené jednou a uložené v repozitáři,
+stejně jako dřív hotové SVG. Kdyby se braly z veřejné služby, posílal by
+každý návštěvník svoji IP adresu na cizí server — a padlo by tím pravidlo,
+kvůli kterému web nepotřebuje cookie lištu.
+
+OpenFreeMap s tím přímo počítá: licence je MIT a self-hosting doporučují
+sami. Podmínka je uvedení zdroje, které mapa vykresluje v rohu — **to nesmí
+zmizet**.
+
+Je toho překvapivě málo, protože dlaždice končí na přiblížení 14; bližší
+pohled si prohlížeč dopočítá sám.
+
+| | |
+|---|---|
+| dlaždice (`public/dlazdice/`) | 141 souborů, 3,0 MB |
+| písma popisků (`public/pisma-mapy/`) | 6 souborů, 617 kB |
+| z toho jeden pohled na město | zhruba 4 dlaždice |
+
+Stáhnou se příkazem:
+
+```
+node nastroje/dlazdice.mjs
+```
+
+Je to **zamrzlý snímek světa**. Když na mapě chybí nová ulice, spusťte
+skript znovu a výsledek commitněte; datum posledního stažení je
+v `public/dlazdice/PUVOD.txt`. Výřez území je v `nastroje/vyrez-obce.mjs`
+a sdílí ho i generátor volebních okrsků.
+
+### Bez JavaScriptu
+
+Mapu skládá prohlížeč, takže bez skriptu se nevykreslí. Místo prázdného rámu
+se ukáže obrázek téže mapy a věta, kde najít totéž v textu — seznam záměrů
+i seznam volebních místností jsou obyčejné HTML a fungují dál.
+
+Ty obrázky se vyrábějí **vyfocením skutečné stránky**, takže se s mapou
+nemůžou rozejít. Používají se i jako náhledy na úvodní stránce:
+
+```
+npm run nahled          # v jednom okně
+node nastroje/nahledy-map.mjs
+```
+
+---
+
+## Náhledy pro sdílení
+
+Když někdo hodí odkaz na web do Messengeru, na Facebook nebo na Instagram,
+síť si stránku stáhne a hledá v ní obrázek. Bez něj ukáže holý odkaz — a ten
+na sociálních sítích nikdo neotevře.
+
+Každá hlavní stránka má proto vlastní kartu 1200 × 630: mapa ukáže mapu,
+kandidáti ukážou lidi, „jak volit" ukáže volební lístek. Stránky bez vlastní
+karty dostanou výchozí; medailonek kandidáta zdědí kartu kandidátky.
+
+Karty se vyrábějí tak, že se složí jako obyčejná stránka a vyfotí — mají
+tedy skutečné písmo i barvy webu a obsah se s nimi nemůže rozejít:
+
+```
+npm run nahled          # v jednom okně
+node nastroje/nahledy-sdileni.mjs
+```
+
+Pustit se to musí vždy, když se **změní mapa, lístek, dlaždice programu nebo
+portréty**. Texty na kartách jsou v `nastroje/nahledy-sdileni.mjs`.
+
+⚠️ Facebook si obrázky pamatuje. Když se karta změní, projděte odkaz jeho
+[ladicím nástrojem](https://developers.facebook.com/tools/debug/) a dejte
+„Scrape Again", jinak bude ještě dlouho ukazovat tu starou.
 
 ---
 
@@ -346,13 +450,104 @@ node nastroje/okrsky.mjs
 ```
 
 Skript si sám ověří, že převod souřadnic sedí (porovná ho s adresními body
-z OpenStreetMap) a když ne, skončí chybou a nic nezapíše.
+z OpenStreetMap) a když ne, skončí chybou a nic nezapíše. Na konci navíc
+spočítá, kolik domů by na mapě mělo správnou barvu; pod 99,5 % se data
+nezapíšou vůbec.
+
+Hranice oblastí **obcházejí domy**. Kdyby se vedly jen podle toho, ke které
+adrese je blíž, procházely by domům přes střechu a na mapě by byla půlka domu
+jednou barvou a půlka druhou. Generátor si proto přečte obrysy domů z našich
+vlastních dlaždic a každý dům do plochy otiskne celý.
+
+Hranice se narovnávají **po společných úsecích**, ne po jednotlivých
+oblastech. Kdyby se každá plocha zjednodušila sama za sebe, společná hranice
+dvou sousedů by se u každé z nich ohnula jinam a mezi plochami by vznikly
+mezery a překryvy. Takhle se úsek narovná jednou a obě oblasti na něm sedí
+přesně.
+
+Narovnání má pojistku: **nikdy neprotne dům**. V polích proto udělá dlouhou
+rovnou čáru, mezi domy si nechá tolik detailu, kolik je potřeba. Rohy se
+nakonec jemně zaoblí — malým poloměrem, v měřítku rohu bloku.
 
 ⚠️ **Před každými volbami se musí znovu projít `src/lib/volebni-mistnosti.ts`.**
 Volební místnosti se mezi volbami mění a v otevřených datech nejsou — tenhle
 seznam je jediné místo, kde se udržují ručně.
 
 ---
+
+## Sběr podnětů na stánku
+
+Stránka **`/mapa-napadu/`** je mapa Vyškova, do které jde ťuknutím přidat bod,
+vybrat mu oblast (osm programových plus „Ostatní") a napsat, co s tím místem
+je. Používá se na tabletu při kontaktní kampani.
+
+Mapa je táž jako na ostatních stránkách — viz [Podklad map](#podklad-map).
+Liší se jedinou věcí: ovládá se jedním prstem. Na stánku je mapa to hlavní
+a obsluha do ní ťuká, takže zdvořilé „posuňte dvěma prsty" by jen překáželo.
+
+**Nikde na ni nevede odkaz.** Není v navigaci ani v patičce, nepouští se do
+mapy webu a má `noindex`. Je to ale překážka, ne zámek: repozitář je veřejný,
+takže adresa je dohledatelná. Skutečná ochrana je heslo.
+
+### Jak se zapne
+
+V **Settings → Secrets and variables → Actions** přidejte secret
+**`SBER_HESLO`** a do něj napište heslo, které se pak na stánku zadává.
+Vymyslete si jakékoliv — slouží jen k tomu, aby se ke sběru nedostal někdo,
+kdo najde adresu stránky.
+
+Víc není potřeba. Při nejbližším nasazení se heslo nahraje na server samo,
+do složky `podnety-data` o patro nad webem. Nic se nezakládá ručně přes FTP.
+
+Dokud secret vyplněný není, sběr zůstane vypnutý a stránka to napíše.
+
+Dvě věci, které stojí za to vědět:
+
+- **Heslo není v repozitáři** a nikdy tam být nesmí — ten je veřejný. Žije
+  jen v secrets a na serveru.
+- **Složka je o patro nad webem** proto, aby se k podnětům nikdo nedostal
+  přes prohlížeč, ani kdyby adresu uhodl. Kdyby tam server zapisovat
+  nepustil, použije se složka uvnitř webu — a data se pak ukládají do
+  souboru s příponou `.php`, který začíná `exit`, takže by při stažení
+  vrátil prázdno. Nasazení tu složku v obou případech vynechává, jinak by
+  podněty při každém nahrání zmizely.
+
+### Když server není k dispozici
+
+Na draftu PHP neběží, takže se stránka přepne do **místního režimu**: ukládá
+do prohlížeče, body se nesdílejí a nahoře o tom svítí upozornění. Sběr na
+stánku se tím nezastaví. Tlačítkem **Stáhnout** jdou body kdykoliv vytáhnout
+jako soubor.
+
+### Proč PHP
+
+Body mají být vidět na všech zařízeních naráz, a statický web nemá kam
+zapisovat. PHP na vlastním hostingu je z možností ta nejlevnější: nahraje se
+s webem přes totéž FTP, data zůstanou u nás a nepřibude žádná cizí služba.
+Alternativou bez PHP je vlastní funkce u Cloudflare — jiný účet a druhý
+způsob nasazení. Stránka mluví s jedinou adresou, takže přepsat úložiště je
+změna v jednom souboru.
+
+### Kdyby se sbíralo i online
+
+Zadání počítá se stánkem, ne s veřejným sběrem — a to je dobře, protože
+veřejný sběr má jeden problém, který se technikou neřeší: **někdo to musí
+číst.** Deset podnětů denně je práce na pět minut, tisíc urážek za noc je
+práce na celý den. Kdyby se do toho někdy šlo, dávalo by smysl tohle:
+
+1. **Nic se nezveřejní samo.** Podnět z internetu přistane jako nepotvrzený
+   a na mapě se neukáže, dokud ho někdo z týmu neprojde. Trollovi tím zmizí
+   důvod — nikdo jeho text neuvidí.
+2. **Strop na počet z jedné adresy**, třeba pět za hodinu. Nezastaví to
+   odhodlaného člověka, ale zastaví to skript.
+3. **Žádné odesílání bez rozmyslu** — po odeslání se ukáže, co dorazilo,
+   a že to někdo projde. Lidé, kteří chtějí být slyšet, to ocení; ti druzí
+   ztratí zábavu.
+4. **Mazat smí jen ten, kdo zná heslo.** To už platí teď.
+
+Technicky je to malá změna: přibude příznak „potvrzeno" a na stánku
+tlačítko, kterým se podnět schválí. Vydá to ale práci navíc při každém
+nasazení kampaně, takže bych do toho šel, až bude jasné, že je o sběr zájem.
 
 ## Co ještě chybí
 

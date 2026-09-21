@@ -1,8 +1,8 @@
 ---
 nazev: Družstevní bydlení v Dědicích
 tema: Bydlení
-lat: 49.29421
-lon: 16.97820
+lat: 49.29458
+lon: 16.98139
 stav: overeno
 ---
 
