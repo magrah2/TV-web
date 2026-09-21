@@ -1,9 +1,9 @@
 # QR kódy na tiskoviny. Znak jde do okna v prostředku, moduly se barví po
 # úhlopříčce (vlevo nahoře modrá, vpravo dole zelená).
 #
-#     julia QR_gen.jl                  # jen varianta "logo"
-#     julia QR_gen.jl cerny bez-znaku  # vybrané varianty
-#     julia QR_gen.jl vse              # všechny tři
+#     julia QR_gen.jl                  # všechny varianty
+#     julia QR_gen.jl cerny bily       # vybrané varianty
+#     julia QR_gen.jl vse              # všech pět variant
 #
 # Při jedné variantě se soubory jmenují QR_web.svg, při víc jich dostanou
 # příponu podle varianty (QR_web_cerny.svg).
@@ -20,6 +20,8 @@ const CILE = [
 ]
 
 # Varianty výstupu. Stejné barvy v obou polích znamenají jednobarevný kód.
+# Černý a bílý kód nemají podklad, aby převzaly barvu tiskoviny, na kterou se
+# vloží. Barevný kód si bílý podklad ponechává kvůli kontrastu zelených modulů.
 #
 # Korekce chyb se řídí tím, jestli je uvnitř znak. Se znakem musí být High:
 # zakryté moduly jsou poškození a korekce je musí dopočítat. Bez znaku není
@@ -30,9 +32,11 @@ const CILE = [
 # černobílý podle světlosti, takže kdyby některý barevný kód nešel přečíst,
 # hledá se tady.
 const VARIANTY = [
-    "logo"      => (barvy = ("#1d6eb0", "#5bae39"), znak = true,  korekce = High()),
-    "cerny"     => (barvy = ("#111111", "#111111"), znak = true,  korekce = High()),
-    "bez-znaku" => (barvy = ("#111111", "#111111"), znak = false, korekce = Quartile()),
+    "logo"      => (barvy = ("#1d6eb0", "#5bae39"), znak = true,  korekce = High(),     pozadi = "#ffffff"),
+    "cerny"     => (barvy = ("#111111", "#111111"), znak = true,  korekce = High(),     pozadi = nothing),
+    "bily"      => (barvy = ("#ffffff", "#ffffff"), znak = true,  korekce = High(),     pozadi = nothing),
+    "bez-znaku" => (barvy = ("#111111", "#111111"), znak = false, korekce = Quartile(), pozadi = nothing),
+    "bily-bez-znaku" => (barvy = ("#ffffff", "#ffffff"), znak = false, korekce = Quartile(), pozadi = nothing),
 ]
 
 const OKRAJ = 3           # klidová zóna; 4 moduly jsou minimum normy
@@ -103,7 +107,7 @@ function sestav(matice, zn, varianta)
 
     join(filter(!isempty, [
         """<svg xmlns="http://www.w3.org/2000/svg" width="$px" height="$px" viewBox="0 0 $n $n">""",
-        """<rect width="$n" height="$n" fill="#ffffff"/>""",
+        isnothing(varianta.pozadi) ? "" : """<rect width="$n" height="$n" fill="$(varianta.pozadi)"/>""",
         ("""<path fill="$b" shape-rendering="crispEdges" d="$(tahy(m))"/>""" for (b, m) in cesty)...,
         okno,
         "</svg>",
@@ -111,7 +115,7 @@ function sestav(matice, zn, varianta)
 end
 
 nazvy = first.(VARIANTY)
-vybrane = isempty(ARGS) ? ["logo"] : ("vse" in ARGS ? nazvy : ARGS)
+vybrane = isempty(ARGS) ? nazvy : ("vse" in ARGS ? nazvy : ARGS)
 for jm in vybrane
     jm in nazvy || error("Neznama varianta: $jm. K dispozici: " * join(nazvy, ", ") * ", vse")
 end

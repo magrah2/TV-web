@@ -21,7 +21,6 @@ for (const cesta of soubory) {
   // vyslo cele cislo pixelu.
   const px = Number(svg.toString('utf8').match(/<svg[^>]*\bwidth="(\d+)"/)[1]);
   const vystup = cesta.replace(/\.svg$/i, '.png');
-  await sharp(svg).resize(px, px).flatten({ background: '#ffffff' })
-    .png({ compressionLevel: 9 }).toFile(vystup);
+  await sharp(svg).resize(px, px).png({ compressionLevel: 9 }).toFile(vystup);
   console.log(`  ${basename(vystup)}  ${px}x${px} px`);
 }
