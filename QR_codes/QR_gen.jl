@@ -16,6 +16,7 @@ using QRCoders
 const CILE = [
     ("QR_web",     "HTTPS://TRANSPARENTNIVYSKOV.CZ"),
     ("QR_program", "https://transparentnivyskov.cz/program/"),
+    ("QR_stanek", "https://transparentnivyskov.cz/mapa-napadu/"),
 ]
 
 # Varianty výstupu. Stejné barvy v obou polích znamenají jednobarevný kód.
